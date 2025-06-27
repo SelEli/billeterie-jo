@@ -1,0 +1,39 @@
+# Dépendances Node
+node_modules/
+
+# Variables d'environnement
+.env
+
+# Fichiers système / logs
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests / coverage
+coverage/
+*.test.js
+
+# Docker
+*.env.local
+docker-compose.override.yml
+
+# OS spécifique
+Thumbs.db
+
+# Fichiers de build
+build/
+dist/
+
+# Dossiers liés à des éditeurs
+.vscode/
+.idea/
+
+# Cache de test
+.jest/
+.cache/
+
+# Archives accidentelles
+*.zip
+*.tar.gz
