@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "setup": "node scripts/setup/generate-kafka.cjs && node scripts/setup/generate-redis.cjs && node scripts/setup/generate-logger.cjs && node scripts/setup/generate-validateBody.cjs && node scripts/setup/generate-schemas.cjs && node scripts/setup/generate-swagger.cjs",
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "NODE_ENV=test jest --runInBand --detectOpenHandles"
