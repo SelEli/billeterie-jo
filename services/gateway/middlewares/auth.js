@@ -1,14 +1,14 @@
-const { verifierToken } = require('../utils/jwt');
+// middlewares/auth.js
+const jwt = require('jsonwebtoken');
 
-function authMiddleware(req, res, next) {
+module.exports = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Token manquant' });
+  if (!token) return res.status(401).json({ message: 'Missing token.' });
 
-  const decoded = verifierToken(token);
-  if (!decoded) return res.status(403).json({ error: 'Token invalide ou expiré' });
-
-  req.user = decoded;
-  next();
-}
-
-module.exports = authMiddleware;
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (err) {
+    res.status(403).json({ message: 'Invalid token.' });
+  }
+};
