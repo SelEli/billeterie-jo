@@ -1,17 +1,17 @@
-const { Kafka } = require('kafkajs');
 const { createLogger, format, transports } = require('winston');
 const { randomBytes } = require('crypto');
-
-const kafka = new Kafka({ clientId: 'user-service', brokers: ['localhost:9092'] });
-const producer = kafka.producer();
-
-producer.connect();
+const kafka = require('./kafka'); // ← ne doit PAS se connecter ici
 
 const publishKafkaEvent = async (topic, payload) => {
+  const producer = kafka.producer();
+  await producer.connect();
+
   await producer.send({
     topic,
     messages: [{ value: JSON.stringify(payload) }]
   });
+
+  await producer.disconnect();
 };
 
 const logger = createLogger({
@@ -29,7 +29,7 @@ const logger = createLogger({
 const generateInvisibleKey = () => randomBytes(32).toString('hex');
 
 module.exports = {
-  publishKafkaEvent,
   logger,
+  publishKafkaEvent,
   generateInvisibleKey
 };

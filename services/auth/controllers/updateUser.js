@@ -4,11 +4,16 @@ const { logger } = require('../services');
 
 const prisma = new PrismaClient();
 
-
 const updateUser = async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const { firstName, lastName, email, password, birthDate, role } = req.body;
+
+    const existing = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
+      logger.warn(`User not found for update [id=${userId}]`);
+      return res.status(404).json({ message: 'User not found.' });
+    }
 
     const data = {};
     if (firstName) data.firstName = firstName;

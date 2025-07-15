@@ -1,21 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middlewares');
-const validateBody = require('../middlewares');
 
-const { registerUser } = require('../controllers/registerUser');
-const { loginUser } = require('../controllers/loginUser');
-const { getProfile } = require('../controllers/getProfile');
-const { updateProfile } = require('../controllers/updateProfile');
-const { deleteProfile } = require('../controllers/deleteProfile');
+const auth = require('../middlewares/auth');
+const validateBody = require('../middlewares/validateBody');
 
-const { registerUserSchema } = require('../schemas/registerUserSchema');
-const { updateUserSchema } = require('../schemas/updateUserSchema');
+const createUserSchema = require('../schemas/createUserSchema');
+const updateUserSchema = require('../schemas/updateUserSchema');
+const updateProfileSchema = require('../schemas/updateProfileSchema');
 
-router.post('/register', validateBody(registerUserSchema), registerUser);
-router.post('/login', loginUser);
-router.get('/profile', auth, getProfile);
-router.put('/profile', auth, validateBody(updateUserSchema), updateProfile);
-router.delete('/profile', auth, deleteProfile);
+const { createUser } = require('../controllers/createUser');
+const { readUser } = require('../controllers/readUser');
+const { updateUser } = require('../controllers/updateUser');
+const { deleteUser } = require('../controllers/deleteUser');
+
+router.post('/', validateBody(createUserSchema), createUser);
+router.get('/:id', auth, readUser);
+router.put('/:id', auth, validateBody(updateUserSchema), updateUser);
+router.delete('/:id', auth, deleteUser);
 
 module.exports = router;
