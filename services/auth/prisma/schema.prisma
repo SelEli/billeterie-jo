@@ -8,12 +8,25 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  firstName String?
-  lastName  String?
-  role      String   @default("employee")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  hash            String
+  firstName       String?
+  lastName        String?
+  birthDate       DateTime?
+  role            Role     @default(EMPLOYEE)
+  invisibleKey    String
+  lastLogin       DateTime?
+  isBlacklisted   Boolean  @default(false)
+  blacklistReason String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
+
+enum Role {
+  USER
+  ADMIN
+  EMPLOYEE
+  AGENT
+}
+

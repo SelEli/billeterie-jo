@@ -5,8 +5,12 @@ const updateUserSchema = z.object({
   password: z.string().min(6).optional(),
   firstName: z.string().min(1).max(50).optional(),
   lastName: z.string().min(1).max(50).optional(),
-  role: z.enum(['user', 'employee', 'admin']).optional()
-})
-.strict();
+  birthDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: 'Date de naissance invalide'
+  }).optional(),
+  role: z.enum(['USER', 'ADMIN', 'AGENT', 'EMPLOYEE']).optional(),
+  isBlacklisted: z.boolean().optional(),
+  blacklistReason: z.string().max(255).optional()
+}).strict();
 
 module.exports = updateUserSchema;

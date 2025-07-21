@@ -1,0 +1,16 @@
+services:
+  gateway:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - kafka
+      - redis
+    networks:
+      - jo-net
+
+networks:
+  jo-net:
+    external: true

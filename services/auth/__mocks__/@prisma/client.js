@@ -4,7 +4,15 @@ const userMock = {
     email: 'testuser@example.com',
     firstName: 'Test',
     lastName: 'User',
-    role: 'employee'
+    role: 'employee',
+    invisibleKey: 'abc123xyz',
+    lastLogin: null,
+    isBlacklisted: false,
+    blacklistReason: null,
+    birthDate: '1995-05-10T00:00:00.000Z',
+    password: 'hashedpw',
+    createdAt: new Date(),
+    updatedAt: new Date()
   }),
 
   findUnique: jest.fn().mockResolvedValue({
@@ -12,7 +20,15 @@ const userMock = {
     email: 'testuser@example.com',
     firstName: 'Updated',
     lastName: 'User',
-    role: 'employee'
+    role: 'employee',
+    invisibleKey: 'abc123xyz',
+    lastLogin: new Date(),
+    isBlacklisted: false,
+    blacklistReason: null,
+    birthDate: '1995-05-10T00:00:00.000Z',
+    password: 'hashedpw',
+    createdAt: new Date(),
+    updatedAt: new Date()
   }),
 
   update: jest.fn().mockResolvedValue({
@@ -20,7 +36,15 @@ const userMock = {
     email: 'testuser@example.com',
     firstName: 'Updated',
     lastName: 'User',
-    role: 'employee'
+    role: 'admin',
+    invisibleKey: 'abc123xyz',
+    lastLogin: new Date(),
+    isBlacklisted: false,
+    blacklistReason: null,
+    birthDate: '1995-05-10T00:00:00.000Z',
+    password: 'newhash',
+    createdAt: new Date(),
+    updatedAt: new Date()
   }),
 
   delete: jest.fn().mockResolvedValue({

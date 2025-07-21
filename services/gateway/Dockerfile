@@ -1,9 +1,7 @@
-FROM node:18-alpine
-
+# pour les deux services
+FROM node:20
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
 COPY . .
-
+RUN npm install
 EXPOSE 3000
-CMD ["node", "src/index.js"]
+CMD ["npm", "run", "dev"]
