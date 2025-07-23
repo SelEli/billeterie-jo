@@ -8,7 +8,7 @@ const updateUserSchema = z.object({
   birthDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'Date de naissance invalide'
   }).optional(),
-  role: z.enum(['USER', 'ADMIN', 'AGENT', 'EMPLOYEE']).optional(),
+  role: z.enum(['USER', 'ADMIN', 'AGENT', 'EMPLOYEE', 'VISITOR']).optional(),
   isBlacklisted: z.boolean().optional(),
   blacklistReason: z.string().max(255).optional()
 }).strict();

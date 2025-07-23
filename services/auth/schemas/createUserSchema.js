@@ -11,7 +11,7 @@ const createUserSchema = z.object({
   }, {
     message: 'Date de naissance invalide. Format attendu : YYYY-MM-DD'
   }),
-  role: z.enum(['USER', 'ADMIN', 'AGENT', 'EMPLOYEE'], {
+  role: z.enum(['USER', 'ADMIN', 'AGENT', 'EMPLOYEE', 'VISITOR'], {
     errorMap: () => ({ message: 'Rôle invalide' })
   })
 });

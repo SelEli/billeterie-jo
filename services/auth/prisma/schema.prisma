@@ -14,7 +14,7 @@ model User {
   firstName       String?
   lastName        String?
   birthDate       DateTime?
-  role            Role     @default(EMPLOYEE)
+  role            Role     @default(VISITOR)
   invisibleKey    String
   lastLogin       DateTime?
   isBlacklisted   Boolean  @default(false)
@@ -24,6 +24,7 @@ model User {
 }
 
 enum Role {
+  VISITOR
   USER
   ADMIN
   EMPLOYEE
