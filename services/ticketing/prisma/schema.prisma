@@ -1,4 +1,91 @@
+// ----------------------
+// Prisma configuration
+// ----------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
-  provider = "postgresql" // ou "mysql", "sqlite", etc.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ----------------------
+// Enumérations
+// ----------------------
+
+enum Role {
+  VISITOR
+  USER
+  ADMIN
+  EMPLOYEE
+  AGENT
+}
+
+enum TicketStatus {
+  RESERVED
+  VALID
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+// ----------------------
+// Modèles
+// ----------------------
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  hash            String
+  firstName       String?
+  lastName        String?
+  birthDate       DateTime?
+  role            Role      @default(VISITOR)
+  invisibleKey    String
+  lastLogin       DateTime?
+  isBlacklisted   Boolean   @default(false)
+  blacklistReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tickets         Ticket[]  // Relation vers Ticket
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  name      String
+  date      DateTime
+  location  String
+
+  tickets   Ticket[]  // Tickets liés à cet événement
+}
+
+model Offer {
+  id        Int      @id @default(autoincrement())
+  label     String
+  discount  Float
+  active    Boolean  @default(true)
+
+  tickets   Ticket[] // Tickets associés à cette offre
+}
+
+model Ticket {
+  id        Int         @id @default(autoincrement())
+  price     Float
+  zone      String?
+  status    TicketStatus @default(RESERVED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relations
+  userId    Int?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventId   Int?
+  event     Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  offerId   Int?
+  offer     Offer?    @relation(fields: [offerId], references: [id], onDelete: SetNull)
 }

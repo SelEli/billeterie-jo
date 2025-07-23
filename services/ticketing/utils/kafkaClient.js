@@ -1,8 +1,15 @@
 const { Kafka } = require('kafkajs');
+let producer;
 
-const kafka = new Kafka({
-  clientId: process.env.SERVICE_NAME || 'service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
-});
+async function initKafka() {
+  const kafka = new Kafka({ brokers: [process.env.KAFKA_BROKER] });
+  producer = kafka.producer();
+  await producer.connect();
+}
 
-module.exports = { kafka };
+function publishKafkaEvent(topic, message) {
+  if (!producer) throw new Error('Kafka producer not initialized');
+  return producer.send({ topic, messages: [{ value: JSON.stringify(message) }] });
+}
+
+module.exports = { initKafka, publishKafkaEvent };
