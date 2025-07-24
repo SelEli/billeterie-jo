@@ -1,11 +1,18 @@
-const seedTickets = require('./tickets.seed.js');
-const seedUsers = require('./users.seed.js');
-const seedEvents = require('./events.seed.js');
-const seedOffers = require('./offers.seed.js');
+const seedUsers = require('./users.seed');
+const seedEvents = require('./events.seed');
+const seedOffers = require('./offers.seed');
+const seedTickets = require('./tickets.seed');
 
 (async () => {
-  await seedUsers();
-  await seedEvents();
-  await seedOffers();
-  await seedTickets();
+  try {
+    await seedUsers();
+    await seedEvents();
+    await seedOffers();
+    await seedTickets();
+    console.log('🌱 All seeds executed');
+  } catch (err) {
+    console.error('❌ Seed error:', err);
+  } finally {
+    process.exit();
+  }
 })();

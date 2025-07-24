@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const { getRedis } = require('../../../utils/redis.client');
+const { getRedis } = require('../../utils/redisClient');
 const redis = getRedis();
 
 async function readTicket(id) {

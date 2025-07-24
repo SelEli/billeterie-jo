@@ -4,9 +4,21 @@ const prisma = new PrismaClient();
 module.exports = async function seedOffers() {
   await prisma.offer.createMany({
     data: [
-      { id: 101, name: 'Pack Jeunesse', discount: 30, targetRole: 'USER' },
-      { id: 102, name: 'Staff Gratuit', discount: 100, targetRole: 'EMPLOYEE' }
-    ]
+      {
+        id: 101,
+        label: 'Pack Jeunesse',
+        discount: 30,
+        targetRole: 'USER'
+      },
+      {
+        id: 102,
+        label: 'Staff Gratuit',
+        discount: 100,
+        targetRole: 'EMPLOYEE'
+      }
+    ],
+    skipDuplicates: true
   });
-  console.log('Offers seeded');
+
+  console.log('✅ Offers seeded');
 };

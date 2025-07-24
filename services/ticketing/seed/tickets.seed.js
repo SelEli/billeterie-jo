@@ -20,7 +20,9 @@ module.exports = async function seedTickets() {
         price: 120.0,
         status: 'VALID'
       }
-    ]
+    ],
+    skipDuplicates: true
   });
-  console.log('Tickets seeded');
+
+  console.log('✅ Tickets seeded');
 };

@@ -1,4 +1,4 @@
-const { publishKafkaEvent } = require('../utils/kafka.client');
+const { publishKafkaEvent } = require('../utils/kafkaClient');
 
 function emitTicketCreated(ticket) {
   return publishKafkaEvent('ticket.created', ticket);

@@ -1,6 +1,6 @@
-const logger = require('../../../utils/logger');
-const monitor = require('../../../monitor/monitor');
-const { readTicket } = require('../../../services/ticket/readTicket.service');
+const logger = require('../../utils/logger');
+const monitor = require('../../monitor/monitor');
+const { readTicket } = require('../../services/ticket/readTicket.service');
 
 async function readTicketController(req, res) {
   try {

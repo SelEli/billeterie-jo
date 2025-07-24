@@ -1,11 +1,6 @@
-services:
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-    networks:
-      - jo-net
 
+services:
+  # infra partagée
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
     environment:
@@ -23,6 +18,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
@@ -30,6 +26,14 @@ services:
     networks:
       - jo-net
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - jo-net
+
+  # --- AUTH ---
   auth-db:
     image: postgres:15
     environment:
@@ -38,119 +42,78 @@ services:
       POSTGRES_DB: auth
     volumes:
       - auth-db-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - jo-net
 
   auth:
     build: ./services/auth
-    ports:
-      - "3001:3001"
     env_file:
       - ./services/auth/.env
+    ports:
+      - "3001:3001"
     depends_on:
       - auth-db
-      - redis
       - kafka
+      - redis
     networks:
       - jo-net
 
-  ticket-db:
+  # --- TICKETING ---
+  ticketing-db:
     image: postgres:15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ticketing
     volumes:
-      - ticket-db-data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
+      - ticketing-db-data:/var/lib/postgresql/data
     networks:
       - jo-net
 
   ticketing:
     build: ./services/ticketing
-    ports:
-      - "3002:3002"
     env_file:
       - ./services/ticketing/.env
+    ports:
+      - "3002:3002"
     depends_on:
-      - ticket-db
+      - ticketing-db
       - kafka
+      - redis
     networks:
       - jo-net
 
-  paiement-db:
+  # --- PAYMENT ---
+  payment-db:
     image: postgres:15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: paiement
+      POSTGRES_DB: payment
     volumes:
-      - paiement-db-data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
+      - payment-db-data:/var/lib/postgresql/data
     networks:
       - jo-net
 
-  paiement:
-    build: ./services/paiement
-    ports:
-      - "3003:3003"
+  payment:
+    build: ./services/payment
     env_file:
-      - ./services/paiement/.env
+      - ./services/payment/.env
+    ports:
+      - "3010:3010"
     depends_on:
-      - paiement-db
+      - payment-db
       - kafka
-    networks:
-      - jo-net
-
-  verification-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: verification
-    volumes:
-      - verification-db-data:/var/lib/postgresql/data
-    ports:
-      - "5435:5432"
-    networks:
-      - jo-net
-
-  verification:
-    build: ./services/verification
-    ports:
-      - "3004:3004"
-    env_file:
-      - ./services/verification/.env
-    depends_on:
-      - verification-db
-      - kafka
-    networks:
-      - jo-net
-
-  gateway:
-    build: ./services/gateway
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./services/gateway/.env
-    depends_on:
-      - auth
-      - ticketing
-      - paiement
-      - verification
+      - redis
     networks:
       - jo-net
 
 volumes:
   auth-db-data:
-  ticket-db-data:
-  paiement-db-data:
-  verification-db-data:
+  ticketing-db-data:
+  payment-db-data:
 
 networks:
   jo-net:
     driver: bridge
+

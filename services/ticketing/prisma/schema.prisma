@@ -55,7 +55,7 @@ model User {
 
 model Event {
   id        Int      @id @default(autoincrement())
-  name      String
+  label     String
   date      DateTime
   location  String
 
@@ -63,29 +63,28 @@ model Event {
 }
 
 model Offer {
-  id        Int      @id @default(autoincrement())
-  label     String
-  discount  Float
-  active    Boolean  @default(true)
+  id         Int      @id @default(autoincrement())
+  label      String
+  discount   Float
+  active     Boolean  @default(true)
+  targetRole Role
 
-  tickets   Ticket[] // Tickets associés à cette offre
+  tickets    Ticket[] // Tickets associés à cette offre
 }
 
 model Ticket {
-  id        Int         @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   price     Float
   zone      String?
   status    TicketStatus @default(RESERVED)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  // Relations
   userId    Int?
-  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   eventId   Int?
-  event     Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
   offerId   Int?
-  offer     Offer?    @relation(fields: [offerId], references: [id], onDelete: SetNull)
+
+  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  offer     Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
 }

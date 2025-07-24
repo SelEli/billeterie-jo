@@ -1,7 +1,7 @@
-const logger = require('../../../utils/logger');
-const monitor = require('../../../monitor/monitor');
-const { createTicket } = require('../../../services/ticket/createTicket.service');
-const { emitTicketCreated } = require('../../../kafka/ticket.kafka');
+const logger = require('../../utils/logger');
+const monitor = require('../../monitor/monitor');
+const { createTicket } = require('../../services/ticket/createTicket.service');
+const { emitTicketCreated } = require('../../kafka/ticket.kafka');
 
 async function createTicketController(req, res) {
   try {
