@@ -1,56 +1,39 @@
 const express = require('express');
-const router = express.Router();
 
-// ✅ Contrôleurs centralisés depuis controllers/ticket/index.js
-const {
-  createTicketController,
-  readTicketController,
-  listTicketsController,
-  updateTicketController,
-  deleteTicketController
-} = require('../controllers/ticket');
+// 🔁 Imports ciblés pour analyse
+const ticketRouter = require('./routes/ticket.routes');
+const authenticate = require('./middlewares/auth.middleware');
+const validateRequest = require('./middlewares/validateRequest.middleware');
+const { TicketCreateSchema, TicketUpdateSchema } = require('./schemas/ticket.schema');
 
-// ✅ Middlewares
-const validateRequest = require('../middlewares/validateRequest.middleware');
-const authenticate = require('../middlewares/auth.middleware');
+// 🔍 Vérification des types
+console.log('\n🔎 [TYPE] ticketRouter →', typeof ticketRouter);
+console.log('🔎 [TYPE] authenticate →', typeof authenticate);
+console.log('🔎 [TYPE] validateRequest →', typeof validateRequest);
+console.log('🔎 [TYPE] TicketCreateSchema →', typeof TicketCreateSchema);
+console.log('🔎 [TYPE] TicketUpdateSchema →', typeof TicketUpdateSchema);
 
-// ✅ Schémas de validation
-const {
-  TicketCreateSchema,
-  TicketUpdateSchema
-} = require('../schemas/ticket.schema');
+// 📋 Contenu des objets inspectés
+console.log('\n📋 [DIR] authenticate');
+console.dir(authenticate, { depth: 2 });
 
-// 🔀 Routes définies avec authentification & validation
-router.post(
-  '/ticket',
-  authenticate,
-  validateRequest(TicketCreateSchema),
-  createTicketController
-);
+console.log('\n📋 [DIR] validateRequest');
+console.dir(validateRequest, { depth: 2 });
 
-router.get(
-  '/ticket/:id',
-  authenticate,
-  readTicketController
-);
+console.log('\n📋 [DIR] router');
+console.dir(ticketRouter, { depth: 3 });
 
-router.get(
-  '/tickets',
-  authenticate,
-  listTicketsController
-);
+// 🧪 Test d’enregistrement manuel d’une route Express
+const app = express();
 
-router.put(
-  '/ticket/:id',
-  authenticate,
-  validateRequest(TicketUpdateSchema),
-  updateTicketController
-);
-
-router.delete(
-  '/ticket/:id',
-  authenticate,
-  deleteTicketController
-);
-
-module.exports = router;
+try {
+  app.use('/debug', ticketRouter);
+  app._router.stack.forEach((layer) => {
+    if (layer.route && layer.route.path === '/') {
+      console.log('\n✅ Route POST `/debug/` enregistrée →', Object.keys(layer.route.methods));
+    }
+  });
+} catch (err) {
+  console.error('\n❌ Erreur lors du montage du routeur :', err.message);
+  console.error('[STACK]', err.stack);
+}

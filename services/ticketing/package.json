@@ -37,7 +37,14 @@
     "testEnvironment": "node",
     "collectCoverage": true,
     "coverageDirectory": "./coverage",
-    "coverageReporters": ["text", "html", "lcov"],
-    "testMatch": ["**/tests/*.test.js"]
+    "coverageReporters": [
+      "text",
+      "html",
+      "lcov"
+    ],
+    "setupFiles": ["<rootDir>/tests/jest.setup.js"],
+    "testMatch": [
+      "**/tests/*.test.js"
+    ]
   }
 }

@@ -1,27 +1,35 @@
 const express = require('express');
-const bodyParser = require('body-parser');
+const morgan = require('morgan'); // 🧾 Logger HTTP
 const ticketRoutes = require('./routes/ticket.routes');
-const { authMiddleware } = require('./middlewares/auth.middleware');
 
-// ⏯️ Init Redis
+// 📦 Initialisation Redis
 const { initRedis } = require('./utils/redisClient');
 initRedis();
 
-// 🔌 Init Kafka (si tu l’utilises dans services/kafkaClient.js par exemple)
+// 📦 Initialisation Kafka
 const { connectKafkaProducer } = require('./services/ticketing/kafka/kafkaClient');
 connectKafkaProducer();
 
 const app = express();
-app.use(bodyParser.json());
-app.use(authMiddleware);
+app.use(express.json());
 
-// 🔀 Routes
+// 🧾 Middleware morgan pour log des requêtes HTTP
+app.use(morgan('dev')); // Format : method, URL, status, time
+
+// 🔀 Routes principales
 app.use('/ticketing/ticket', ticketRoutes);
 
-// 🚨 Middleware d’erreur générique
+// 🩺 Healthcheck
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
+// 🚨 Middleware générique d’erreur
 app.use((err, req, res, next) => {
   console.error('[APP ERROR]', err);
-  res.status(500).json({ message: 'Internal server error.' });
+  const code = err.statusCode || 500;
+  res.status(code).json({
+    message: err.message || 'Internal server error.',
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+  });
 });
 
 module.exports = app;

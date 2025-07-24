@@ -1,17 +1,23 @@
+// tests/auth.integration.test.js
+const request = require('supertest');
 const jwt = require('jsonwebtoken');
+const app = require('../app');
 
-function authMiddleware(req, res, next) {
-  const auth = req.headers.authorization?.split(' ');
-  if (!auth || auth[0] !== 'Bearer') {
-    return res.status(401).json({ message: 'Missing or invalid auth header.' });
-  }
-  try {
-    const payload = jwt.verify(auth[1], process.env.JWT_SECRET);
-    req.user = payload;  // { userId, role, etc. }
-    next();
-  } catch {
-    return res.status(401).json({ message: 'Unauthorized.' });
-  }
-}
+const token = jwt.sign({ userId: 'abc123' }, process.env.JWT_SECRET);
 
-module.exports = { authMiddleware };
+describe('🔐 Authenticated endpoints', () => {
+  test('GET /ticketing/ticket with Bearer token → 200 OK', async () => {
+    const res = await request(app)
+      .get('/ticketing/ticket')
+      .set('Authorization', `Bearer ${token}`);
+      
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('message', 'Tickets listed');
+  });
+
+  test('GET /ticketing/ticket without token → 401', async () => {
+    const res = await request(app).get('/ticketing/ticket');
+    expect(res.statusCode).toBe(401);
+    expect(res.body).toHaveProperty('message');
+  });
+});
