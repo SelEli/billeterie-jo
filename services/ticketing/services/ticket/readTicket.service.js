@@ -1,16 +1,22 @@
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const { getRedis } = require('../../utils/redisClient');
-const redis = getRedis();
 
 async function readTicket(id) {
+  const redis = getRedis?.();
   const cacheKey = `ticket:${id}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
 
-  const ticket = await new PrismaClient().ticket.findUnique({ where: { id } });
-  if (ticket) {
+  if (redis) {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  }
+
+  const ticket = await prisma.ticket.findUnique({ where: { id } });
+
+  if (ticket && redis) {
     await redis.set(cacheKey, JSON.stringify(ticket), 'EX', 900);
   }
+
   return ticket;
 }
 

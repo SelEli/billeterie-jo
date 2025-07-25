@@ -1,39 +1,55 @@
 const express = require('express');
+const router = express.Router();
 
-// 🔁 Imports ciblés pour analyse
-const ticketRouter = require('./routes/ticket.routes');
-const authenticate = require('./middlewares/auth.middleware');
-const validateRequest = require('./middlewares/validateRequest.middleware');
-const { TicketCreateSchema, TicketUpdateSchema } = require('./schemas/ticket.schema');
+// 🔐 Middlewares & validation
+const authenticate = require('../middlewares/auth.middleware');
+const validateRequest = require('../middlewares/validateRequest.middleware');
+const { TicketCreateSchema, TicketUpdateSchema } = require('../schemas/ticket.schema');
 
-// 🔍 Vérification des types
-console.log('\n🔎 [TYPE] ticketRouter →', typeof ticketRouter);
-console.log('🔎 [TYPE] authenticate →', typeof authenticate);
-console.log('🔎 [TYPE] validateRequest →', typeof validateRequest);
-console.log('🔎 [TYPE] TicketCreateSchema →', typeof TicketCreateSchema);
-console.log('🔎 [TYPE] TicketUpdateSchema →', typeof TicketUpdateSchema);
+// 🧠 Handlers (importation correcte des controllers)
+const { createTicketController } = require('../controllers/ticket/createTicket.controller');
+const { readTicketController } = require('../controllers/ticket/readTicket.controller');
+const { updateTicketController } = require('../controllers/ticket/updateTicket.controller');
+const { deleteTicketController } = require('../controllers/ticket/deleteTicket.controller');
+const { listTicketsController } = require('../controllers/ticket/listTickets.controller');
 
-// 📋 Contenu des objets inspectés
-console.log('\n📋 [DIR] authenticate');
-console.dir(authenticate, { depth: 2 });
+// 📌 Routes
 
-console.log('\n📋 [DIR] validateRequest');
-console.dir(validateRequest, { depth: 2 });
+// Créer un ticket
+router.post(
+  '/',
+  authenticate,
+  validateRequest(TicketCreateSchema),
+  createTicketController
+);
 
-console.log('\n📋 [DIR] router');
-console.dir(ticketRouter, { depth: 3 });
+// Lire un ticket par ID
+router.get(
+  '/:id',
+  authenticate,
+  readTicketController
+);
 
-// 🧪 Test d’enregistrement manuel d’une route Express
-const app = express();
+// Mettre à jour un ticket par ID
+router.put(
+  '/:id',
+  authenticate,
+  validateRequest(TicketUpdateSchema),
+  updateTicketController
+);
 
-try {
-  app.use('/debug', ticketRouter);
-  app._router.stack.forEach((layer) => {
-    if (layer.route && layer.route.path === '/') {
-      console.log('\n✅ Route POST `/debug/` enregistrée →', Object.keys(layer.route.methods));
-    }
-  });
-} catch (err) {
-  console.error('\n❌ Erreur lors du montage du routeur :', err.message);
-  console.error('[STACK]', err.stack);
-}
+// Supprimer un ticket par ID
+router.delete(
+  '/:id',
+  authenticate,
+  deleteTicketController
+);
+
+// Lister tous les tickets (exemple : GET /)
+router.get(
+  '/',
+  authenticate,
+  listTicketsController
+);
+
+module.exports = router;
