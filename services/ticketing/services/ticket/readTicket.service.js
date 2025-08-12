@@ -1,14 +1,16 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// services/ticket/readTicket.service.js
+const prisma = require('../../utils/prismaClient');
 const { getRedis } = require('../../utils/redisClient');
 
-async function readTicket(id) {
+async function readTicketService(id) {
   const redis = getRedis?.();
   const cacheKey = `ticket:${id}`;
 
   if (redis) {
     const cached = await redis.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      return JSON.parse(cached);
+    }
   }
 
   const ticket = await prisma.ticket.findUnique({ where: { id } });
@@ -20,4 +22,4 @@ async function readTicket(id) {
   return ticket;
 }
 
-module.exports = { readTicket };
+module.exports = { readTicketService };

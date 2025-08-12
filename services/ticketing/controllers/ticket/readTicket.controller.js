@@ -1,19 +1,49 @@
-const logger = require('../../utils/logger');
+const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { readTicket } = require('../../services/ticket/readTicket.service');
+const { readTicketService } = require('../../services/ticket/readTicket.service');
 
 async function readTicketController(req, res, next) {
-  try {
-    const id = Number(req.params.id);
-    const { result: ticket, duration } = await monitor.timer('ticket.read', () => readTicket(id));
-    
-    logger.info(`Ticket read [id=${id}] in ${duration}ms`);
-    if (!ticket) return res.status(404).json({ message: 'Ticket not found.' });
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      status: 'error',
+      data:   null,
+      errors: ['Invalid ticket ID'],
+      meta:   { message: 'Invalid request' }
+    });
+  }
 
-    res.status(200).json(ticket);
-  } catch (err) {
-    logger.error(`readTicket error: ${err.message}`);
-    next(err);
+  const timer = monitor.timer('ticket_read').start();
+  try {
+    const ticket = await readTicketService(id);
+    if (!ticket) {
+      timer.stop();
+      logger.warn('Ticket not found');
+      return res.status(404).json({
+        status: 'error',
+        data:   null,
+        errors: ['Ticket not found'],
+        meta:   { message: 'No ticket with this ID' }
+      });
+    }
+
+    timer.stop();
+    logger.info('Ticket read successfully');
+    return res.status(200).json({
+      status: 'success',
+      data:   ticket,
+      errors: [],
+      meta:   { message: 'Ticket retrieved successfully' }
+    });
+  } catch (error) {
+    timer.stop();
+    logger.error('Error reading ticket', error);
+    return res.status(500).json({
+      status: 'error',
+      data:   null,
+      errors: [error.message],
+      meta:   { message: 'Failed to read ticket' }
+    });
   }
 }
 

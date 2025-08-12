@@ -1,8 +1,8 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// services/ticket/deleteTicket.service.js
+const prisma = require('../../utils/prismaClient');
 
-async function deleteTicket(id) {
+async function deleteTicketService(id) {
   return prisma.ticket.delete({ where: { id } });
 }
 
-module.exports = { deleteTicket };
+module.exports = { deleteTicketService };

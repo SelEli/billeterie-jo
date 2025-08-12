@@ -1,42 +1,52 @@
+// app.js
 const express = require('express');
-const morgan = require('morgan'); // 🧾 Logger HTTP
-const ticketRoutes = require('./routes/ticket.routes');
+const morgan = require('morgan');
 
-// 📦 Initialisation Redis (sauf en test)
+const ticketRoutes = require('./routes/ticket.routes');
+const authenticate = require('./middlewares/auth.middleware');
+
 const { initRedis } = require('./utils/redisClient');
+const { initKafka } = require('./utils/kafkaClient');
+
 if (!process.env.JEST_WORKER_ID) {
   initRedis();
-}
-
-// 📦 Initialisation Kafka (sauf en test)
-// ⚠️ Import depuis utils/kafkaClient.js et appeler initKafka()
-const { initKafka } = require('./utils/kafkaClient');
-if (!process.env.JEST_WORKER_ID) {
   initKafka().catch(err => {
-    console.error('Failed to connect Kafka producer:', err);
-    process.exit(1); // ou gérer l'erreur selon ta politique
+    console.error('❌ Failed to connect Kafka producer:', err);
+    process.exit(1);
   });
 }
 
 const app = express();
-app.use(express.json());
 
-// 🧾 Logger HTTP
+app.use(express.json());
 app.use(morgan('dev'));
 
-// 🔀 Routes principales
+// 🔹 Log toutes les requêtes entrantes pour debug tests
+app.use((req, res, next) => {
+  console.log('➡️ [REQUEST]', req.method, req.originalUrl, {
+    headers: req.headers,
+    body: req.body
+  });
+  next();
+});
+
+// 🔹 Tes routes appliquent authenticate elles-mêmes
 app.use('/ticketing/ticket', ticketRoutes);
 
-// 🩺 Healthcheck
-app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/health', (req, res) => {
+  console.log('💓 [HEALTHCHECK]');
+  res.status(200).send('OK');
+});
 
-// 🚨 Middleware global d’erreur
+// 🔹 Middleware global gestion erreurs
 app.use((err, req, res, next) => {
-  console.error('[APP ERROR]', err);
+  console.error('❌ [APP ERROR]', err);
   const code = err.statusCode || 500;
   res.status(code).json({
-    message: err.message || 'Internal server error.',
-    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
+    status: 'error',
+    data: null,
+    errors: [err.message || 'Internal server error.'],
+    meta: {}
   });
 });
 

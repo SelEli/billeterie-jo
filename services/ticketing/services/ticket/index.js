@@ -1,13 +1,13 @@
-const { createTicket } = require('./createTicket.service');
-const { readTicket   } = require('./readTicket.service');
-const { listTickets  } = require('./listTickets.service');
-const { updateTicket } = require('./updateTicket.service');
-const { deleteTicket } = require('./deleteTicket.service');
+const { createTicketService } = require('./createTicket.service');
+const { readTicketService   } = require('./readTicket.service');
+const { listTicketsService  } = require('./listTickets.service');
+const { updateTicketService } = require('./updateTicket.service');
+const { deleteTicketService } = require('./deleteTicket.service');
 
 module.exports = {
-  createTicket,
-  readTicket,
-  listTickets,
-  updateTicket,
-  deleteTicket
+  createTicketService,
+  readTicketService,
+  listTicketsService,
+  updateTicketService,
+  deleteTicketService
 };

@@ -5,8 +5,8 @@ require('dotenv').config();
 const app = require('./app');
 
 // 🚀 Initialisation des services externes
-const { initKafka } = require('./utils/kafka.client');
-const { initRedis } = require('./utils/redis.client');
+const { initKafka } = require('./utils/kafkaClient');
+const { initRedis } = require('./utils/redisClient');
 
 (async () => {
   try {

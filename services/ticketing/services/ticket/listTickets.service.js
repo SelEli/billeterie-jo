@@ -1,11 +1,20 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// services/ticket/listTickets.service.js
+const prisma = require('../../utils/prismaClient');
 
-async function listTickets(filter) {
+async function listTicketsService(filter = {}) {
   const where = {};
-  if (filter.userId) where.userId = Number(filter.userId);
-  if (filter.status) where.status = filter.status;
+
+  if (filter.userId) {
+    const userId = Number(filter.userId);
+    if (!isNaN(userId)) {
+      where.userId = userId;
+    }
+  }
+  if (filter.status) {
+    where.status = filter.status;
+  }
+
   return prisma.ticket.findMany({ where });
 }
 
-module.exports = { listTickets };
+module.exports = { listTicketsService };

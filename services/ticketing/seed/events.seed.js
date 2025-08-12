@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../utils/prismaClient'); // charge l’instance déjà créée
+
 
 module.exports = async function seedEvents() {
   await prisma.event.createMany({

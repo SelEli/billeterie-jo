@@ -1,16 +1,12 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// services/ticket/updateTicket.service.js
+const prisma = require('../../utils/prismaClient');
 
-async function updateTicket(id, data) {
-  const start = Date.now();
-
+async function updateTicketService(id, data) {
   const ticket = await prisma.ticket.update({
-    where: { id: Number(id) },
+    where: { id },
     data,
   });
-
-  const duration = Date.now() - start;
-  return { ticket, duration };
+  return ticket;
 }
 
-module.exports = { updateTicket };
+module.exports = { updateTicketService };

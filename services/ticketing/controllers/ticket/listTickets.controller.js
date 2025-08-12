@@ -1,16 +1,31 @@
-const logger = require('../../utils/logger');
+const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { listTickets } = require('../../services/ticket/listTickets.service');
+const { listTicketsService } = require('../../services/ticket/listTickets.service');
 
 async function listTicketsController(req, res, next) {
+  const timer = monitor.timer('ticket_list').start();
   try {
-    const filter = req.query;
-    const { result: tickets, duration } = await monitor.timer('ticket.list', () => listTickets(filter));
-    logger.info(`Listed ${tickets.length} tickets in ${duration}ms`);
-    res.status(200).json(tickets);
-  } catch (err) {
-    logger.error(`listTickets error: ${err.message}`);
-    next(err);
+    const tickets = await listTicketsService();
+
+    timer.stop();
+    logger.info('Tickets listed successfully');
+
+    res.status(200).json({
+      status: 'success',
+      data: tickets,
+      errors: [],
+      meta: { count: tickets.length }
+    });
+  } catch (error) {
+    timer.stop();
+    logger.error('Error listing tickets', error);
+
+    res.status(500).json({
+      status: 'error',
+      data:   null,
+      errors: [error.message],
+      meta:   { message: 'Failed to list tickets' }
+    });
   }
 }
 
