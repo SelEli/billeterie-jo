@@ -54,22 +54,32 @@ model User {
 }
 
 model Event {
-  id        Int      @id @default(autoincrement())
-  label     String
-  date      DateTime
-  location  String
+  id         Int       @id @default(autoincrement())
+  label      String
+  date       DateTime
+  location   String
+  category   String?                // Optionnel : "ceremony", "match", etc.
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?              // Soft delete
 
-  tickets   Ticket[]  // Tickets liés à cet événement
+  tickets    Ticket[]               // Tickets liés à cet événement
 }
 
 model Offer {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   label      String
   discount   Float
-  active     Boolean  @default(true)
+  active     Boolean   @default(true)
   targetRole Role
+  validFrom  DateTime?             // Optionnel : début de validité de l’offre
+  validTo    DateTime?             // Optionnel : fin de validité de l’offre
+  quota      Int?                  // Optionnel : nombre max de tickets concernés
 
-  tickets    Ticket[] // Tickets associés à cette offre
+  eventId    Int?
+  event      Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  tickets    Ticket[]             // Tickets associés à cette offre
 }
 
 model Ticket {
