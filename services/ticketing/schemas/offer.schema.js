@@ -1,4 +1,4 @@
-const { getRedis } = require('../utils/redis.client');
+const { getRedis } = require('../utils/redisClient');
 const redis = getRedis();
 
 /**
@@ -20,4 +20,12 @@ async function getCachedOffer(id) {
   return data ? JSON.parse(data) : null;
 }
 
-module.exports = { cacheOffer, getCachedOffer };
+/**
+ * Supprime une Offer du cache (invalidation)
+ * @param {number|string} id - ID de l'offre
+ */
+async function invalidateOfferCache(id) {
+  await redis.del(`offer:${id}`);
+}
+
+module.exports = { cacheOffer, getCachedOffer, invalidateOfferCache };

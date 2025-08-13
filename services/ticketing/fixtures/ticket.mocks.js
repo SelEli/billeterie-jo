@@ -2,8 +2,8 @@
 
 const validTicket = {
   userId: 1,
-  eventId: null,         // Simule une absence d'event
-  offerId: null,         // Simule une absence d'offre
+  eventId: 999,        // lié à validEvent dans fixtures/event.mocks.js
+  offerId: 101,        // lié à validOffer dans fixtures/offer.mocks.js
   zone: 'A',
   price: 100.0,
   status: 'RESERVED'
@@ -15,7 +15,7 @@ const usedTicket = {
   zone: 'A',
   price: 100.0,
   status: 'USED',
-  eventId: null,
+  eventId: 999,
   offerId: null,
   createdAt: new Date(Date.now() - 3600000).toISOString(),
   updatedAt: new Date().toISOString()
@@ -28,7 +28,7 @@ const cancelledTicket = {
   price: 120.0,
   status: 'CANCELLED',
   eventId: null,
-  offerId: null,
+  offerId: 102,
   createdAt: new Date(Date.now() - 7200000).toISOString(),
   updatedAt: new Date().toISOString()
 };
@@ -53,9 +53,9 @@ const updatedTicket = {
 };
 
 const ticketListMock = [
-  { id: 4, userId: 1, price: 50.0, status: 'VALID', zone: 'A', eventId: null, offerId: null },
+  { id: 4, userId: 1, price: 50.0, status: 'VALID', zone: 'A', eventId: 999, offerId: 101 },
   { id: 5, userId: 1, price: 150.0, status: 'RESERVED', zone: 'B', eventId: null, offerId: null },
-  { id: 6, userId: 2, price: 75.0, status: 'CANCELLED', zone: 'C', eventId: null, offerId: null }
+  { id: 6, userId: 2, price: 75.0, status: 'CANCELLED', zone: 'C', eventId: null, offerId: 102 }
 ];
 
 // Payload incomplet pour test de validation Zod

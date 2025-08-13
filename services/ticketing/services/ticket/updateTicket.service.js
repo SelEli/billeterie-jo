@@ -2,8 +2,10 @@
 const prisma = require('../../utils/prismaClient');
 
 async function updateTicketService(id, data) {
+  const numericId = typeof id === 'string' ? Number(id) : id;
+
   const ticket = await prisma.ticket.update({
-    where: { id },
+    where: { id: numericId },
     data,
   });
   return ticket;

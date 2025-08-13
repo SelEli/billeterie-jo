@@ -1,13 +1,17 @@
 // app.js
 const express = require('express');
 const morgan = require('morgan');
+const helmet = require('helmet');
+const cors = require('cors');
 
 const ticketRoutes = require('./routes/ticket.routes');
-const authenticate = require('./middlewares/auth.middleware');
+const eventRoutes  = require('./routes/event.routes');
+const offerRoutes  = require('./routes/offer.routes');
 
 const { initRedis } = require('./utils/redisClient');
 const { initKafka } = require('./utils/kafkaClient');
 
+// Initialisations externes désactivées en environnement de test
 if (!process.env.JEST_WORKER_ID) {
   initRedis();
   initKafka().catch(err => {
@@ -18,10 +22,12 @@ if (!process.env.JEST_WORKER_ID) {
 
 const app = express();
 
+app.use(helmet());
+app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// 🔹 Log toutes les requêtes entrantes pour debug tests
+// 🔹 Log toutes les requêtes entrantes pour debug
 app.use((req, res, next) => {
   console.log('➡️ [REQUEST]', req.method, req.originalUrl, {
     headers: req.headers,
@@ -30,8 +36,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🔹 Tes routes appliquent authenticate elles-mêmes
-app.use('/ticketing/ticket', ticketRoutes);
+// 🔹 Mount des routes par ressource (uniformisé sous /ticketing)
+app.use('/ticketing/tickets', ticketRoutes);
+app.use('/ticketing/events',  eventRoutes);
+app.use('/ticketing/offers',  offerRoutes);
 
 app.get('/health', (req, res) => {
   console.log('💓 [HEALTHCHECK]');

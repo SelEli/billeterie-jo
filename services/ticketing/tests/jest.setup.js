@@ -1,5 +1,5 @@
 // ⛔️ Ne surtout pas mocker le middleware d'auth ici — il doit être exécuté réellement !
-// ❌ SUPPRIME :
+// ❌ SUPPRIME si jamais ajouté :
 // jest.mock('../middlewares/auth.middleware', () => (req, res, next) => next());
 
 // ✅ Mock du middleware de validation — OK si on ne teste pas le schéma en détail
@@ -11,16 +11,27 @@ jest.mock('../middlewares/validateRequest.middleware', () => (schema) => (req, r
   next();
 });
 
-// ✅ Mock des schémas — OK si tu veux ignorer les validations précises
+// ✅ Mock des schémas — Ticket
 jest.mock('../schemas/ticket.schema', () => ({
   TicketCreateSchema: {},
   TicketUpdateSchema: {}
 }));
 
-// ✅ Mock du client Redis avec cache en mémoire
+// ✅ Mock des schémas — Event
+jest.mock('../schemas/event.schema', () => ({
+  EventCreateSchema: {},
+  EventUpdateSchema: {}
+}));
+
+// ✅ Mock des schémas — Offer
+jest.mock('../schemas/offer.schema', () => ({
+  OfferCreateSchema: {},
+  OfferUpdateSchema: {}
+}));
+
+// ✅ Mock du client Redis avec cache en mémoire unique pour tous
 jest.mock('../utils/redisClient', () => {
   const cache = new Map();
-
   return {
     getRedis: () => ({
       get: jest.fn(async (key) => cache.get(key) || null),
@@ -37,9 +48,23 @@ jest.mock('../utils/redisClient', () => {
   };
 });
 
-// ✅ Mock Kafka — pas besoin d’envoyer de vrais events
+// ✅ Mock Kafka Ticket
 jest.mock('../kafka/ticket.kafka.js', () => ({
-  emitTicketCreated: jest.fn(async (_ticket) => Promise.resolve()),
-  emitTicketUpdated: jest.fn(async (_ticket) => Promise.resolve()),
-  emitTicketDeleted: jest.fn(async (_id) => Promise.resolve())
+  emitTicketCreated: jest.fn(async () => Promise.resolve()),
+  emitTicketUpdated: jest.fn(async () => Promise.resolve()),
+  emitTicketDeleted: jest.fn(async () => Promise.resolve())
+}));
+
+// ✅ Mock Kafka Event
+jest.mock('../kafka/event.kafka.js', () => ({
+  emitEventCreated: jest.fn(async () => Promise.resolve()),
+  emitEventUpdated: jest.fn(async () => Promise.resolve()),
+  emitEventDeleted: jest.fn(async () => Promise.resolve())
+}));
+
+// ✅ Mock Kafka Offer
+jest.mock('../kafka/offer.kafka.js', () => ({
+  emitOfferCreated: jest.fn(async () => Promise.resolve()),
+  emitOfferUpdated: jest.fn(async () => Promise.resolve()),
+  emitOfferDeleted: jest.fn(async () => Promise.resolve())
 }));

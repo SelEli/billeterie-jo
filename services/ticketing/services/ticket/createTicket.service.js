@@ -5,9 +5,9 @@ async function createTicketService({
   price,
   zone,
   eventId,
-  status,           // ajouté
+  status,
   userId,
-  offerId = null    // optionnel
+  offerId = null
 }) {
   console.log(
     '[createTicket.service] appel Prisma.create avec :',
@@ -15,18 +15,36 @@ async function createTicketService({
   );
 
   try {
+    // Conversions minimales pour supporter strings numériques et null
+    const toNumOrNull = (v) =>
+      v === null || v === undefined ? null : (typeof v === 'string' ? Number(v) : v);
+
+    const eventIdNum = toNumOrNull(eventId);
+    const offerIdNum = toNumOrNull(offerId);
+
     if (
-      typeof price   !== 'number' ||
-      typeof zone    !== 'string' ||
-      typeof userId  !== 'number' ||
-      typeof eventId !== 'number' ||
-      typeof status  !== 'string'
+      typeof price !== 'number' ||
+      typeof zone !== 'string' ||
+      typeof userId !== 'number' ||
+      typeof status !== 'string'
     ) {
       throw new Error('[createTicket.service] Données invalides');
     }
+    if (eventIdNum !== null && Number.isNaN(eventIdNum)) {
+      throw new Error('[createTicket.service] eventId invalide');
+    }
+    if (offerIdNum !== null && Number.isNaN(offerIdNum)) {
+      throw new Error('[createTicket.service] offerId invalide');
+    }
 
-    const data = { price, zone, userId, eventId, status };
-    if (offerId !== null) data.offerId = offerId;
+    const data = {
+      price,
+      zone,
+      userId,
+      status,
+      eventId: eventIdNum,
+      offerId: offerIdNum
+    };
 
     const ticket = await prisma.ticket.create({ data });
 

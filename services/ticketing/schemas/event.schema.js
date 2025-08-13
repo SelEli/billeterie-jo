@@ -1,4 +1,4 @@
-const { getRedis } = require('../utils/redis.client');
+const { getRedis } = require('../utils/redisClient');
 const redis = getRedis();
 
 /**
@@ -20,4 +20,12 @@ async function getCachedEvent(id) {
   return data ? JSON.parse(data) : null;
 }
 
-module.exports = { cacheEvent, getCachedEvent };
+/**
+ * Supprime un Event du cache (invalidation)
+ * @param {number|string} id - ID de l'événement
+ */
+async function invalidateEventCache(id) {
+  await redis.del(`event:${id}`);
+}
+
+module.exports = { cacheEvent, getCachedEvent, invalidateEventCache };

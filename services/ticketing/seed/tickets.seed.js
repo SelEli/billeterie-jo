@@ -1,5 +1,4 @@
-const prisma = require('../utils/prismaClient'); // charge l’instance déjà créée
-
+const prisma = require('../utils/prismaClient');
 
 module.exports = async function seedTickets() {
   await prisma.ticket.createMany({
@@ -14,10 +13,18 @@ module.exports = async function seedTickets() {
       },
       {
         userId: 2,
-        eventId: null,
+        eventId: 1000,
         offerId: null,
-        zone: 'C',
+        zone: 'B',
         price: 120.0,
+        status: 'VALID'
+      },
+      {
+        userId: 1,
+        eventId: null,
+        offerId: 102,
+        zone: 'C',
+        price: 0.0,
         status: 'VALID'
       }
     ],
