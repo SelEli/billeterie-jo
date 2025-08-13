@@ -1,13 +1,13 @@
 // services/offer/offerCreation.service.js
-const prisma = require('../../prisma/client');
+const prisma = require('../../utils/prismaClient');
 const { emitOfferCreated } = require('../../kafka/offer.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
+const { cacheOffer } = require('../../cache/offer.cache');
 
 async function offerCreationService(data) {
   const t = timer('offerCreationService').start();
   try {
-    // Vérifier l'event si fourni et non supprimé
     if (data.eventId) {
       const ev = await prisma.event.findUnique({
         where: { id: data.eventId },
@@ -17,6 +17,7 @@ async function offerCreationService(data) {
     }
 
     const offer = await prisma.offer.create({ data });
+
     await emitOfferCreated({
       id: offer.id,
       label: offer.label,
@@ -28,6 +29,9 @@ async function offerCreationService(data) {
       validTo: offer.validTo || null,
       quota: offer.quota || null
     });
+
+    await cacheOffer(offer);
+
     logger.info(`Offer created: ${offer.id}`);
     t.success();
     return offer;

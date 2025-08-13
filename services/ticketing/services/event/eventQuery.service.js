@@ -1,11 +1,11 @@
 // services/event/eventQuery.service.js
-const prisma = require('../../prisma/client');
+const prisma = require('../../utils/prismaClient');
 const { timer } = require('../../monitor/monitor');
+const { cacheEvent, getCachedEvent } = require('../../cache/event.cache');
 
 async function eventQueryService(filter = {}) {
   const t = timer('eventQueryService').start();
   try {
-    // Exclure par défaut les événements soft-deleted
     const where = { ...(filter || {}) };
     if (typeof where.deletedAt === 'undefined') {
       where.deletedAt = null;
@@ -22,16 +22,23 @@ async function eventQueryService(filter = {}) {
 async function eventReadService(id) {
   const t = timer('eventReadService').start();
   try {
-    const numericId = parseInt(id);
+    const cached = await getCachedEvent(id);
+    if (cached) {
+      t.success();
+      return cached;
+    }
+
     const res = await prisma.event.findUnique({
-      where: { id: numericId },
+      where: { id: parseInt(id) },
       include: { tickets: true }
     });
-    // Masquer les events supprimés
+
     if (!res || res.deletedAt) {
       t.success();
       return null;
     }
+
+    await cacheEvent(res);
     t.success();
     return res;
   } catch (err) {

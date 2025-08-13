@@ -1,8 +1,9 @@
 // services/offer/offerDelete.service.js
-const prisma = require('../../prisma/client');
+const prisma = require('../../utils/prismaClient');
 const { emitOfferDeleted } = require('../../kafka/offer.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
+const { invalidateOfferCache } = require('../../cache/offer.cache');
 
 async function offerDeleteService(id) {
   const t = timer('offerDeleteService').start();
@@ -16,7 +17,6 @@ async function offerDeleteService(id) {
     if (!existing) throw new Error('Offer not found');
 
     if (!existing.active) {
-      // Idempotent: déjà désactivée
       logger.warn(`Offer already inactive: ${numericId}`);
       t.success();
       return { id: numericId, active: false };
@@ -28,6 +28,8 @@ async function offerDeleteService(id) {
     });
 
     await emitOfferDeleted(deactivated.id);
+    await invalidateOfferCache(deactivated.id);
+
     logger.warn(`Offer deactivated (deleted): ${deactivated.id}`);
     t.success();
     return deactivated;

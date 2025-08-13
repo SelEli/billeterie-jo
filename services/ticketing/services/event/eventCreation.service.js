@@ -1,13 +1,16 @@
 // services/event/eventCreation.service.js
-const prisma = require('../../prisma/client');
+const prisma = require('../../utils/prismaClient');
 const { emitEventCreated } = require('../../kafka/event.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
+const { cacheEvent } = require('../../cache/event.cache');
 
 async function eventCreationService(data) {
   const t = timer('eventCreationService').start();
   try {
     const event = await prisma.event.create({ data });
+
+    // Kafka + cache
     await emitEventCreated({
       id: event.id,
       label: event.label,
@@ -15,6 +18,8 @@ async function eventCreationService(data) {
       location: event.location,
       category: event.category || null
     });
+    await cacheEvent(event);
+
     logger.info(`Event created: ${event.id}`);
     t.success();
     return event;

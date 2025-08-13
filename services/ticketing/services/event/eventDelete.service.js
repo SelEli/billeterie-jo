@@ -1,8 +1,9 @@
 // services/event/eventDelete.service.js
-const prisma = require('../../prisma/client');
+const prisma = require('../../utils/prismaClient');
 const { emitEventDeleted } = require('../../kafka/event.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
+const { invalidateEventCache } = require('../../cache/event.cache');
 
 async function eventDeleteService(id) {
   const t = timer('eventDeleteService').start();
@@ -12,11 +13,9 @@ async function eventDeleteService(id) {
       where: { id: numericId },
       select: { deletedAt: true }
     });
-    if (!existing) {
-      throw new Error('Event not found');
-    }
+    if (!existing) throw new Error('Event not found');
+
     if (existing.deletedAt) {
-      // Idempotent: déjà supprimé
       logger.warn(`Event already deleted: ${numericId}`);
       t.success();
       return { id: numericId, deletedAt: existing.deletedAt };
@@ -28,6 +27,8 @@ async function eventDeleteService(id) {
     });
 
     await emitEventDeleted(deleted.id);
+    await invalidateEventCache(deleted.id);
+
     logger.warn(`Event deleted: ${deleted.id}`);
     t.success();
     return deleted;

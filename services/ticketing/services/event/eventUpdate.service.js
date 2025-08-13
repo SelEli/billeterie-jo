@@ -1,8 +1,9 @@
 // services/event/eventUpdate.service.js
-const prisma = require('../../prisma/client');
+const prisma = require('../../utils/prismaClient');
 const { emitEventUpdated } = require('../../kafka/event.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
+const { cacheEvent } = require('../../cache/event.cache');
 
 async function eventUpdateService(id, data) {
   const t = timer('eventUpdateService').start();
@@ -22,6 +23,8 @@ async function eventUpdateService(id, data) {
     });
 
     await emitEventUpdated({ id: updated.id, changes: data });
+    await cacheEvent(updated);
+
     logger.info(`Event updated: ${updated.id}`);
     t.success();
     return updated;

@@ -1,22 +1,21 @@
 // services/offer/offerUpdate.service.js
-const prisma = require('../../prisma/client');
+const prisma = require('../../utils/prismaClient');
 const { emitOfferUpdated } = require('../../kafka/offer.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
+const { cacheOffer } = require('../../cache/offer.cache');
 
 async function offerUpdateService(id, data) {
   const t = timer('offerUpdateService').start();
   try {
     const numericId = parseInt(id);
 
-    // Vérifier l'existence
     const existing = await prisma.offer.findUnique({
       where: { id: numericId },
-      select: { id: true, active: true }
+      select: { id: true }
     });
     if (!existing) throw new Error('Offer not found');
 
-    // Si on relie à un event, s'assurer qu'il est valide
     if (data.eventId) {
       const ev = await prisma.event.findUnique({
         where: { id: data.eventId },
@@ -31,6 +30,8 @@ async function offerUpdateService(id, data) {
     });
 
     await emitOfferUpdated({ id: updated.id, changes: data });
+    await cacheOffer(updated);
+
     logger.info(`Offer updated: ${updated.id}`);
     t.success();
     return updated;

@@ -1,60 +1,96 @@
 // __mocks__/utils/prismaClient.js
 
 let tickets = [];
+let events = [];
+let offers = [];
 
-const ticket = {
-  create: jest.fn(({ data }) => {
-    const newTicket = { id: tickets.length + 1, ...data };
-    tickets.push(newTicket);
-    return Promise.resolve(newTicket);
-  }),
+// Fabrique générique pour un modèle CRUD mémoire
+function makeMockModel(getStore) {
+  return {
+    create: jest.fn(({ data }) => {
+      const store = getStore();
+      const newItem = { id: store.length + 1, ...data };
+      store.push(newItem);
+      return Promise.resolve(newItem);
+    }),
 
-  findUnique: jest.fn(({ where }) => {
-    const found = tickets.find(t => t.id === where.id);
-    return Promise.resolve(found || null);
-  }),
+    findUnique: jest.fn(({ where }) => {
+      const store = getStore();
+      const key = Object.keys(where)[0];
+      const val = where[key];
+      const found = store.find(i => i[key] === val);
+      return Promise.resolve(found || null);
+    }),
 
-  findMany: jest.fn(({ where } = {}) => {
-    // si where vide ou absent, on retourne tout
-    const filter = where || {};
-    const results = tickets.filter(t =>
-      Object.entries(filter).every(([key, val]) => t[key] === val)
-    );
-    return Promise.resolve(results);
-  }),
+    findMany: jest.fn(({ where } = {}) => {
+      const store = getStore();
+      if (!where) return Promise.resolve([...store]);
+      const results = store.filter(item =>
+        Object.entries(where).every(([k, v]) => {
+          // Support simple nested filter for date range and null checks if needed in tests
+          if (typeof v === 'object' && v !== null) return true; // no-op for complex where in mock
+          return item[k] === v;
+        })
+      );
+      return Promise.resolve(results);
+    }),
 
-  update: jest.fn(({ where, data }) => {
-    const idx = tickets.findIndex(t => t.id === where.id);
-    if (idx === -1) {
-      return Promise.resolve(null);
-    }
-    tickets[idx] = { ...tickets[idx], ...data };
-    return Promise.resolve(tickets[idx]);
-  }),
+    update: jest.fn(({ where, data }) => {
+      const store = getStore();
+      const key = Object.keys(where)[0];
+      const val = where[key];
+      const idx = store.findIndex(i => i[key] === val);
+      if (idx === -1) return Promise.resolve(null);
+      store[idx] = { ...store[idx], ...data };
+      return Promise.resolve(store[idx]);
+    }),
 
-  delete: jest.fn(({ where }) => {
-    const idx = tickets.findIndex(t => t.id === where.id);
-    if (idx === -1) {
-      return Promise.resolve(null);
-    }
-    const [deleted] = tickets.splice(idx, 1);
-    return Promise.resolve(deleted);
-  })
-};
+    delete: jest.fn(({ where }) => {
+      const store = getStore();
+      const key = Object.keys(where)[0];
+      const val = where[key];
+      const idx = store.findIndex(i => i[key] === val);
+      if (idx === -1) return Promise.resolve(null);
+      const [deleted] = store.splice(idx, 1);
+      return Promise.resolve(deleted);
+    })
+  };
+}
+
+const ticket = makeMockModel(() => tickets);
+const event = makeMockModel(() => events);
+const offer = makeMockModel(() => offers);
 
 module.exports = {
   ticket,
+  event,
+  offer,
 
-  // Vide la base mock et reset les compteurs d'appels sur chaque fn
   __reset: () => {
     tickets = [];
+    events = [];
+    offers = [];
+
     ticket.create.mockClear();
     ticket.findUnique.mockClear();
     ticket.findMany.mockClear();
     ticket.update.mockClear();
     ticket.delete.mockClear();
+
+    event.create.mockClear();
+    event.findUnique.mockClear();
+    event.findMany.mockClear();
+    event.update.mockClear();
+    event.delete.mockClear();
+
+    offer.create.mockClear();
+    offer.findUnique.mockClear();
+    offer.findMany.mockClear();
+    offer.update.mockClear();
+    offer.delete.mockClear();
   },
 
-  // Pour inspecter ce qui a été créé dans les tests
-  __getAll: () => [...tickets]
+  __getAllTickets: () => [...tickets],
+  __getAllEvents: () => [...events],
+  __getAllOffers: () => [...offers]
 };
