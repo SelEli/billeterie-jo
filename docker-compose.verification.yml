@@ -1,0 +1,16 @@
+services:
+  verification:
+    build: ./services/verification
+    env_file: ./services/verification/.env
+    ports:
+      - "3004:3004"             # adapte le port si besoin
+    depends_on:
+      - kafka
+      - redis
+      - verification-db         # retire si pas de base dédiée
+    networks:
+      - jo-net
+
+networks:
+  jo-net:
+    external: true  # se brancher sur le réseau infra existant

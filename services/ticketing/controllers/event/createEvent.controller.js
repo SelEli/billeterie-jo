@@ -1,6 +1,5 @@
-// controllers/event/createEvent.controller.js
-const { createEventSchema } = require('../../validators/event.validator');
-const eventCreationService = require('../../services/event/eventCreation.service');
+const { createEventSchema } = require('../../schemas/event.schema');
+const { createEventService } = require('../../services/event/createEvent.service');
 const logger = require('../../utils/logger');
 
 module.exports = async (req, res) => {
@@ -10,15 +9,17 @@ module.exports = async (req, res) => {
     }
 
     const parsed = createEventSchema.parse(req.body);
-    const event = await eventCreationService(parsed);
+    logger.info(`[EVENT CONTROLLER] Creating event by user ${req.user.id}`);
+    const event = await createEventService(parsed);
 
+    logger.info(`[EVENT CONTROLLER] Event created: ${event.id}`);
     res.status(201).json({
       status: 'success',
       data: { eventId: event.id },
       meta: { message: 'Event created successfully' }
     });
   } catch (err) {
-    logger.error(err);
+    logger.error(`[EVENT CONTROLLER] Create failed: ${err.message}`);
     res.status(400).json({ status: 'error', meta: { message: err.message } });
   }
 };

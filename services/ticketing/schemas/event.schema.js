@@ -1,31 +1,35 @@
-const { getRedis } = require('../utils/redisClient');
-const redis = getRedis();
+// validators/event.validator.js
+const { z } = require('zod');
 
-/**
- * Met en cache un Event pour 15 minutes
- * @param {Object} event - L'objet complet de l'événement
- */
-async function cacheEvent(event) {
-  const key = `event:${event.id}`;
-  await redis.set(key, JSON.stringify(event), 'EX', 900);
-}
+// 📅 Schéma création d’événement
+const createEventSchema = z.object({
+  label: z
+    .string()
+    .min(3, { message: 'Label must be at least 3 characters' }),
+  date: z.coerce.date().refine(d => d > new Date(), {
+    message: 'Date must be in the future'
+  }),
+  location: z
+    .string()
+    .min(3, { message: 'Location must be at least 3 characters' }),
+  category: z
+    .string()
+    .min(1, { message: 'Category cannot be empty' })
+    .optional()
+});
 
-/**
- * Récupère un Event du cache si présent
- * @param {number|string} id - ID de l'événement
- * @returns {Object|null}
- */
-async function getCachedEvent(id) {
-  const data = await redis.get(`event:${id}`);
-  return data ? JSON.parse(data) : null;
-}
+// ✏ Schéma mise à jour (tous champs optionnels)
+const updateEventSchema = createEventSchema.partial().refine((data) => {
+  if (data.date) {
+    return data.date > new Date();
+  }
+  return true;
+}, {
+  message: 'Updated date must be in the future',
+  path: ['date']
+});
 
-/**
- * Supprime un Event du cache (invalidation)
- * @param {number|string} id - ID de l'événement
- */
-async function invalidateEventCache(id) {
-  await redis.del(`event:${id}`);
-}
-
-module.exports = { cacheEvent, getCachedEvent, invalidateEventCache };
+module.exports = {
+  createEventSchema,
+  updateEventSchema
+};

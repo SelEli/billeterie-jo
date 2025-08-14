@@ -3,8 +3,9 @@ const router = express.Router();
 
 const authenticate = require('../middlewares/auth.middleware');
 const validateRequest = require('../middlewares/validateRequest.middleware');
+const logger = require('../utils/logger');
 
-const { EventCreateSchema, EventUpdateSchema } = require('../schemas/event.schema');
+const { EventCreateSchema, EventUpdateSchema } = require('../validators/event.validator');
 
 const {
   createEventController,
@@ -14,48 +15,33 @@ const {
   listEventsController
 } = require('../controllers/event');
 
-// Vérification imports stricts
-if (
-  typeof createEventController !== 'function' ||
-  typeof readEventController !== 'function' ||
-  typeof updateEventController !== 'function' ||
-  typeof deleteEventController !== 'function' ||
-  typeof listEventsController !== 'function'
-) {
-  throw new Error('❌ Un ou plusieurs contrôleurs Event sont undefined ou mal exportés');
-}
+// Vérification stricte des contrôleurs
+[
+  ['createEventController', createEventController],
+  ['readEventController', readEventController],
+  ['updateEventController', updateEventController],
+  ['deleteEventController', deleteEventController],
+  ['listEventsController', listEventsController]
+].forEach(([name, fn]) => {
+  if (typeof fn !== 'function') {
+    throw new Error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
+  }
+});
 
-// Debug global
+// Middleware de debug centralisé
 router.use((req, res, next) => {
-  console.log(`🔹 [ROUTES DEBUG][EVENT] ${req.method} ${req.originalUrl} reçu`);
-  console.log('🔹 Headers:', req.headers);
-  console.log('🔹 Body brut:', req.body);
+  logger.debug(`[EVENT ROUTES] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-function debugAuth(req, res, next) {
-  console.log(`🔹 [ROUTES DEBUG][EVENT] Appel authenticate pour ${req.method} ${req.originalUrl}`);
-  next();
-}
-function debugValidate(schemaName) {
-  return (req, res, next) => {
-    console.log(`🔹 [ROUTES DEBUG][EVENT] Validation ${schemaName} avant controller`);
-    next();
-  };
-}
-
 // ----------- ROUTES -----------
+
 router.post(
   '/',
-  debugAuth,
   authenticate,
-  debugValidate('EventCreateSchema'),
   validateRequest(EventCreateSchema),
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG][EVENT] POST / => avant createEventController', {
-      user: req.user,
-      validated: req.validated,
-    });
+    logger.info('[EVENT ROUTES] POST / => createEventController');
     next();
   },
   createEventController
@@ -63,13 +49,9 @@ router.post(
 
 router.get(
   '/:id',
-  debugAuth,
   authenticate,
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG][EVENT] GET /:id => avant readEventController', {
-      params: req.params,
-      user: req.user,
-    });
+    logger.info('[EVENT ROUTES] GET /:id => readEventController');
     next();
   },
   readEventController
@@ -77,16 +59,10 @@ router.get(
 
 router.put(
   '/:id',
-  debugAuth,
   authenticate,
-  debugValidate('EventUpdateSchema'),
   validateRequest(EventUpdateSchema),
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG][EVENT] PUT /:id => avant updateEventController', {
-      params: req.params,
-      user: req.user,
-      validated: req.validated,
-    });
+    logger.info('[EVENT ROUTES] PUT /:id => updateEventController');
     next();
   },
   updateEventController
@@ -94,13 +70,9 @@ router.put(
 
 router.delete(
   '/:id',
-  debugAuth,
   authenticate,
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG][EVENT] DELETE /:id => avant deleteEventController', {
-      params: req.params,
-      user: req.user,
-    });
+    logger.info('[EVENT ROUTES] DELETE /:id => deleteEventController');
     next();
   },
   deleteEventController
@@ -108,10 +80,9 @@ router.delete(
 
 router.get(
   '/',
-  debugAuth,
   authenticate,
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG][EVENT] GET / => avant listEventsController', { user: req.user });
+    logger.info('[EVENT ROUTES] GET / => listEventsController');
     next();
   },
   listEventsController

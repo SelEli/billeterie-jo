@@ -1,0 +1,24 @@
+
+services:
+  ticketing:
+    build: ./services/ticketing
+    env_file: ./services/ticketing/.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    ports:
+      - "3002:3002"
+    depends_on:
+      redis:
+        condition: service_healthy
+      ticketing-db:
+        condition: service_started
+      kafka:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - jo-net
+
+networks:
+  jo-net:
+    external: true

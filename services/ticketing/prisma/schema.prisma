@@ -64,6 +64,7 @@ model Event {
   deletedAt  DateTime?              // Soft delete
 
   tickets    Ticket[]               // Tickets liés à cet événement
+  offers     Offer[]                // 🔧 Relation inverse vers Offer
 }
 
 model Offer {

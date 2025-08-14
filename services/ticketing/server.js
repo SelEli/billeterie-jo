@@ -1,6 +1,8 @@
 // 🌱 Charge les variables d'environnement depuis .env
 require('dotenv').config();
 
+const logger = require('./utils/logger');
+
 // 🏗️ App Express principale
 const app = require('./app');
 
@@ -12,18 +14,23 @@ const { initRedis } = require('./utils/redisClient');
   try {
     // ⚡ Initialisation Redis
     await initRedis();
+    logger.info('✅ Redis client initialized');
 
     // ⚡ Initialisation Kafka
     await initKafka();
+    logger.info('✅ Kafka producer initialized');
 
     // 🔊 Lancement du serveur
     const PORT = process.env.PORT || 3001;
     app.listen(PORT, () => {
-      console.log(`✅ Ticketing service listening on port ${PORT}`);
+      logger.info(`✅ Ticketing service listening on port ${PORT}`);
     });
 
   } catch (err) {
-    console.error('❌ Échec lors de l’initialisation des services :', err.message);
+    logger.error('❌ Échec lors de l’initialisation des services', {
+      message: err.message,
+      stack: err.stack
+    });
     process.exit(1); // ⛔ Arrêt propre en cas d’erreur
   }
 })();

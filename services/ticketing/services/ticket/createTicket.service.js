@@ -1,5 +1,5 @@
-// services/ticket/createTicket.service.js
 const prisma = require('../../utils/prismaClient');
+const logger = require('../../utils/logger');
 
 async function createTicketService({
   price,
@@ -9,13 +9,11 @@ async function createTicketService({
   userId,
   offerId = null
 }) {
-  console.log(
-    '[createTicket.service] appel Prisma.create avec :',
-    { price, zone, userId, eventId, status, offerId }
-  );
+  logger.debug('[createTicket.service] appel Prisma.create avec :', {
+    price, zone, userId, eventId, status, offerId
+  });
 
   try {
-    // Conversions minimales pour supporter strings numériques et null
     const toNumOrNull = (v) =>
       v === null || v === undefined ? null : (typeof v === 'string' ? Number(v) : v);
 
@@ -48,10 +46,10 @@ async function createTicketService({
 
     const ticket = await prisma.ticket.create({ data });
 
-    console.log('[createTicket.service] ticket créé :', ticket);
+    logger.info(`[TICKET] Created: ${ticket.id}`);
     return ticket;
   } catch (error) {
-    console.error('[createTicket.service] erreur Prisma.create:', error);
+    logger.error('[createTicket.service] erreur Prisma.create:', error);
     throw new Error('createTicketService: échec de création du ticket');
   }
 }

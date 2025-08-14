@@ -1,0 +1,16 @@
+services:
+  auth:
+    build: ./services/auth
+    env_file: ./services/auth/.env
+    ports:
+      - "3001:3001"
+    depends_on:
+      - auth-db
+      - kafka
+      - redis
+    networks:
+      - jo-net
+
+networks:
+  jo-net:
+    external: true  # se brancher sur le réseau existant créé par l'infra

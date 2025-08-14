@@ -1,14 +1,31 @@
-const { z } = require('zod');
+const { getRedis } = require('../utils/redisClient');
+const redis = getRedis();
 
-const createEventSchema = z.object({
-  label: z.string().min(3),
-  date: z.string().refine(d => new Date(d) > new Date(), {
-    message: "Date must be in the future"
-  }),
-  location: z.string().min(3),
-  category: z.string().optional()
-});
+/**
+ * Met en cache un Event pour 15 minutes
+ * @param {Object} event - L'objet complet de l'événement
+ */
+async function cacheEvent(event) {
+  const key = `event:${event.id}`;
+  await redis.set(key, JSON.stringify(event), 'EX', 900);
+}
 
-const updateEventSchema = createEventSchema.partial();
+/**
+ * Récupère un Event du cache si présent
+ * @param {number|string} id - ID de l'événement
+ * @returns {Object|null}
+ */
+async function getCachedEvent(id) {
+  const data = await redis.get(`event:${id}`);
+  return data ? JSON.parse(data) : null;
+}
 
-module.exports = { createEventSchema, updateEventSchema };
+/**
+ * Supprime un Event du cache (invalidation)
+ * @param {number|string} id - ID de l'événement
+ */
+async function invalidateEventCache(id) {
+  await redis.del(`event:${id}`);
+}
+
+module.exports = { cacheEvent, getCachedEvent, invalidateEventCache };

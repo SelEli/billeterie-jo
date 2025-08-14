@@ -1,9 +1,17 @@
-// services/ticket/deleteTicket.service.js
 const prisma = require('../../utils/prismaClient');
+const logger = require('../../utils/logger');
 
 async function deleteTicketService(id) {
   const numericId = typeof id === 'string' ? Number(id) : id;
-  return prisma.ticket.delete({ where: { id: numericId } });
+
+  try {
+    const deleted = await prisma.ticket.delete({ where: { id: numericId } });
+    logger.info(`[TICKET] Deleted: ${deleted.id}`);
+    return deleted;
+  } catch (err) {
+    logger.error(`[TICKET] Failed to delete ${id}: ${err.message}`);
+    throw err;
+  }
 }
 
 module.exports = { deleteTicketService };

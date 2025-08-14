@@ -1,0 +1,16 @@
+services:
+  payment:
+    build: ./services/payment
+    env_file: ./services/payment/.env
+    ports:
+      - "3010:3010"
+    depends_on:
+      - payment-db
+      - kafka
+      - redis
+    networks:
+      - jo-net
+
+networks:
+  jo-net:
+    external: true  # se brancher au réseau infra existant

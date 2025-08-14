@@ -1,31 +1,50 @@
-const { getRedis } = require('../utils/redisClient');
-const redis = getRedis();
+// schemas/offer.schema.js
+const { z } = require('zod');
 
-/**
- * Met en cache une Offer pour 15 minutes
- * @param {Object} offer - L'objet complet de l'offre
- */
-async function cacheOffer(offer) {
-  const key = `offer:${offer.id}`;
-  await redis.set(key, JSON.stringify(offer), 'EX', 900);
-}
+// 🎯 Rôles autorisés
+const roles = ['VISITOR', 'USER', 'ADMIN', 'EMPLOYEE', 'AGENT'];
 
-/**
- * Récupère une Offer du cache si présente
- * @param {number|string} id - ID de l'offre
- * @returns {Object|null}
- */
-async function getCachedOffer(id) {
-  const data = await redis.get(`offer:${id}`);
-  return data ? JSON.parse(data) : null;
-}
+// 🛠 Schéma de base pour création
+const createOfferSchema = z.object({
+  label: z
+    .string()
+    .min(3, { message: 'Label must be at least 3 characters' }),
+  discount: z
+    .number()
+    .min(0, { message: 'Discount must be >= 0' })
+    .max(1, { message: 'Discount must be between 0 and 1 (e.g., 0.25)' }),
+  active: z.boolean().optional(),
+  targetRole: z.enum(roles, {
+    errorMap: () => ({ message: `Target role must be one of: ${roles.join(', ')}` })
+  }),
+  eventId: z.number().int().positive().optional(),
+  validFrom: z.coerce.date().optional(),
+  validTo: z.coerce.date().optional(),
+  quota: z.number().int().positive().optional()
+}).refine((data) => {
+  if (data.validFrom && data.validTo) {
+    return data.validFrom < data.validTo;
+  }
+  return true;
+}, {
+  message: 'validFrom must be before validTo',
+  path: ['validFrom']
+});
 
-/**
- * Supprime une Offer du cache (invalidation)
- * @param {number|string} id - ID de l'offre
- */
-async function invalidateOfferCache(id) {
-  await redis.del(`offer:${id}`);
-}
+// 🛠 Schéma de mise à jour (tous champs optionnels)
+const updateOfferSchema = createOfferSchema
+  .partial()
+  .refine((data) => {
+    if (data.validFrom && data.validTo) {
+      return data.validFrom < data.validTo;
+    }
+    return true;
+  }, {
+    message: 'validFrom must be before validTo',
+    path: ['validFrom']
+  });
 
-module.exports = { cacheOffer, getCachedOffer, invalidateOfferCache };
+module.exports = {
+  createOfferSchema,
+  updateOfferSchema
+};

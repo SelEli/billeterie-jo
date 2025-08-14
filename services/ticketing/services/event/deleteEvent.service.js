@@ -1,41 +1,45 @@
-// services/event/eventDelete.service.js
 const prisma = require('../../utils/prismaClient');
 const { emitEventDeleted } = require('../../kafka/event.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
 const { invalidateEventCache } = require('../../cache/event.cache');
 
-async function eventDeleteService(id) {
-  const t = timer('eventDeleteService').start();
+async function deleteEventService(id) {
+  const t = timer('deleteEventService').start();
   try {
-    const numericId = parseInt(id);
+    const eventId = Number(id);
     const existing = await prisma.event.findUnique({
-      where: { id: numericId },
+      where: { id: eventId },
       select: { deletedAt: true }
     });
-    if (!existing) throw new Error('Event not found');
-
+    if (!existing) {
+      const err = new Error('Event not found');
+      err.statusCode = 404;
+      throw err;
+    }
     if (existing.deletedAt) {
-      logger.warn(`Event already deleted: ${numericId}`);
+      logger.info(`[EVENT] Already deleted: ${eventId}`);
       t.success();
-      return { id: numericId, deletedAt: existing.deletedAt };
+      return { id: eventId, deletedAt: existing.deletedAt };
     }
 
     const deleted = await prisma.event.update({
-      where: { id: numericId },
-      data: { deletedAt: new Date() }
+      where: { id: eventId },
+      data: { deletedAt: new Date() },
+      include: { offers: true, tickets: true }
     });
 
     await emitEventDeleted(deleted.id);
     await invalidateEventCache(deleted.id);
+    logger.info(`[EVENT] Deleted: ${deleted.id}`);
 
-    logger.warn(`Event deleted: ${deleted.id}`);
     t.success();
     return deleted;
   } catch (err) {
+    logger.error(`[EVENT] Failed to delete ${id}: ${err.message}`);
     t.fail(err);
     throw err;
   }
 }
 
-module.exports = eventDeleteService;
+module.exports = { deleteEventService };

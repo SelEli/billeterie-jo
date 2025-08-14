@@ -1,12 +1,15 @@
-const eventCreationService = require('./eventCreation.service');
-const eventUpdateService = require('./eventUpdate.service');
-const eventDeleteService = require('./eventDelete.service');
-const { eventQueryService, eventReadService } = require('./eventQuery.service');
+// services/event/index.js
+
+const { createEventService } = require('./createEvent.service');
+const { updateEventService } = require('./updateEvent.service');
+const { deleteEventService } = require('./deleteEvent.service');
+const { listEventsService }  = require('./listEvents.service');
+const { readEventService }   = require('./readEvent.service');
 
 module.exports = {
-  eventCreationService,
-  eventUpdateService,
-  eventDeleteService,
-  eventQueryService,
-  eventReadService
+  createEventService,
+  updateEventService,
+  deleteEventService,
+  listEventsService,
+  readEventService
 };

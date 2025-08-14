@@ -1,29 +1,31 @@
-// validators/offer.validator.js
-const { z } = require('zod');
+const { getRedis } = require('../utils/redisClient');
+const redis = getRedis();
 
-const roles = ['VISITOR', 'USER', 'ADMIN', 'EMPLOYEE', 'AGENT'];
+/**
+ * Met en cache une Offer pour 15 minutes
+ * @param {Object} offer - L'objet complet de l'offre
+ */
+async function cacheOffer(offer) {
+  const key = `offer:${offer.id}`;
+  await redis.set(key, JSON.stringify(offer), 'EX', 900);
+}
 
-const createOfferSchema = z.object({
-  label: z.string().min(3, 'Label must be at least 3 characters'),
-  discount: z.number().min(0).max(1, 'Discount must be between 0 and 1 (e.g., 0.25)'),
-  active: z.boolean().optional(),
-  targetRole: z.enum(roles),
-  eventId: z.number().int().positive().optional(),
-  validFrom: z.string().datetime().optional(),
-  validTo: z.string().datetime().optional(),
-  quota: z.number().int().positive().optional()
-}).refine((data) => {
-  if (data.validFrom && data.validTo) {
-    return new Date(data.validFrom) < new Date(data.validTo);
-  }
-  return true;
-}, { message: 'validFrom must be before validTo', path: ['validFrom'] });
+/**
+ * Récupère une Offer du cache si présente
+ * @param {number|string} id - ID de l'offre
+ * @returns {Object|null}
+ */
+async function getCachedOffer(id) {
+  const data = await redis.get(`offer:${id}`);
+  return data ? JSON.parse(data) : null;
+}
 
-const updateOfferSchema = createOfferSchema.partial().refine((data) => {
-  if (data.validFrom && data.validTo) {
-    return new Date(data.validFrom) < new Date(data.validTo);
-  }
-  return true;
-}, { message: 'validFrom must be before validTo', path: ['validFrom'] });
+/**
+ * Supprime une Offer du cache (invalidation)
+ * @param {number|string} id - ID de l'offre
+ */
+async function invalidateOfferCache(id) {
+  await redis.del(`offer:${id}`);
+}
 
-module.exports = { createOfferSchema, updateOfferSchema };
+module.exports = { cacheOffer, getCachedOffer, invalidateOfferCache };

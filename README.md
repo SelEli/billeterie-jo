@@ -1,118 +1,151 @@
-Billetterie JO 2024 — README technique
+# Billetterie JO 2024 — README technique
+
+## 🛠 Commandes Docker à connaître (mode pro)
+
+### Lancer l’infrastructure de base (Kafka, Redis, Postgres, etc.)
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+### Lancer un service en développement (avec hot reload)
+```bash
+docker compose -f docker-compose.<service>.yml -f docker-compose.<service>.override.yml up --build
+```
+Remplacer `<service>` par `auth`, `ticketing`, `payment` ou `verification`.
+
+### Lancer un service en production (image figée, sans volume)
+```bash
+docker compose -f docker-compose.<service>.yml up -d --build
+```
+
+### Arrêter un service
+```bash
+docker compose -f docker-compose.<service>.yml down
+```
+
+## 📜 Description du projet
 Architecture modulaire orientée microservices pour gérer l’authentification, la réservation, le paiement sécurisé, la traçabilité, la génération et la vérification des billets électroniques des Jeux Olympiques 2024.
 
-Objectif du projet
+## 🎯 Objectif du projet
 Concevoir une plateforme billetterie :
 
-Scalable et modulaire
+- Scalable et modulaire
+- Sécurisée avec JWT + Stripe
+- Traçable avec Kafka, Redis, Winston
+- Testable et observable en temps réel
 
-Sécurisée avec JWT + Stripe
+## 🏗 Architecture technique
 
-Traçable avec Kafka, Redis, Winston
+| Service      | Rôle métier                                             |
+|--------------|----------------------------------------------------------|
+| `auth/`      | Inscription, connexion, clefs invisibles                |
+| `paiement/`  | Session Stripe, clef achat, Kafka billet-achat          |
+| `ticketing/` | Création des billets, QR code, statuts                  |
+| `verification/` | Scan, validation de billet, contrôles événement     |
+| `gateway/`   | Reverse proxy centralisé                                |
 
-Testable et observable en temps réel
-
-Architecture technique
-Service	Rôle métier
-auth/	Inscription, connexion, clefs invisibles
-paiement/	Session Stripe, clef achat, Kafka billet-achat
-ticketing/	Création des billets, QR code, statuts
-verification/	Scan, validation de billet, contrôles événement
-gateway/	Reverse proxy centralisé
 Chaque microservice est isolé, Dockerisé, et contient :
 
-controllers/ : logique métier par action
+- `controllers/` : logique métier par action
+- `routes/` : endpoints REST modulaire
+- `schemas/` : validation Zod par use case
+- `utils/` : modules internes (logger, redis, kafka…)
+- `middlewares/` : auth, validation, etc.
+- `src/index.js` : démarrage Express
 
-routes/ : endpoints REST modulaire
+## 🧰 Stack technique
 
-schemas/ : validation Zod par use case
+| Module        | Usage commun                                      |
+|---------------|---------------------------------------------------|
+| `express`     | Serveur HTTP REST                                 |
+| `dotenv`      | Variables d’environnement                         |
+| `winston`     | Logging par service avec `SERVICE_NAME`           |
+| `redis`       | Session, cache, Pub/Sub                           |
+| `jsonwebtoken`| Authentification JWT                              |
+| `crypto`      | HMAC, clefs invisibles                            |
+| `zod`         | Validation stricte des entrées                    |
+| `kafkajs`     | Messaging distribué — billet-achat, etc.          |
+| `stripe`      | Paiement sécurisé                                 |
+| `prisma`      | ORM SQL généré                                    |
+| `uuid`        | Identifiants et tracking                          |
 
-utils/ : modules internes (logger, redis, kafka...)
+## ⚙ Scripts de génération automatique
 
-middlewares/ : auth, validation, etc.
+Tous les scripts sont regroupés dans `scripts/setup/` :
 
-src/index.js : démarrage Express
+| Script                     | Fonction technique                                        |
+|----------------------------|-----------------------------------------------------------|
+| `generate-kafka.cjs`       | Injecte `kafkaClient.js`, `kafkaConsumer`, route test Kafka |
+| `generate-redis.cjs`       | Injecte `redisClient.js` + variable `REDIS_URL`           |
+| `generate-logger.cjs`      | Injecte Winston avec nom de service                       |
+| `generate-validateBody.cjs`| Middleware universel Zod                                  |
+| `generate-schemas.cjs`     | Pose les schémas Zod pour chaque service                  |
+| `generate-swagger.cjs`     | Ajoute Swagger UI + fichier de doc `.json`                |
+| `generate-utils.cjs`       | Crée `clefs.js`, `jwt.js`, `requestId.js`, etc.           |
+| `generate-middlewares.cjs` | `Auth.js`, `validateBody.js`, etc.                        |
+| `generate-env-example.cjs` | `.env.example` avec clés techniques                       |
+| `generate-health-route.cjs`| Route `/api/health` par service                           |
+| `generate-index.cjs`       | Serveur Express prêt à démarrer (`src/index.js`)          |
+| `check-health.cjs`         | Vérifie disponibilité des services (`/api/health`)        |
 
-Stack technique
-Module	Usage commun
-express	Serveur HTTP REST
-dotenv	Variables d’environnement
-winston	Logging par service avec SERVICE_NAME
-redis	Session, cache, Pub/Sub
-jsonwebtoken	Authentification JWT
-crypto	HMAC, clefs invisibles
-zod	Validation stricte des entrées
-kafkajs	Messaging distribué — billet-achat, etc.
-stripe	Paiement sécurisé
-prisma	ORM SQL généré
-uuid	Identifiants et tracking
-Scripts de génération automatique
-Tous les scripts sont regroupés dans le dossier :
+## 🚀 Installation rapide
 
-scripts/setup/
-Script	Fonction technique
-generate-kafka.cjs	Injecte kafkaClient.js, kafkaConsumer, route test Kafka
-generate-redis.cjs	Injecte redisClient.js + variable REDIS_URL
-generate-logger.cjs	Injecte Winston avec nom de service
-generate-validateBody.cjs	Middleware universel Zod
-generate-schemas.cjs	Pose les schémas Zod pour chaque service
-generate-swagger.cjs	Ajoute Swagger UI + fichier de doc .json
-generate-utils.cjs	Crée clefs.js, jwt.js, requestId.js, etc.
-generate-middlewares.cjs	Auth.js, validateBody.js, etc.
-generate-env-example.cjs	.env.example avec clés techniques
-generate-health-route.cjs	Route /api/health par service
-generate-index.cjs	Serveur Express prêt à démarrer (src/index.js)
-check-health.cjs	Vérifie disponibilité des services (/api/health)
-Installation rapide
-bash
+```bash
 npm run setup
-Alias dans package.json :
+```
 
-json
+Alias dans `package.json` :
+
+```json
 "scripts": {
   "setup": "node scripts/setup/generate-kafka.cjs && node scripts/setup/generate-redis.cjs && node scripts/setup/generate-logger.cjs && node scripts/setup/generate-validateBody.cjs && node scripts/setup/generate-schemas.cjs && node scripts/setup/generate-swagger.cjs && node scripts/setup/generate-utils.cjs && node scripts/setup/generate-middlewares.cjs && node scripts/setup/generate-env-example.cjs && node scripts/setup/generate-health-route.cjs && node scripts/setup/generate-index.cjs"
 }
-Lancer le projet
-Générer les fichiers :
+```
 
+## ▶ Lancer le projet
+
+### Générer les fichiers
+
+```bash
 npm run setup
-Vérifier la structure :
+```
 
+### Vérifier la structure
+
+```bash
 node scripts/setup/check-health.cjs
-Démarrer toute la stack :
+```
 
+### Démarrer toute la stack
+
+```bash
 docker compose up --build
-Sécurité
-JWT sécurisé
+```
 
-Clef invisible par utilisateur
+## 🔐 Sécurité
 
-Clef d’achat unique + session Stripe
+- JWT sécurisé
+- Clef invisible par utilisateur
+- Clef d’achat unique + session Stripe
+- QR codé signé (HMAC)
+- Middleware `Auth.js` par route
+- Validation Zod par payload
+- `bcrypt` pour les mots de passe
 
-QR codé signé (HMAC)
+## 📊 Monitoring & observabilité
 
-Auth.js par route
+- `Winston` + `SERVICE_NAME`
+- `Kafka` (pub/consume)
+- `Redis` (cache + session)
+- `Swagger UI` par service (`/api/docs`)
+- `Prometheus` pour métriques
+- `Grafana Loki` ou `ELK` pour logs
+- `Jaeger` (optionnel) pour traçage distribué
 
-Validation Zod par payload
+## 📁 Structure du projet
 
-bcrypt pour les mots de passe
-
-Monitoring & observabilité
-Winston + SERVICE_NAME
-
-Kafka (pub/consume)
-
-Redis (cache + session)
-
-Swagger UI par service (/api/docs)
-
-Prometheus pour métriques
-
-Grafana Loki ou ELK pour logs
-
-Jaeger (optionnel) pour traçage distribué
-
-Structure du projet
+```
+Code
 services/
 ├── auth/
 │   ├── controllers/
@@ -138,3 +171,4 @@ scripts/
     ├── generate-health-route.cjs
     ├── generate-index.cjs
     └── check-health.cjs
+```

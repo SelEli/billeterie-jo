@@ -1,68 +1,48 @@
-// routes/ticket.routes.js
 const express = require('express');
 const router = express.Router();
 
 const authenticate = require('../middlewares/auth.middleware');
 const validateRequest = require('../middlewares/validateRequest.middleware');
+const logger = require('../utils/logger');
 
 const {
   TicketCreateSchema,
   TicketUpdateSchema
 } = require('../schemas/ticket.schema');
 
-// Import des controllers
 const { createTicketController } = require('../controllers/ticket/createTicket.controller');
 const { readTicketController } = require('../controllers/ticket/readTicket.controller');
 const { updateTicketController } = require('../controllers/ticket/updateTicket.controller');
 const { deleteTicketController } = require('../controllers/ticket/deleteTicket.controller');
 const { listTicketsController } = require('../controllers/ticket/listTickets.controller');
 
-// Vérification imports stricts
-if (
-  typeof createTicketController !== 'function' ||
-  typeof readTicketController !== 'function' ||
-  typeof updateTicketController !== 'function' ||
-  typeof deleteTicketController !== 'function' ||
-  typeof listTicketsController !== 'function'
-) {
-  throw new Error('❌ Un ou plusieurs contrôleurs sont undefined ou mal exportés');
-}
-
-// Middleware debug global pour toutes les routes de ce router
-router.use((req, res, next) => {
-  console.log(`🔹 [ROUTES DEBUG] ${req.method} ${req.originalUrl} reçu`);
-  console.log('🔹 Headers:', req.headers);
-  console.log('🔹 Body brut:', req.body);
-  next();
+// Vérification stricte des contrôleurs
+[
+  ['createTicketController', createTicketController],
+  ['readTicketController', readTicketController],
+  ['updateTicketController', updateTicketController],
+  ['deleteTicketController', deleteTicketController],
+  ['listTicketsController', listTicketsController]
+].forEach(([name, fn]) => {
+  if (typeof fn !== 'function') {
+    throw new Error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
+  }
 });
 
-// Middleware pour tracer `authenticate`
-function debugAuth(req, res, next) {
-  console.log(`🔹 [ROUTES DEBUG] Appel authenticate pour ${req.method} ${req.originalUrl}`);
+// Middleware de debug centralisé
+router.use((req, res, next) => {
+  logger.debug(`[TICKET ROUTES] ${req.method} ${req.originalUrl}`);
   next();
-}
-
-// Middleware pour tracer `validateRequest`
-function debugValidate(schemaName) {
-  return (req, res, next) => {
-    console.log(`🔹 [ROUTES DEBUG] Validation ${schemaName} avant controller`);
-    next();
-  };
-}
+});
 
 // ----------- ROUTES -----------
 
 router.post(
   '/',
-  debugAuth,
   authenticate,
-  debugValidate('TicketCreateSchema'),
   validateRequest(TicketCreateSchema),
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG] POST / => avant createTicketController', {
-      user: req.user,
-      validated: req.validated,
-    });
+    logger.info('[TICKET ROUTES] POST / => createTicketController');
     next();
   },
   createTicketController
@@ -70,13 +50,9 @@ router.post(
 
 router.get(
   '/:id',
-  debugAuth,
   authenticate,
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG] GET /:id => avant readTicketController', {
-      params: req.params,
-      user: req.user,
-    });
+    logger.info('[TICKET ROUTES] GET /:id => readTicketController');
     next();
   },
   readTicketController
@@ -84,16 +60,10 @@ router.get(
 
 router.put(
   '/:id',
-  debugAuth,
   authenticate,
-  debugValidate('TicketUpdateSchema'),
   validateRequest(TicketUpdateSchema),
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG] PUT /:id => avant updateTicketController', {
-      params: req.params,
-      user: req.user,
-      validated: req.validated,
-    });
+    logger.info('[TICKET ROUTES] PUT /:id => updateTicketController');
     next();
   },
   updateTicketController
@@ -101,13 +71,9 @@ router.put(
 
 router.delete(
   '/:id',
-  debugAuth,
   authenticate,
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG] DELETE /:id => avant deleteTicketController', {
-      params: req.params,
-      user: req.user,
-    });
+    logger.info('[TICKET ROUTES] DELETE /:id => deleteTicketController');
     next();
   },
   deleteTicketController
@@ -115,10 +81,9 @@ router.delete(
 
 router.get(
   '/',
-  debugAuth,
   authenticate,
   (req, res, next) => {
-    console.log('🔹 [ROUTES DEBUG] GET / => avant listTicketsController', { user: req.user });
+    logger.info('[TICKET ROUTES] GET / => listTicketsController');
     next();
   },
   listTicketsController

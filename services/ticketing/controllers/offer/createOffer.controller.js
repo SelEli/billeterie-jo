@@ -1,6 +1,5 @@
-// controllers/offer/createOffer.controller.js
-const { createOfferSchema } = require('../../validators/offer.validator');
-const offerCreationService = require('../../services/offer/offerCreation.service');
+const { createOfferSchema } = require('../../schemas/offer.schema');
+const { createOfferService } = require('../../services/offer/createOffer.service');
 const logger = require('../../utils/logger');
 
 module.exports = async (req, res) => {
@@ -11,11 +10,12 @@ module.exports = async (req, res) => {
 
     const parsed = createOfferSchema.parse({
       ...req.body,
-      // Convertir eventId en number si string
       eventId: req.body.eventId ? Number(req.body.eventId) : undefined
     });
 
-    const offer = await offerCreationService(parsed);
+    logger.info(`[OFFER CONTROLLER] Creating offer for event ${parsed.eventId} by user ${req.user.id}`);
+    const offer = await createOfferService(parsed);
+    logger.info(`[OFFER CONTROLLER] Offer created: ${offer.id}`);
 
     res.status(201).json({
       status: 'success',
@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
       meta: { message: 'Offer created successfully' }
     });
   } catch (err) {
-    logger.error(err);
+    logger.error(`[OFFER CONTROLLER] Create failed: ${err.message}`);
     res.status(400).json({ status: 'error', meta: { message: err.message } });
   }
 };

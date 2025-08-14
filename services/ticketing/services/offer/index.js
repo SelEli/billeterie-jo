@@ -1,12 +1,13 @@
-const offerCreationService = require('./offerCreation.service');
-const offerUpdateService = require('./offerUpdate.service');
-const offerDeleteService = require('./offerDelete.service');
-const { offerQueryService, offerReadService } = require('./offerQuery.service');
+const { createOfferService } = require('./createOffer.service');
+const { readOfferService } = require('./readOffer.service');
+const { updateOfferService } = require('./updateOffer.service');
+const { deleteOfferService } = require('./deleteOffer.service');
+const { listOffersService }  = require('./listOffers.service');
 
 module.exports = {
-  offerCreationService,
-  offerUpdateService,
-  offerDeleteService,
-  offerQueryService,
-  offerReadService
+  createOfferService,
+  readOfferService,
+  updateOfferService,
+  deleteOfferService,
+  listOffersService
 };

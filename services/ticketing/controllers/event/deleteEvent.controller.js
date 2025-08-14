@@ -1,5 +1,4 @@
-// controllers/event/deleteEvent.controller.js
-const eventDeleteService = require('../../services/event/eventDelete.service');
+const { deleteEventService } = require('../../services/event/deleteEvent.service');
 const logger = require('../../utils/logger');
 
 module.exports = async (req, res) => {
@@ -8,10 +7,12 @@ module.exports = async (req, res) => {
       return res.status(403).json({ status: 'error', meta: { message: 'Forbidden' } });
     }
 
-    await eventDeleteService(req.params.id);
+    logger.info(`[EVENT CONTROLLER] Deleting event ${req.params.id} by user ${req.user.id}`);
+    await deleteEventService(req.params.id);
+
     res.status(204).send();
   } catch (err) {
-    logger.error(err);
+    logger.error(`[EVENT CONTROLLER] Delete failed for ${req.params.id}: ${err.message}`);
     res.status(400).json({ status: 'error', meta: { message: err.message } });
   }
 };
