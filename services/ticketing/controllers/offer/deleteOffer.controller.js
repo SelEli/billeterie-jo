@@ -1,4 +1,4 @@
-const { deleteOfferService } = require('../../services/offer'); // ⬅️ import agrégateur mockable
+const { deleteOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
 async function deleteOfferController(req, res) {
@@ -22,7 +22,6 @@ async function deleteOfferController(req, res) {
       });
     }
 
-    logger.info(`[OFFER CONTROLLER] Deleting offer ${id} by user ${req.user.id}`);
     const deleted = await deleteOfferService(id);
 
     if (!deleted) {

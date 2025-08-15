@@ -1,4 +1,4 @@
-const { listOffersService } = require('../../services/offer'); // ⬅️ import agrégateur mockable
+const { listOffersService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
 async function listOffersController(req, res) {
@@ -8,7 +8,6 @@ async function listOffersController(req, res) {
 
     if (typeof active !== 'undefined') {
       if (!['true', 'false'].includes(active)) {
-        logger.warn(`[OFFER CONTROLLER] Invalid active filter: "${active}"`);
         return res.status(400).json({
           status: 'error',
           data: null,
@@ -22,7 +21,6 @@ async function listOffersController(req, res) {
     if (eventId) {
       const numId = Number(eventId);
       if (isNaN(numId) || numId <= 0) {
-        logger.warn(`[OFFER CONTROLLER] Invalid eventId: "${eventId}"`);
         return res.status(400).json({
           status: 'error',
           data: null,
@@ -37,14 +35,8 @@ async function listOffersController(req, res) {
       where.targetRole = targetRole;
     }
 
-    const nowFlag = validNow === 'true';
-    logger.debug(
-      `[OFFER CONTROLLER] Listing offers with filter: ${JSON.stringify(where)}, validNow=${nowFlag}`
-    );
+    const offers = await listOffersService(where, { validNow: validNow === 'true' });
 
-    const offers = await listOffersService(where, { validNow: nowFlag });
-
-    logger.info(`[OFFER CONTROLLER] Offers listed: count=${offers.length}`);
     return res.status(200).json({
       status: 'success',
       data: offers,

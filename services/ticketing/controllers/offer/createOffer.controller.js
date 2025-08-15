@@ -1,5 +1,5 @@
 const { createOfferSchema } = require('../../validators/offer.validator');
-const { createOfferService } = require('../../services/offer'); // ⬅️ import agrégateur mockable
+const { createOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
 async function createOfferController(req, res) {
@@ -23,15 +23,11 @@ async function createOfferController(req, res) {
       });
     }
 
-    // Utiliser req.validated si présent (attente des tests), sinon valider body
+    // Utilise req.validated si présent (tests), sinon valide le body
     const payload = req.validated ?? createOfferSchema.parse(req.body);
 
-    logger.info(
-      `[OFFER CONTROLLER] Creating offer by user ${req.user.userId || req.user.id}`
-    );
     const offer = await createOfferService(payload);
 
-    logger.info(`[OFFER CONTROLLER] Offer created: ${offer.id}`);
     return res.status(201).json({
       status: 'success',
       data: { offerId: offer.id },
@@ -41,7 +37,6 @@ async function createOfferController(req, res) {
   } catch (err) {
     logger.error(`[OFFER CONTROLLER] Create failed: ${err.message}`);
 
-    // Si c'est une erreur de validation Zod quand on n'a pas req.validated
     if (err?.name === 'ZodError') {
       return res.status(400).json({
         status: 'error',

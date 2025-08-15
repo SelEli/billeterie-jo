@@ -1,4 +1,4 @@
-const { readOfferService } = require('../../services/offer'); // ⬅️ import agrégateur mockable
+const { readOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
 async function readOfferController(req, res) {
@@ -6,7 +6,6 @@ async function readOfferController(req, res) {
   try {
     const numId = Number(id);
     if (!id || isNaN(numId) || numId <= 0) {
-      logger.warn(`[OFFER CONTROLLER] Invalid offer ID param: "${id}"`);
       return res.status(400).json({
         status: 'error',
         data: null,
@@ -15,11 +14,9 @@ async function readOfferController(req, res) {
       });
     }
 
-    logger.debug(`[OFFER CONTROLLER] Reading offer ${numId}`);
     const offer = await readOfferService(numId);
 
     if (!offer) {
-      logger.info(`[OFFER CONTROLLER] Offer not found: ${numId}`);
       return res.status(404).json({
         status: 'error',
         data: null,
@@ -28,7 +25,6 @@ async function readOfferController(req, res) {
       });
     }
 
-    logger.info(`[OFFER CONTROLLER] Offer read: ${offer.id}`);
     return res.status(200).json({
       status: 'success',
       data: offer,

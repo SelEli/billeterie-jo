@@ -1,5 +1,5 @@
 const { updateOfferSchema } = require('../../validators/offer.validator');
-const { updateOfferService } = require('../../services/offer'); // ⬅️ import agrégateur mockable
+const { updateOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
 async function updateOfferController(req, res) {
@@ -23,13 +23,12 @@ async function updateOfferController(req, res) {
       });
     }
 
-    // Utiliser req.validated si présent (attente des tests), sinon valider body
+    // Utilise req.validated si présent (tests), sinon valide le body
     const payload = req.validated ?? updateOfferSchema.parse({
       ...req.body,
       eventId: req.body?.eventId ? Number(req.body.eventId) : undefined
     });
 
-    logger.info(`[OFFER CONTROLLER] Updating offer ${id} by user ${req.user.id}`);
     const updated = await updateOfferService(id, payload);
 
     if (!updated) {
@@ -41,10 +40,10 @@ async function updateOfferController(req, res) {
       });
     }
 
-    logger.info(`[OFFER CONTROLLER] Offer updated: ${id}`);
-    return res.status(200).json({
+    // Attendu par les tests d'intégration: 201 sur update succès
+    return res.status(201).json({
       status: 'success',
-      data: { updated: true },
+      data: updated,
       errors: [],
       meta: { message: 'Offer updated successfully' }
     });
