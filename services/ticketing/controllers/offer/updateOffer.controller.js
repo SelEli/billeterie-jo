@@ -24,7 +24,6 @@ async function updateOfferController(req, res) {
       });
     }
 
-    // Utilise req.validated si présent (tests), sinon valide le body
     const payload = req.validated ?? updateOfferSchema.parse({
       ...req.body,
       eventId: req.body?.eventId ? Number(req.body.eventId) : undefined
@@ -36,13 +35,12 @@ async function updateOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: ['Offer not found'],
-        meta: {}
+        errors: [],
+        meta: { message: 'Offer not found' }
       });
     }
 
-    // Attendu par les tests d'intégration : 201 sur update succès
-    return res.status(201).json({
+    return res.status(200).json({
       status: 'success',
       data: updated,
       errors: [],
@@ -64,8 +62,8 @@ async function updateOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: ['Offer not found'],
-        meta: {}
+        errors: [],
+        meta: { message: 'Offer not found' }
       });
     }
 

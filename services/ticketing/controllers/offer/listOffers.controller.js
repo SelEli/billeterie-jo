@@ -1,3 +1,4 @@
+// controllers/offer/listOffers.controller.js
 const { listOffersService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 

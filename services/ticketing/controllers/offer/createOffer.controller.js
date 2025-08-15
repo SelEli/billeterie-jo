@@ -1,3 +1,4 @@
+// controllers/offer/createOffer.controller.js
 const { createOfferSchema } = require('../../validators/offer.validator');
 const { createOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
@@ -23,9 +24,7 @@ async function createOfferController(req, res) {
       });
     }
 
-    // Utilise req.validated si présent (tests), sinon valide le body
     const payload = req.validated ?? createOfferSchema.parse(req.body);
-
     const offer = await createOfferService(payload);
 
     return res.status(201).json({

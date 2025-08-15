@@ -29,18 +29,12 @@ async function deleteOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: ['Offer not found'],
-        meta: {}
+        errors: [],
+        meta: { message: 'Offer not found' }
       });
     }
 
-    // Attendu par les tests d'intégration : 201 sur delete succès
-    return res.status(201).json({
-      status: 'success',
-      data: deleted,
-      errors: [],
-      meta: { message: 'Offer deleted successfully' }
-    });
+    return res.status(204).send();
   } catch (err) {
     logger.error(`[OFFER CONTROLLER] Delete failed for ${req.params.id}: ${err.message}`);
 
@@ -48,8 +42,8 @@ async function deleteOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: ['Offer not found'],
-        meta: {}
+        errors: [],
+        meta: { message: 'Offer not found' }
       });
     }
 
