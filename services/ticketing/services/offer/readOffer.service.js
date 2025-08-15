@@ -3,14 +3,23 @@ const prisma = require('../../utils/prismaClient');
 const { getCachedOffer, cacheOffer } = require('../../cache/offer.cache');
 const { timer } = require('../../monitor/monitor');
 
+function isComplete(offer) {
+  return offer &&
+    typeof offer === 'object' &&
+    'label' in offer &&
+    'discount' in offer &&
+    'targetRole' in offer &&
+    'eventId' in offer &&
+    'active' in offer;
+}
+
 async function readOfferService(id) {
   const t = timer('readOfferService').start();
   try {
     // Vérifie d'abord dans le cache
     const cached = await getCachedOffer(id);
-    if (cached) {
+    if (cached && isComplete(cached) && !cached.deletedAt) {
       t.success();
-      // On renvoie l'objet complet, comme dans le cache
       return { ...cached };
     }
 
@@ -30,7 +39,6 @@ async function readOfferService(id) {
     await cacheOffer(offer);
 
     t.success();
-    // Renvoie toutes les clés intactes (mock attendu dans les tests)
     return { ...offer };
   } catch (err) {
     t.fail(err);

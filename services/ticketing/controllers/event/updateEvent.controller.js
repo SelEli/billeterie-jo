@@ -1,3 +1,4 @@
+// controllers/event/updateEvent.controller.js
 const { updateEventSchema } = require('../../validators/event.validator');
 const { updateEventService } = require('../../services/event/updateEvent.service');
 const logger = require('../../utils/logger');
@@ -33,9 +34,9 @@ async function updateEventController(req, res) {
       logger.info(`[EVENT CONTROLLER] Event not found: ${id}`);
       return res.status(404).json({
         status: 'error',
-        errors: [],
+        errors: ['Event not found'], // harmonisé
         data: null,
-        meta: { message: 'Event not found' }
+        meta: {}
       });
     }
 
@@ -61,9 +62,9 @@ async function updateEventController(req, res) {
     if (err.statusCode === 404) {
       return res.status(404).json({
         status: 'error',
-        errors: [],
+        errors: ['Event not found'], // harmonisé
         data: null,
-        meta: { message: err.message }
+        meta: {}
       });
     }
 

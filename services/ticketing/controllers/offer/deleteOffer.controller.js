@@ -1,3 +1,4 @@
+// controllers/offer/deleteOffer.controller.js
 const { deleteOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
@@ -28,12 +29,18 @@ async function deleteOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Offer not found' }
+        errors: ['Offer not found'],
+        meta: {}
       });
     }
 
-    return res.status(204).send();
+    // Attendu par les tests d'intégration : 201 sur delete succès
+    return res.status(201).json({
+      status: 'success',
+      data: deleted,
+      errors: [],
+      meta: { message: 'Offer deleted successfully' }
+    });
   } catch (err) {
     logger.error(`[OFFER CONTROLLER] Delete failed for ${req.params.id}: ${err.message}`);
 
@@ -41,8 +48,8 @@ async function deleteOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: err.message }
+        errors: ['Offer not found'],
+        meta: {}
       });
     }
 

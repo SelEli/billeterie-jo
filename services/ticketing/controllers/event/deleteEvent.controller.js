@@ -1,3 +1,4 @@
+// controllers/event/deleteEvent.controller.js
 const { deleteEventService } = require('../../services/event/deleteEvent.service');
 const logger = require('../../utils/logger');
 
@@ -29,21 +30,21 @@ async function deleteEventController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Event not found' }
+        errors: ['Event not found'], // harmonisé
+        meta: {}
       });
     }
 
     return res.status(204).send();
   } catch (err) {
-    logger.error(`[EVENT CONTROLLER] Delete failed: ${err.message}`);
+    logger.error(`[EVENT CONTROLLER] Delete failed for ${req.params.id}: ${err.message}`);
 
     if (err.statusCode === 404 || err.message === 'Event not found') {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: err.message }
+        errors: ['Event not found'], // harmonisé
+        meta: {}
       });
     }
 

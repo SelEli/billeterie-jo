@@ -1,3 +1,4 @@
+// controllers/offer/updateOffer.controller.js
 const { updateOfferSchema } = require('../../validators/offer.validator');
 const { updateOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
@@ -35,12 +36,12 @@ async function updateOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Offer not found' }
+        errors: ['Offer not found'],
+        meta: {}
       });
     }
 
-    // Attendu par les tests d'intégration: 201 sur update succès
+    // Attendu par les tests d'intégration : 201 sur update succès
     return res.status(201).json({
       status: 'success',
       data: updated,
@@ -63,8 +64,8 @@ async function updateOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: err.message }
+        errors: ['Offer not found'],
+        meta: {}
       });
     }
 

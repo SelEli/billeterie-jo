@@ -30,22 +30,17 @@ async function createEventController(req, res) {
 
     if (err?.name === 'ZodError') {
       return res.status(400).json({
-        status: 'error',
+        status: 'error', // ✅ ajouté pour test POST invalide
         data: null,
         errors: err.issues?.map(i => i.message) ?? [err.message],
         meta: {}
       });
     }
 
-    // Si ce n’est pas une erreur serveur explicite, on considère que c’est une requête invalide
-    const statusCode = err.statusCode && err.statusCode >= 400
-      ? err.statusCode
-      : 400;
-
-    return res.status(statusCode).json({
+    return res.status(err.statusCode || 500).json({
       status: 'error',
       data: null,
-      errors: [err.message || 'Bad request'],
+      errors: [err.message || 'Internal server error'],
       meta: {}
     });
   }
