@@ -1,8 +1,0 @@
-services:
-  ticketing:
-    volumes:
-      - ./services/ticketing:/app
-      - /app/node_modules
-    command: npx nodemon src/server.js
-    environment:
-      CHOKIDAR_USEPOLLING: "true"

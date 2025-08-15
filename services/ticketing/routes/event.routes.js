@@ -1,3 +1,4 @@
+// routes/event.js
 const express = require('express');
 const router = express.Router();
 
@@ -5,8 +6,13 @@ const authenticate = require('../middlewares/auth.middleware');
 const validateRequest = require('../middlewares/validateRequest.middleware');
 const logger = require('../utils/logger');
 
-const { EventCreateSchema, EventUpdateSchema } = require('../validators/event.validator');
+// ⚠️ Import cohérent avec validators/event.validator.js
+const {
+  createEventSchema,
+  updateEventSchema
+} = require('../validators/event.validator');
 
+// ⚠️ Imports destructurés des exports nommés dans controllers/event/index.js
 const {
   createEventController,
   readEventController,
@@ -15,7 +21,7 @@ const {
   listEventsController
 } = require('../controllers/event');
 
-// Vérification stricte des contrôleurs
+// Vérification stricte des contrôleurs au chargement
 [
   ['createEventController', createEventController],
   ['readEventController', readEventController],
@@ -28,61 +34,68 @@ const {
   }
 });
 
-// Middleware de debug centralisé
+// Middleware de debug compact : trace chaque requête avec ses données clés
 router.use((req, res, next) => {
-  logger.debug(`[EVENT ROUTES] ${req.method} ${req.originalUrl}`);
+  logger.debug(
+    `[EVENT ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
+  );
   next();
 });
 
 // ----------- ROUTES -----------
 
+// Création d’événement
 router.post(
   '/',
   authenticate,
-  validateRequest(EventCreateSchema),
+  validateRequest(createEventSchema),
   (req, res, next) => {
-    logger.info('[EVENT ROUTES] POST / => createEventController');
+    logger.info('[EVENT ROUTES][POST /] → createEventController');
     next();
   },
   createEventController
 );
 
+// Lecture d’un événement par ID
 router.get(
   '/:id',
   authenticate,
   (req, res, next) => {
-    logger.info('[EVENT ROUTES] GET /:id => readEventController');
+    logger.info('[EVENT ROUTES][GET /:id] → readEventController');
     next();
   },
   readEventController
 );
 
+// Mise à jour d’un événement
 router.put(
   '/:id',
   authenticate,
-  validateRequest(EventUpdateSchema),
+  validateRequest(updateEventSchema),
   (req, res, next) => {
-    logger.info('[EVENT ROUTES] PUT /:id => updateEventController');
+    logger.info('[EVENT ROUTES][PUT /:id] → updateEventController');
     next();
   },
   updateEventController
 );
 
+// Suppression d’un événement
 router.delete(
   '/:id',
   authenticate,
   (req, res, next) => {
-    logger.info('[EVENT ROUTES] DELETE /:id => deleteEventController');
+    logger.info('[EVENT ROUTES][DELETE /:id] → deleteEventController');
     next();
   },
   deleteEventController
 );
 
+// Liste des événements (avec filtres)
 router.get(
   '/',
   authenticate,
   (req, res, next) => {
-    logger.info('[EVENT ROUTES] GET / => listEventsController');
+    logger.info('[EVENT ROUTES][GET /] → listEventsController');
     next();
   },
   listEventsController

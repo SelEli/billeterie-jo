@@ -10,7 +10,7 @@ async function deleteOfferService(id) {
     const offerId = Number(id);
     const existing = await prisma.offer.findUnique({
       where: { id: offerId },
-      select: { deletedAt: true }
+      select: { id: true } // ✅ supprimé deletedAt : champ inexistant dans le modèle
     });
 
     if (!existing) {
@@ -19,15 +19,9 @@ async function deleteOfferService(id) {
       throw err;
     }
 
-    if (existing.deletedAt) {
-      logger.info(`[OFFER] Already deleted: ${offerId}`);
-      t.success();
-      return { id: offerId, deletedAt: existing.deletedAt };
-    }
-
-    const deleted = await prisma.offer.update({
-      where: { id: offerId },
-      data: { deletedAt: new Date() }
+    // Pas de soft delete possible → on supprime directement
+    const deleted = await prisma.offer.delete({
+      where: { id: offerId }
     });
 
     await emitOfferDeleted(deleted.id);

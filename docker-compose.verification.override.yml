@@ -1,8 +1,0 @@
-services:
-  verification:
-    volumes:
-      - ./services/verification:/app   # monte le code local
-      - /app/node_modules               # préserve node_modules du conteneur
-    command: npx nodemon src/server.js
-    environment:
-      CHOKIDAR_USEPOLLING: "true"       # pratique si le file‑watching est capricieux (Mac/WSL)

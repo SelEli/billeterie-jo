@@ -7,8 +7,13 @@ const { cacheOffer } = require('../../cache/offer.cache');
 async function createOfferService(data) {
   const t = timer('createOfferService').start();
   try {
+    // Validation stricte : null/undefined ou chaîne vide
     ['label', 'price', 'eventId'].forEach((f) => {
-      if (!data[f]) {
+      if (
+        data[f] === undefined ||
+        data[f] === null ||
+        (typeof data[f] === 'string' && !data[f].trim())
+      ) {
         const err = new Error(`${f} is required`);
         err.statusCode = 400;
         throw err;

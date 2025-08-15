@@ -1,8 +1,0 @@
-services:
-  auth:
-    volumes:
-      - ./services/auth:/app           # monte ton code local
-      - /app/node_modules              # préserve node_modules du conteneur
-    command: npx nodemon src/server.js
-    environment:
-      CHOKIDAR_USEPOLLING: "true"      # utile si file‑watching capricieux (Mac/WSL)

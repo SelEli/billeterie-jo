@@ -4,10 +4,7 @@ const { timer } = require('../../monitor/monitor');
 async function listOffersService(filter = {}) {
   const t = timer('listOffersService').start();
   try {
-    const where = {
-      ...filter,
-      deletedAt: typeof filter.deletedAt === 'undefined' ? null : filter.deletedAt
-    };
+    const where = { ...filter }; // ✅ supprimé deletedAt : champ inexistant
 
     const offers = await prisma.offer.findMany({
       where,

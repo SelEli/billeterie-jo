@@ -19,4 +19,12 @@ async function getCachedOffer(id) {
   return data ? JSON.parse(data) : null;
 }
 
-module.exports = { cacheOffer, getCachedOffer };
+/**
+ * Invalide le cache d'une offre donnée
+ * @param {number|string} id - ID de l'offre
+ */
+async function invalidateOfferCache(id) {
+  return redis.del(`offer:${id}`);
+}
+
+module.exports = { cacheOffer, getCachedOffer, invalidateOfferCache };

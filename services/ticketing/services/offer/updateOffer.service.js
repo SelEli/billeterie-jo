@@ -14,7 +14,7 @@ async function updateOfferService(id, data) {
     });
 
     if (!existing || existing.deletedAt) {
-      const err = new Error('Offer not found or deleted');
+      const err = new Error('Offer not found'); // harmonisé
       err.statusCode = 404;
       throw err;
     }

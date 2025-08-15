@@ -1,16 +1,20 @@
 services:
-  verification:
-    build: ./services/verification
-    env_file: ./services/verification/.env
+  ticketing:
+    build: ./services/ticketing
+    env_file: ./services/ticketing/.env
     ports:
-      - "3004:3004"             # adapte le port si besoin
+      - "3002:3002"
     depends_on:
-      - kafka
-      - redis
-      - verification-db         # retire si pas de base dédiée
-    networks:
-      - jo-net
-
-networks:
-  jo-net:
-    external: true  # se brancher sur le réseau infra existant
+      ticketing-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

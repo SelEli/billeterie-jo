@@ -5,7 +5,7 @@ const authenticate = require('../middlewares/auth.middleware');
 const validateRequest = require('../middlewares/validateRequest.middleware');
 const logger = require('../utils/logger');
 
-const { OfferCreateSchema, OfferUpdateSchema } = require('../validators/offer.validator');
+const { createOfferSchema, updateOfferSchema } = require('../validators/offer.validator');
 
 const {
   createOfferController,
@@ -28,9 +28,11 @@ const {
   }
 });
 
-// Middleware de debug centralisé
+// Middleware de log compact global
 router.use((req, res, next) => {
-  logger.debug(`[OFFER ROUTES] ${req.method} ${req.originalUrl}`);
+  logger.debug(
+    `[OFFER ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
+  );
   next();
 });
 
@@ -39,9 +41,9 @@ router.use((req, res, next) => {
 router.post(
   '/',
   authenticate,
-  validateRequest(OfferCreateSchema),
+  validateRequest(createOfferSchema),
   (req, res, next) => {
-    logger.info('[OFFER ROUTES] POST / => createOfferController');
+    logger.info('[OFFER ROUTES][POST /] → createOfferController');
     next();
   },
   createOfferController
@@ -51,7 +53,7 @@ router.get(
   '/:id',
   authenticate,
   (req, res, next) => {
-    logger.info('[OFFER ROUTES] GET /:id => readOfferController');
+    logger.info('[OFFER ROUTES][GET /:id] → readOfferController');
     next();
   },
   readOfferController
@@ -60,9 +62,9 @@ router.get(
 router.put(
   '/:id',
   authenticate,
-  validateRequest(OfferUpdateSchema),
+  validateRequest(updateOfferSchema),
   (req, res, next) => {
-    logger.info('[OFFER ROUTES] PUT /:id => updateOfferController');
+    logger.info('[OFFER ROUTES][PUT /:id] → updateOfferController');
     next();
   },
   updateOfferController
@@ -72,7 +74,7 @@ router.delete(
   '/:id',
   authenticate,
   (req, res, next) => {
-    logger.info('[OFFER ROUTES] DELETE /:id => deleteOfferController');
+    logger.info('[OFFER ROUTES][DELETE /:id] → deleteOfferController');
     next();
   },
   deleteOfferController
@@ -82,7 +84,7 @@ router.get(
   '/',
   authenticate,
   (req, res, next) => {
-    logger.info('[OFFER ROUTES] GET / => listOffersController');
+    logger.info('[OFFER ROUTES][GET /] → listOffersController');
     next();
   },
   listOffersController

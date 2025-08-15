@@ -1,3 +1,4 @@
+// services/ticket/updateTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 
@@ -9,6 +10,13 @@ async function updateTicketService(id, data) {
       where: { id: numericId },
       data,
     });
+
+    if (!ticket) {
+      const err = new Error('Ticket not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
     logger.info(`[TICKET] Updated: ${ticket.id}`);
     return ticket;
   } catch (err) {

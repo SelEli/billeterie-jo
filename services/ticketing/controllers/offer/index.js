@@ -1,9 +1,9 @@
 // controllers/offer/index.js
-const createOfferController = require('./createOffer.controller');
-const readOfferController   = require('./readOffer.controller');
-const listOffersController  = require('./listOffers.controller');
-const updateOfferController = require('./updateOffer.controller');
-const deleteOfferController = require('./deleteOffer.controller');
+const { createOfferController } = require('./createOffer.controller');
+const { readOfferController }   = require('./readOffer.controller');
+const { listOffersController }  = require('./listOffers.controller');
+const { updateOfferController } = require('./updateOffer.controller');
+const { deleteOfferController } = require('./deleteOffer.controller');
 const logger = require('../../utils/logger');
 
 // Vérification stricte des contrôleurs

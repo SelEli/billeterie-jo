@@ -1,4 +1,3 @@
-// services/event/readEvent.service.js
 const prisma = require('../../utils/prismaClient');
 const { cacheEvent, getCachedEvent } = require('../../cache/event.cache');
 const { timer } = require('../../monitor/monitor');
@@ -6,11 +5,21 @@ const { timer } = require('../../monitor/monitor');
 async function readEventService(id) {
   const t = timer('readEventService').start();
   try {
-    const cached = await getCachedEvent(id);
-    if (cached) return t.success(), cached;
+    const eventId = Number(id);
+    if (isNaN(eventId)) {
+      const err = new Error('Invalid event ID');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const cached = await getCachedEvent(eventId);
+    if (cached) {
+      t.success();
+      return cached;
+    }
 
     const event = await prisma.event.findUnique({
-      where: { id: Number(id) },
+      where: { id: eventId },
       include: { offers: true, tickets: true }
     });
 
@@ -20,7 +29,13 @@ async function readEventService(id) {
       throw err;
     }
 
-    await cacheEvent(event);
+    try {
+      await cacheEvent(event);
+    } catch (cacheErr) {
+      // On loggue mais on ne bloque pas
+      console.warn(`[EVENT] cacheEvent failed: ${cacheErr.message}`);
+    }
+
     t.success();
     return event;
   } catch (err) {

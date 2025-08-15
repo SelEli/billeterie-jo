@@ -1,4 +1,3 @@
-// app.js
 const express = require('express');
 const morgan = require('morgan');
 const helmet = require('helmet');
@@ -12,47 +11,47 @@ const offerRoutes  = require('./routes/offer.routes');
 const { initRedis } = require('./utils/redisClient');
 const { initKafka } = require('./utils/kafkaClient');
 
-// Initialisations externes désactivées en environnement de test
-if (!process.env.JEST_WORKER_ID) {
-  initRedis();
-  initKafka().catch(err => {
-    logger.error('❌ Failed to connect Kafka producer', { error: err.message });
-    process.exit(1);
-  });
-}
-
 const app = express();
+
+// Initialisations externes hors test
+if (!process.env.JEST_WORKER_ID) {
+  logger.info('[INIT] Initialisation Redis & Kafka...');
+  initRedis();
+  initKafka()
+    .then(() => logger.info('[INIT] Kafka connecté'))
+    .catch(err => {
+      logger.error(`[INIT][ERR] Kafka non connecté: ${err.message}`);
+      process.exit(1);
+    });
+}
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// 🔹 Log toutes les requêtes entrantes pour debug (silencieux en prod)
+// 🔹 Log compact toutes requêtes entrantes (désactivable via LOG_LEVEL)
 app.use((req, res, next) => {
-  logger.debug(`[REQUEST] ${req.method} ${req.originalUrl}`, {
-    headers: req.headers,
-    body: req.body
-  });
+  logger.debug(
+    `[REQ] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
+  );
   next();
 });
 
-// 🔹 Mount des routes par ressource (uniformisé sous /ticketing)
+// 🔹 Mount des routes
 app.use('/ticketing/tickets', ticketRoutes);
 app.use('/ticketing/events',  eventRoutes);
 app.use('/ticketing/offers',  offerRoutes);
 
+// 🔹 Healthcheck
 app.get('/health', (req, res) => {
-  logger.info('💓 [HEALTHCHECK] OK');
+  logger.info('[HEALTH] 💓 OK');
   res.status(200).send('OK');
 });
 
-// 🔹 Middleware global gestion erreurs
+// 🔹 Gestion globale des erreurs
 app.use((err, req, res, next) => {
-  logger.error('❌ [APP ERROR]', {
-    message: err.message,
-    stack: err.stack
-  });
+  logger.error(`[APP ERROR] ${err.message}`, { stack: err.stack });
   const code = err.statusCode || 500;
   res.status(code).json({
     status: 'error',

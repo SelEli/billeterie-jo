@@ -1,12 +1,11 @@
-// controllers/event/index.js
-const createEventController = require('./createEvent.controller');
-const readEventController   = require('./readEvent.controller');
-const listEventsController  = require('./listEvents.controller');
-const updateEventController = require('./updateEvent.controller');
-const deleteEventController = require('./deleteEvent.controller');
+const { createEventController } = require('./createEvent.controller');
+const { readEventController }   = require('./readEvent.controller');
+const { listEventsController }  = require('./listEvents.controller');
+const { updateEventController } = require('./updateEvent.controller');
+const { deleteEventController } = require('./deleteEvent.controller');
 const logger = require('../../utils/logger');
 
-// Vérification stricte dès le chargement
+// Vérification stricte
 [
   ['createEventController', createEventController],
   ['readEventController', readEventController],

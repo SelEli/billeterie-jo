@@ -8,9 +8,4 @@ services:
       - payment-db
       - kafka
       - redis
-    networks:
-      - jo-net
-
-networks:
-  jo-net:
-    external: true  # se brancher au réseau infra existant
+    networks: [jo-net]

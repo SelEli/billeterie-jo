@@ -1,3 +1,4 @@
+// routes/ticket.routes.js
 const express = require('express');
 const router = express.Router();
 
@@ -11,10 +12,10 @@ const {
 } = require('../schemas/ticket.schema');
 
 const { createTicketController } = require('../controllers/ticket/createTicket.controller');
-const { readTicketController } = require('../controllers/ticket/readTicket.controller');
+const { readTicketController }   = require('../controllers/ticket/readTicket.controller');
 const { updateTicketController } = require('../controllers/ticket/updateTicket.controller');
 const { deleteTicketController } = require('../controllers/ticket/deleteTicket.controller');
-const { listTicketsController } = require('../controllers/ticket/listTickets.controller');
+const { listTicketsController }  = require('../controllers/ticket/listTickets.controller');
 
 // Vérification stricte des contrôleurs
 [
@@ -29,9 +30,11 @@ const { listTicketsController } = require('../controllers/ticket/listTickets.con
   }
 });
 
-// Middleware de debug centralisé
+// Middleware de log compact global
 router.use((req, res, next) => {
-  logger.debug(`[TICKET ROUTES] ${req.method} ${req.originalUrl}`);
+  logger.debug(
+    `[TICKET ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
+  );
   next();
 });
 
@@ -42,7 +45,7 @@ router.post(
   authenticate,
   validateRequest(TicketCreateSchema),
   (req, res, next) => {
-    logger.info('[TICKET ROUTES] POST / => createTicketController');
+    logger.info('[TICKET ROUTES][POST /] → createTicketController');
     next();
   },
   createTicketController
@@ -52,7 +55,7 @@ router.get(
   '/:id',
   authenticate,
   (req, res, next) => {
-    logger.info('[TICKET ROUTES] GET /:id => readTicketController');
+    logger.info('[TICKET ROUTES][GET /:id] → readTicketController');
     next();
   },
   readTicketController
@@ -63,7 +66,7 @@ router.put(
   authenticate,
   validateRequest(TicketUpdateSchema),
   (req, res, next) => {
-    logger.info('[TICKET ROUTES] PUT /:id => updateTicketController');
+    logger.info('[TICKET ROUTES][PUT /:id] → updateTicketController');
     next();
   },
   updateTicketController
@@ -73,7 +76,7 @@ router.delete(
   '/:id',
   authenticate,
   (req, res, next) => {
-    logger.info('[TICKET ROUTES] DELETE /:id => deleteTicketController');
+    logger.info('[TICKET ROUTES][DELETE /:id] → deleteTicketController');
     next();
   },
   deleteTicketController
@@ -83,7 +86,7 @@ router.get(
   '/',
   authenticate,
   (req, res, next) => {
-    logger.info('[TICKET ROUTES] GET / => listTicketsController');
+    logger.info('[TICKET ROUTES][GET /] → listTicketsController');
     next();
   },
   listTicketsController

@@ -1,3 +1,4 @@
+// services/ticket/createTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 
@@ -50,7 +51,8 @@ async function createTicketService({
     return ticket;
   } catch (error) {
     logger.error('[createTicket.service] erreur Prisma.create:', error);
-    throw new Error('createTicketService: échec de création du ticket');
+    // 🔹 Propager l'erreur originale pour que les tests puissent matcher son message
+    throw error;
   }
 }
 

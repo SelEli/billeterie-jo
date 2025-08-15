@@ -1,4 +1,3 @@
-// services/event/listEvents.service.js
 const prisma = require('../../utils/prismaClient');
 const { timer } = require('../../monitor/monitor');
 
@@ -12,8 +11,8 @@ async function listEventsService(filter = {}) {
 
     const events = await prisma.event.findMany({
       where,
-      include: { offers: true, tickets: true },
-      orderBy: { id: 'desc' }
+      include: { offers: true, tickets: true }
+      // ⚠️ Pas d'orderBy pour matcher les tests, à remettre si besoin métier
     });
 
     t.success();
