@@ -1,4 +1,3 @@
-// controllers/offer/listOffers.controller.js
 const { listOffersService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
@@ -12,8 +11,8 @@ async function listOffersController(req, res) {
         return res.status(400).json({
           status: 'error',
           data: null,
-          errors: [],
-          meta: { message: 'Invalid active value, must be true or false' }
+          errors: ['Invalid active value, must be true or false'],
+          meta: {}
         });
       }
       where.active = active === 'true';
@@ -25,8 +24,8 @@ async function listOffersController(req, res) {
         return res.status(400).json({
           status: 'error',
           data: null,
-          errors: [],
-          meta: { message: 'Invalid eventId' }
+          errors: ['Invalid eventId'],
+          meta: {}
         });
       }
       where.eventId = numId;

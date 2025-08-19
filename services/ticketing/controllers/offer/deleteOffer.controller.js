@@ -4,6 +4,7 @@ const logger = require('../../utils/logger');
 
 async function deleteOfferController(req, res) {
   try {
+    // 🔒 Vérif rôle
     if (!req.user || req.user.role !== 'ADMIN') {
       return res.status(403).json({
         status: 'error',
@@ -13,6 +14,7 @@ async function deleteOfferController(req, res) {
       });
     }
 
+    // 🔍 Validation ID
     const id = Number(req.params.id);
     if (!id || isNaN(id) || id <= 0) {
       return res.status(400).json({
@@ -23,27 +25,31 @@ async function deleteOfferController(req, res) {
       });
     }
 
+    // 🗑 Suppression
     const deleted = await deleteOfferService(id);
 
     if (!deleted) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Offer not found' }
+        errors: ['Offer not found'],
+        meta: {}
       });
     }
 
+    // ✅ OK, rien à renvoyer
     return res.status(204).send();
   } catch (err) {
-    logger.error(`[OFFER CONTROLLER] Delete failed for ${req.params.id}: ${err.message}`);
+    logger.error(
+      `[OFFER CONTROLLER] Delete failed for ${req.params.id}: ${err.message}`
+    );
 
     if (err.statusCode === 404 || err.message === 'Offer not found') {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Offer not found' }
+        errors: ['Offer not found'],
+        meta: {}
       });
     }
 

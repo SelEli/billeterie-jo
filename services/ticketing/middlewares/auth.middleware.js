@@ -5,26 +5,35 @@ const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const secret = process.env.JWT_SECRET;
 
-  // Log compact entrée requête
-  console.log(`[AUTH] ${req.method} ${req.originalUrl} | Authorization: ${authHeader || '∅'} | JWT_SECRET: ${!!secret}`);
-
   // Ignore pre-flight
   if (req.method === 'OPTIONS') return next();
 
   if (!authHeader?.startsWith('Bearer ')) {
-    console.error(`[AUTH][ERR] Mauvais header Authorization: "${authHeader}"`);
-    return res.status(401).json({ error: 'Token manquant ou mal formé' });
+    return res.status(401).json({
+      status: 'error',
+      data: null,
+      errors: ['Token manquant ou mal formé'],
+      meta: {}
+    });
   }
 
   const token = authHeader.split(' ')[1];
   if (!token) {
-    console.error('[AUTH][ERR] Token vide après Bearer');
-    return res.status(401).json({ error: 'Token vide' });
+    return res.status(401).json({
+      status: 'error',
+      data: null,
+      errors: ['Token vide'],
+      meta: {}
+    });
   }
 
   if (!secret) {
-    console.error('[AUTH][ERR] JWT_SECRET non défini dans l’environnement');
-    return res.status(500).json({ error: 'JWT_SECRET non défini' });
+    return res.status(500).json({
+      status: 'error',
+      data: null,
+      errors: ['JWT_SECRET non défini'],
+      meta: {}
+    });
   }
 
   try {
@@ -32,16 +41,23 @@ const authenticate = (req, res, next) => {
     const userIdNum = Number(decoded.userId);
 
     if (!Number.isInteger(userIdNum) || userIdNum <= 0) {
-      console.error(`[AUTH][ERR] userId invalide: ${decoded.userId}`);
-      return res.status(401).json({ error: 'userId invalide' });
+      return res.status(401).json({
+        status: 'error',
+        data: null,
+        errors: ['userId invalide'],
+        meta: {}
+      });
     }
 
     req.user = { ...decoded, userId: userIdNum };
-    console.log(`[AUTH][OK] Token valide | userId=${userIdNum}`);
     next();
   } catch (err) {
-    console.error(`[AUTH][ERR] jwt.verify failed: ${err.message}`);
-    return res.status(401).json({ error: 'Token invalide' });
+    return res.status(401).json({
+      status: 'error',
+      data: null,
+      errors: ['Token invalide'],
+      meta: {}
+    });
   }
 };
 

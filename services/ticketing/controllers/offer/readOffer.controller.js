@@ -1,3 +1,4 @@
+// controllers/offer/readOffer.controller.js
 const { readOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
 
@@ -9,8 +10,8 @@ async function readOfferController(req, res) {
       return res.status(400).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Invalid offer ID' }
+        errors: ['Invalid offer ID'],
+        meta: {}
       });
     }
 
@@ -20,8 +21,8 @@ async function readOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Offer not found' }
+        errors: ['Offer not found'],   // ← aligné avec le contrat
+        meta: {}
       });
     }
 
@@ -38,8 +39,8 @@ async function readOfferController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: err.message }
+        errors: ['Offer not found'],   // ← idem dans le catch
+        meta: {}
       });
     }
 

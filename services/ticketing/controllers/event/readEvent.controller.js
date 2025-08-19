@@ -1,3 +1,4 @@
+// controllers/event/readEvent.controller.js
 const { readEventService } = require('../../services/event/readEvent.service');
 const logger = require('../../utils/logger');
 
@@ -25,8 +26,8 @@ async function readEventController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Event not found' } // ✅ conforme au test GET inexistant
+        errors: ['Event not found'],   // ← aligné contrat strict
+        meta: {}
       });
     }
 
@@ -44,8 +45,8 @@ async function readEventController(req, res) {
       return res.status(404).json({
         status: 'error',
         data: null,
-        errors: [],
-        meta: { message: 'Event not found' } // ✅ idem dans le catch
+        errors: ['Event not found'],   // ← idem dans le catch
+        meta: {}
       });
     }
 
