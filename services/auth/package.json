@@ -35,16 +35,5 @@
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.1",
     "typescript": "^5.4.0"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "collectCoverage": true,
-    "coverageDirectory": "./coverage",
-    "coverageReporters": ["text", "html", "lcov"],
-    "testMatch": [
-      "**/tests/**/*.test.js",
-      "**/tests/**/*.test.ts"
-    ]
   }
 }
