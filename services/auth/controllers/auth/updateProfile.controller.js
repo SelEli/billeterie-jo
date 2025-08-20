@@ -1,10 +1,8 @@
-const { PrismaClient } = require('@prisma/client');
+const { prisma, logger } = require('../../utils');
+const { success, error } = require('../../utils/response');
 const bcrypt = require('bcrypt');
-const { logger } = require('../services');
 
-const prisma = new PrismaClient();
-
-const updateProfile = async (req, res) => {
+const updateProfileController = async (req, res) => {
   try {
     const { firstName, lastName, email, password, birthDate } = req.body;
     const data = {};
@@ -21,11 +19,11 @@ const updateProfile = async (req, res) => {
     });
 
     logger.info(`Profile updated for userId=${req.user.userId}`);
-    res.status(200).json({ message: 'Profile updated.', user: updatedUser });
+    return res.status(200).json(success({ message: 'Profile updated.', user: updatedUser }));
   } catch (err) {
     logger.error(`Error updating profile: ${err.message}`);
-    res.status(500).json({ message: 'Internal server error.' });
+    return res.status(500).json(error(['Internal server error.']));
   }
 };
 
-module.exports = { updateProfile };
+module.exports = { updateProfileController };

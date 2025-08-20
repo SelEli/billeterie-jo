@@ -1,126 +1,134 @@
-# 📦 Service Auth — Billeterie JO
+📦 Service Auth — Billetterie JO
+Service backend Node.js / Express pour l’authentification, la gestion des profils et des rôles utilisateurs, avec Prisma (base de données), Zod (validation), Redis (cache optionnel) et Kafka (événements).
 
-Service d’authentification complet pour la gestion des utilisateurs, connexions, profils et rôles. Inclut validation, tests Jest, logique métier, et sécurisation des routes.
+✨ Fonctionnalités
+🔒 Authentification JWT (login/register)
 
----
+👤 Gestion de profil utilisateur (CRUD partiel)
 
-## ⚙️ Fonctionnalités principales
+🧑‍💼 Gestion complète des utilisateurs par rôle ADMIN
 
-- 🔒 Authentification JWT
-- 👤 Création & modification de profil utilisateur
-- 🧑‍💼 Gestion des utilisateurs par rôle admin
-- 🧪 Suite de tests Jest complète
-- ✅ Validation stricte avec Zod
+🛡️ Validation stricte des payloads avec Zod
 
----
+🧪 Tests unitaires (services, contrôleurs) et intégration Jest
 
-## 🚀 Démarrage
+📜 Logs unifiés avec Winston
 
-```bash
-npm install
-npm run dev   # ou npm start
-npx jest      # exécute les tests
-📂 Structure du projet
-services/auth/
-├── app.js
-├── controllers/
-├── middlewares/
-├── schemas/
-├── routes/
-├── tests/
-├── services/
-├── .env.example
-🔐 Fichier .env.example
+📢 Événements Kafka sur certaines actions
+
+(Optionnel) Cache Redis pour certaines ressources
+
+🗂 Architecture
+app.js : app Express, middlewares globaux, montage des routes agrégées
+
+server.js : démarrage serveur, init éventuels (Redis/Kafka)
+
+routes/ : routeurs Express par domaine (auth.routes.js, user.routes.js, role.routes.js, health.js)
+
+controllers/ : logique HTTP par domaine (auth, user, role)
+
+services/ : logique métier + Prisma + Kafka
+
+schemas/ : schémas Zod stricts
+
+middlewares/ : middlewares réutilisables (authenticate, validateRequest)
+
+tests/ : unitaires et intégration par domaine
+
+utils/ : prismaClient, redisClient, logger, kafkaClient, etc.
+
+⚙️ Configuration
+Créer un fichier .env à partir de .env.example :
+
 env
 JWT_SECRET=your_jwt_secret
 DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
-🧪 Tests Jest
-register.test.js
+REDIS_URL=redis://localhost:6379          # optionnel
+KAFKA_BROKERS=localhost:9092              # optionnel
+PORT=3000
+🚀 Installation & Lancement
+bash
+npm install
+npx prisma generate        # génère le client Prisma
+npm run dev                # mode dev
+npm start                  # mode production
+npm test                   # exécute tous les tests
+Healthcheck : GET /health → 200 OK
 
-Inscription OK / email déjà utilisé / corps invalide
-
-login.test.js
-
-Connexion OK / email inconnu / mauvais mot de passe / champs manquants
-
-profile.test.js
-
-Fetch / update / suppression profil
-
-Rejets pour token absent, user absent, body invalide (.strict())
-
-user.test.js
-
-CRUD utilisateur admin
-
-Rejets si user absent, email déjà utilisé, etc.
-
-📋 Routes API
+📋 Endpoints API
 Authentification
 Méthode	Endpoint	Description	Protection
 POST	/auth/register	Inscription utilisateur	❌
-POST	/auth/login	Connexion et token JWT	❌
-GET	/auth/profile	Récupérer profil connecté	✅ auth
-PUT	/auth/profile	Modifier profil personnel	✅ auth + validateBody(updateProfileSchema)
-DELETE	/auth/profile	Supprimer son compte	✅ auth
-Utilisateurs (accès admin)
+POST	/auth/login	Connexion + JWT	❌
+GET	/auth/profile	Récupérer son profil	✅ authenticate
+PUT	/auth/profile	Modifier son profil	✅ authenticate + validateRequest(updateProfileSchema)
+DELETE	/auth/profile	Supprimer son compte	✅ authenticate
+Utilisateurs (ADMIN)
 Méthode	Endpoint	Description	Protection
-POST	/user	Créer un utilisateur	❌ (à protéger si besoin)
-GET	/user/:id	Lire info utilisateur	✅ auth
-PUT	/user/:id	Modifier utilisateur	✅ auth + validateBody(updateUserSchema)
-DELETE	/user/:id	Supprimer utilisateur	✅ auth
-📦 Schemas Zod
+POST	/user	Créer un utilisateur	✅ authenticate (ADMIN) + validateRequest(createUserSchema)
+GET	/user/:id	Lire infos utilisateur	✅ authenticate
+PUT	/user/:id	Modifier utilisateur	✅ authenticate (ADMIN) + validateRequest(updateUserSchema)
+DELETE	/user/:id	Supprimer utilisateur	✅ authenticate (ADMIN)
+PUT	/user/:id/role	Modifier le rôle utilisateur	✅ authenticate (ADMIN) + validateRequest(updateUserRoleSchema)
+📦 Schémas Zod
 Tous stricts et testés :
 
 registerUserSchema
 
 loginUserSchema
 
-updateUserSchema (admin)
+updateProfileSchema (utilisateur connecté)
 
-updateProfileSchema (user — .strict())
+createUserSchema, updateUserSchema (ADMIN)
+
+updateUserRoleSchema (ADMIN)
 
 🛠 Middlewares
-validateBody(schema) → parse & rejette corps invalide
+authenticate → décode le JWT et injecte req.user
 
-auth → décode JWT et injecte req.user
+validateRequest(schema) → valide le corps avec Zod, rejette en 400 si invalide
 
 🧱 Contrôleurs
-registerUser.js, loginUser.js
+Auth : registerUser, loginUser, getProfile, updateProfile, deleteProfile
 
-getProfile.js, updateProfile.js, deleteProfile.js
+User : createUser, readUser, updateUser, deleteUser
 
-createUser.js, updateUser.js, deleteUser.js, readUser.js
+Role : updateUserRole
 
-Gèrent erreurs, statuts HTTP (400, 401, 404, 409, 500) et publient des logs clairs.
+Gèrent :
 
-🧪 Scripts utiles (package.json)
+Codes HTTP (201, 200, 204, 400, 401, 403, 404, 409, 500)
+
+Format de réponse JSON strict :
+
 json
-"scripts": {
-  "dev": "nodemon index.js",
-  "start": "node index.js",
-  "test": "jest",
-  "test:watch": "jest --watch"
+{
+  "status": "success|error",
+  "data": {},
+  "errors": [],
+  "meta": {}
 }
-✅ Git Workflow
+Logs clairs et contextualisés
+
+🧪 Tests
+Unitaires : contrôleurs et services mockés
+
+Intégration : endpoints réels via Supertest, DB isolée
+
+Helpers communs : expectErrorShape, resetDb
+
+Lancer tous les tests :
+
 bash
-git add .
-git commit -m "✅ Fix tests auth + validation strict profile"
-git push origin <branch>
-🎯 Couverture des tests
-✅ 21 tests réussis
+npm test
+npm run test:watch   # mode watch
+📚 Bonnes pratiques appliquées
+Séparation stricte validation → contrôleur → service
 
-✅ 4 suites validées
+Vérification des exports de contrôleurs dans chaque route
 
-✅ Schémas et middleware Zod actifs
+Imports centralisés via index.js dans middlewares/, controllers/, services/
 
-✅ Contrôleurs renvoient bons messages & status
+Couverture des cas d’erreur dans les tests
 
-📚 À faire / à étendre
-Ajouter loginUserSchema (optionnel)
-
-Séparer plus finement les rôles dans les contrôleurs
-
-Générer seed initial de base (seed.js)
-
-Ajouter Swagger ou Postman collection
+Préfixes de logs homogènes ([AUTH ROUTES], [USER ROUTES], [ROLE ROUTES], [APP])

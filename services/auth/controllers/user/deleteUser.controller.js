@@ -1,16 +1,14 @@
-const { PrismaClient } = require('@prisma/client');
-const { logger, publishKafkaEvent } = require('../services');
+const { prisma, logger, publishKafkaEvent } = require('../../utils');
+const { success, error } = require('../../utils/response');
 
-const prisma = new PrismaClient();
-
-const deleteUser = async (req, res) => {
+const deleteUserController = async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
       logger.warn(`User not found for deletion [id=${userId}]`);
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json(error(['User not found.']));
     }
 
     await prisma.user.delete({ where: { id: userId } });
@@ -18,11 +16,11 @@ const deleteUser = async (req, res) => {
     logger.info(`User deleted [id=${userId}]`);
     await publishKafkaEvent('user.deleted', { userId });
 
-    res.status(204).send();
+    return res.status(204).json(success(null));
   } catch (err) {
     logger.error(`Error deleting user: ${err.message}`);
-    res.status(500).json({ message: 'Internal server error.' });
+    return res.status(500).json(error(['Internal server error.']));
   }
 };
 
-module.exports = { deleteUser };
+module.exports = { deleteUserController };

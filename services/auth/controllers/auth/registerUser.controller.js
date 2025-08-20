@@ -1,19 +1,18 @@
-const { PrismaClient } = require('@prisma/client');
+const { prisma, logger, publishKafkaEvent, generateInvisibleKey } = require('../../utils');
+const { success, error } = require('../../utils/response');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { logger, publishKafkaEvent, generateInvisibleKey } = require('../services');
 
-const prisma = new PrismaClient();
 const TOKEN_EXPIRATION = '1h';
 
-const registerUser = async (req, res) => {
+const registerUserController = async (req, res) => {
   try {
     const { firstName, lastName, email, password, birthDate } = req.body;
     const emailClean = email.toLowerCase().trim();
 
     const existing = await prisma.user.findUnique({ where: { email: emailClean } });
     if (existing) {
-      return res.status(409).json({ message: 'Email already registered.' });
+      return res.status(409).json(error(['Email already registered.']));
     }
 
     const hash = await bcrypt.hash(password, 10);
@@ -49,11 +48,11 @@ const registerUser = async (req, res) => {
       invisibleKey: user.invisibleKey
     });
 
-    res.status(201).json({ user, token });
+    return res.status(201).json(success({ user, token }));
   } catch (err) {
     logger.error(`Registration error: ${err.message}`);
-    res.status(400).json({ message: 'Registration failed.' });
+    return res.status(400).json(error(['Registration failed.']));
   }
 };
 
-module.exports = { registerUser };
+module.exports = { registerUserController };

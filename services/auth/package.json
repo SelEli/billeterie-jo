@@ -18,8 +18,10 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "helmet": "^8.1.0",
+    "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.0",
     "kafkajs": "^2.2.4",
+    "morgan": "^1.10.0",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "zod": "^3.25.76"
@@ -30,19 +32,19 @@
     "nodemon": "^3.1.0",
     "prettier": "^3.3.1",
     "prisma": "^5.0.0",
-    "supertest": "^6.3.4"
+    "supertest": "^6.3.4",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.4.0"
   },
   "jest": {
+    "preset": "ts-jest",
     "testEnvironment": "node",
     "collectCoverage": true,
     "coverageDirectory": "./coverage",
-    "coverageReporters": [
-      "text",
-      "html",
-      "lcov"
-    ],
+    "coverageReporters": ["text", "html", "lcov"],
     "testMatch": [
-      "**/tests/**/*.test.js"
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.test.ts"
     ]
   }
 }
