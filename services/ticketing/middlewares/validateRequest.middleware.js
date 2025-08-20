@@ -1,16 +1,13 @@
 const { ZodError } = require('zod');
 
 /**
- * Middleware de validation Zod.
- * En cas d'erreur, renvoie un JSON structuré selon le contrat API strict :
- * - status: 'error'
- * - data: null
- * - errors: tableau de chaînes non vide
- * - meta: {}
+ * Middleware de validation Zod générique
+ * @param {ZodSchema} schema - Schéma Zod à appliquer
+ * @param {'body'|'params'|'query'} [source='body'] - Partie de la requête à valider
  */
-const validateRequest = (schema) => (req, res, next) => {
+const validateRequest = (schema, source = 'body') => (req, res, next) => {
   try {
-    const validated = schema.parse(req.body);
+    const validated = schema.parse(req[source]);
     req.validated = validated;
     next();
   } catch (err) {
@@ -18,12 +15,10 @@ const validateRequest = (schema) => (req, res, next) => {
       return res.status(400).json({
         status: 'error',
         data: null,
-        errors: err.errors.map(e => e.message), // tableau de chaînes
+        errors: err.errors.map(e => e.message),
         meta: {}
       });
     }
-
-    // Erreur inconnue : on la passe au handler global
     next(err);
   }
 };

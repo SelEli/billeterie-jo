@@ -1,29 +1,14 @@
-const { prisma, logger } = require('../../utils');
 const { success, error } = require('../../utils/response');
-const bcrypt = require('bcrypt');
+const { logger } = require('../../utils');
+const { updateUserService } = require('../../services/user');
 
 const updateUserController = async (req, res) => {
   try {
-    const userId = parseInt(req.params.id);
-    const { firstName, lastName, email, password, birthDate, role } = req.body;
+    const updated = await updateUserService(req.params.id, req.body);
 
-    const existing = await prisma.user.findUnique({ where: { id: userId } });
-    if (!existing) {
-      logger.warn(`User not found for update [id=${userId}]`);
+    if (!updated) {
       return res.status(404).json(error(['User not found.']));
     }
-
-    const data = {};
-    if (firstName) data.firstName = firstName;
-    if (lastName) data.lastName = lastName;
-    if (email) data.email = email.toLowerCase().trim();
-    if (password) data.hash = await bcrypt.hash(password, 10);
-    if (birthDate) data.birthDate = new Date(birthDate);
-    if (role) data.role = role;
-
-    const updated = await prisma.user.update({ where: { id: userId }, data });
-
-    logger.info(`User updated [id=${userId}]`);
     return res.status(200).json(success({ message: 'User updated.', user: updated }));
   } catch (err) {
     logger.error(`Error updating user: ${err.message}`);

@@ -1,16 +1,14 @@
-const { prisma, logger } = require('../../utils');
 const { success, error } = require('../../utils/response');
+const { logger } = require('../../utils');
+const { readUserService } = require('../../services/user');
 
 const readUserController = async (req, res) => {
   try {
-    const userId = parseInt(req.params.id);
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await readUserService(req.params.id);
 
     if (!user) {
-      logger.warn(`User not found [id=${userId}]`);
       return res.status(404).json(error(['User not found.']));
     }
-
     return res.status(200).json(success(user));
   } catch (err) {
     logger.error(`Error reading user: ${err.message}`);

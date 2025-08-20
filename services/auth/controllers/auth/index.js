@@ -1,19 +1,19 @@
-// controllers/auth/index.js
-const { loginUserController }     = require('./loginUser.controller');
-const { registerUserController }  = require('./registerUser.controller');
-const { getProfileController }    = require('./getProfile.controller');
-const { updateProfileController } = require('./updateProfile.controller');
-const { deleteProfileController } = require('./deleteProfile.controller');
-
+const { loginController }      = require('./login.controller');
+const { registerUserController }   = require('./registerUser.controller');
+const { getProfileController }     = require('./getProfile.controller');
+const { updateProfileController }  = require('./updateProfile.controller');
+const { deleteProfileController }  = require('./deleteProfile.controller');
+const { logoutController }     = require('./logout.controller');
 const { logger } = require('../../utils');
 
 // Vérification stricte au chargement
 [
-  ['loginUserController', loginUserController],
+  ['loginController', loginController],
   ['registerUserController', registerUserController],
   ['getProfileController', getProfileController],
   ['updateProfileController', updateProfileController],
-  ['deleteProfileController', deleteProfileController]
+  ['deleteProfileController', deleteProfileController],
+  ['logoutController', logoutController],       // ← AJOUT
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -23,9 +23,10 @@ const { logger } = require('../../utils');
 });
 
 module.exports = {
-  loginUserController,
+  loginController,
   registerUserController,
   getProfileController,
   updateProfileController,
-  deleteProfileController
+  deleteProfileController,
+  logoutController,
 };

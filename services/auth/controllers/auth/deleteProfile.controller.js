@@ -1,18 +1,17 @@
-const { prisma, logger, publishKafkaEvent } = require('../../utils');
 const { success, error } = require('../../utils/response');
+const { deleteProfileService } = require('../../services/auth');
 
 const deleteProfileController = async (req, res) => {
   try {
-    const userId = req.user.userId;
-    await prisma.user.delete({ where: { id: userId } });
+    const deleted = await deleteProfileService(req.user.userId);
 
-    logger.info(`User self-deleted [id=${userId}]`);
-    await publishKafkaEvent('user.deleted', { userId });
+    if (!deleted) {
+      return res.status(404).json(error(['Profile not found.']));
+    }
 
     return res.status(204).json(success(null));
   } catch (err) {
-    logger.error(`Error deleting profile: ${err.message}`);
-    return res.status(404).json(error(['Profile not found.']));
+    return res.status(500).json(error(['Internal server error.']));
   }
 };
 

@@ -1,10 +1,17 @@
-// controllers/role/index.js
-const { updateUserRoleController } = require('./updateUserRole.controller');
+const { createRoleController } = require('./createRole.controller');
+const { getRoleController }    = require('./getRole.controller');
+const { listRolesController }   = require('./listRoles.controller');
+const { updateRoleController } = require('./updateRole.controller');
+const { deleteRoleController } = require('./deleteRole.controller');
+
 const { logger } = require('../../utils');
 
-// Vérification stricte au chargement
 [
-  ['updateUserRoleController', updateUserRoleController]
+  ['createRoleController', createRoleController],
+  ['getRoleController', getRoleController],
+  ['listRolesController', listRolesController],
+  ['updateRoleController', updateRoleController],
+  ['deleteRoleController', deleteRoleController]
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -14,5 +21,9 @@ const { logger } = require('../../utils');
 });
 
 module.exports = {
-  updateUserRoleController
+  createRoleController,
+  getRoleController,
+  listRolesController,
+  updateRoleController,
+  deleteRoleController
 };

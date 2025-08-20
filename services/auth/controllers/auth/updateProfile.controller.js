@@ -1,27 +1,17 @@
-const { prisma, logger } = require('../../utils');
+// controllers/updateProfile.controller.js
 const { success, error } = require('../../utils/response');
-const bcrypt = require('bcrypt');
+const { updateProfileService } = require('../../services/auth');
 
 const updateProfileController = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, birthDate } = req.body;
-    const data = {};
+    const updated = await updateProfile(req.user.userId, req.body);
 
-    if (firstName) data.firstName = firstName;
-    if (lastName) data.lastName = lastName;
-    if (email) data.email = email.toLowerCase().trim();
-    if (password) data.hash = await bcrypt.hash(password, 10);
-    if (birthDate) data.birthDate = new Date(birthDate);
+    if (!updated) {
+      return res.status(404).json(error(['Profile not found.']));
+    }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.userId },
-      data
-    });
-
-    logger.info(`Profile updated for userId=${req.user.userId}`);
-    return res.status(200).json(success({ message: 'Profile updated.', user: updatedUser }));
+    return res.status(200).json(success(updated));
   } catch (err) {
-    logger.error(`Error updating profile: ${err.message}`);
     return res.status(500).json(error(['Internal server error.']));
   }
 };

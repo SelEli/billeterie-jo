@@ -1,15 +1,28 @@
-// services/index.js
-// Point d'entrée unique pour les services transverses,
-// ré-exportés depuis utils pour éviter toute duplication.
+// ===== AUTH =====
+const authServices = require('./auth');
 
-const {
-  logger,
-  publishKafkaEvent,
-  generateInvisibleKey
-} = require('../utils');
+// ===== USER =====
+const userServices = require('./user');
 
-module.exports = {
-  logger,
-  publishKafkaEvent,
-  generateInvisibleKey
+// ===== ROLE =====
+const roleServices = require('./role');
+
+const { logger } = require('../utils');
+
+// On regroupe tout dans un seul objet
+const services = {
+  ...authServices,
+  ...userServices,
+  ...roleServices
 };
+
+// Vérification stricte : toutes les valeurs doivent être des fonctions
+Object.entries(services).forEach(([name, fn]) => {
+  if (typeof fn !== 'function') {
+    logger.error(`❌ Service ${name} est undefined ou mal exporté`);
+    throw new Error(`❌ Service ${name} est undefined ou mal exporté`);
+  }
+  logger.debug(`✅ Service ${name} chargé`);
+});
+
+module.exports = services;

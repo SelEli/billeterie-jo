@@ -6,8 +6,15 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node prisma/seed.js",
+
     "test": "NODE_ENV=test jest --runInBand",
     "test:cov": "NODE_ENV=test jest --coverage --runInBand",
+
+    "test:all": "NODE_ENV=test jest tests/index.js --runInBand",
+    "test:auth": "NODE_ENV=test jest tests/auth/index.js --runInBand",
+    "test:user": "NODE_ENV=test jest tests/user/index.js --runInBand",
+    "test:role": "NODE_ENV=test jest tests/role/index.js --runInBand",
+
     "lint": "eslint .",
     "format": "prettier --write ."
   },

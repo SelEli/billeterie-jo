@@ -1,3 +1,4 @@
+// routes/user.routes.js
 const express = require('express');
 const router = express.Router();
 
@@ -9,25 +10,35 @@ const {
   createAuditTrail
 } = require('../utils');
 
-const createUserSchema = require('../schemas/createUserSchema');
-const updateUserSchema = require('../schemas/updateUserSchema');
+// ✅ Tous les schémas User depuis l'index
+const {
+  createUserSchema,
+  readUserSchema,
+  listUsersSchema,
+  updateUserSchema,
+  deleteUserSchema
+} = require('../schemas/user');
 
+// ✅ Tous les contrôleurs User depuis l'index
 const {
   createUserController,
   readUserController,
+  listUsersController,
   updateUserController,
   deleteUserController
 } = require('../controllers/user');
 
-const { updateUserRoleController } = require('../controllers/role');
+// ✅ Contrôleur rôle (pour mise à jour de rôle utilisateur)
+const { updateRoleController } = require('../controllers/role');
 
 // Vérification stricte
 [
   ['createUserController', createUserController],
   ['readUserController', readUserController],
+  ['listUsersController', listUsersController],
   ['updateUserController', updateUserController],
   ['deleteUserController', deleteUserController],
-  ['updateUserRoleController', updateUserRoleController]
+  ['updateRoleController', updateRoleController]
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -43,11 +54,11 @@ router.use((req, res, next) => {
   next();
 });
 
-// Routes CRUD
+// CREATE
 router.post(
   '/',
   authenticate,
-  validateRequest(createUserSchema),
+  validateRequest(createUserSchema, 'body'),
   (req, res, next) => {
     logger.info('[USER][POST /] → createUserController');
     createAuditTrail(req, 'user.create');
@@ -56,9 +67,23 @@ router.post(
   createUserController
 );
 
+// LIST
+router.get(
+  '/',
+  authenticate,
+  validateRequest(listUsersSchema, 'query'),
+  (req, res, next) => {
+    logger.info('[USER][GET /] → listUsersController');
+    next();
+  },
+  listUsersController
+);
+
+// READ ONE
 router.get(
   '/:id',
   authenticate,
+  validateRequest(readUserSchema, 'params'),
   (req, res, next) => {
     logger.info('[USER][GET /:id] → readUserController');
     next();
@@ -66,10 +91,11 @@ router.get(
   readUserController
 );
 
+// UPDATE
 router.put(
   '/:id',
   authenticate,
-  validateRequest(updateUserSchema),
+  validateRequest(updateUserSchema, 'body'),
   (req, res, next) => {
     logger.info('[USER][PUT /:id] → updateUserController');
     createAuditTrail(req, 'user.update');
@@ -78,9 +104,11 @@ router.put(
   updateUserController
 );
 
+// DELETE
 router.delete(
   '/:id',
   authenticate,
+  validateRequest(deleteUserSchema, 'params'),
   (req, res, next) => {
     logger.info('[USER][DELETE /:id] → deleteUserController');
     createAuditTrail(req, 'user.delete');
@@ -89,16 +117,16 @@ router.delete(
   deleteUserController
 );
 
-// Gestion du rôle
+// UPDATE ROLE
 router.put(
   '/:id/role',
   authenticate,
   (req, res, next) => {
-    logger.info('[USER][PUT /:id/role] → updateUserRoleController');
+    logger.info('[USER][PUT /:id/role] → updateRoleController');
     createAuditTrail(req, 'user.role.update');
     next();
   },
-  updateUserRoleController
+  updateRoleController
 );
 
 module.exports = router;

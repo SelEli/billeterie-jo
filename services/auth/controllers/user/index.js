@@ -1,7 +1,9 @@
+// controllers/user/index.js
 const { createUserController } = require('./createUser.controller');
 const { readUserController }   = require('./readUser.controller');
 const { updateUserController } = require('./updateUser.controller');
 const { deleteUserController } = require('./deleteUser.controller');
+const { listUsersController }  = require('./listUsers.controller');
 
 const { logger } = require('../../utils');
 
@@ -10,7 +12,8 @@ const { logger } = require('../../utils');
   ['createUserController', createUserController],
   ['readUserController', readUserController],
   ['updateUserController', updateUserController],
-  ['deleteUserController', deleteUserController]
+  ['deleteUserController', deleteUserController],
+  ['listUsersController', listUsersController]
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -23,5 +26,6 @@ module.exports = {
   createUserController,
   readUserController,
   updateUserController,
-  deleteUserController
+  deleteUserController,
+  listUsersController
 };
