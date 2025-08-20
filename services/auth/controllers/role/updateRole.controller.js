@@ -5,6 +5,12 @@ const { updateRoleService } = require('../../services/role');
 
 const updateRoleController = async (req, res) => {
   try {
+    // 🔹 Vérification rôle admin avant tout
+    if (req.user?.role !== 'ADMIN') {
+      logger.warn(`[ROLE][UPDATE] Forbidden: non-admin tried to update role [id=${req.params.id}]`);
+      return res.status(403).json(error(['Forbidden']));
+    }
+
     logger.debug(`[ROLE][UPDATE] Request to update role for userId=${req.params.id}`);
 
     const result = await updateRoleService(req.params.id, req.body.role);
@@ -29,7 +35,9 @@ const updateRoleController = async (req, res) => {
     }
 
     logger.info(`[ROLE][UPDATE] Role updated successfully for userId=${req.params.id}`);
-    return res.status(200).json(success({ message: 'Role updated.', user: result }));
+    return res
+      .status(200)
+      .json(success({ message: 'Role updated.', user: result }));
   } catch (err) {
     logger.error(`[ROLE][UPDATE] Internal error: ${err.message}`);
     return res.status(500).json(error(['Internal server error.']));

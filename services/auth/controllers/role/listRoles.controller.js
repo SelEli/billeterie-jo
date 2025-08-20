@@ -1,10 +1,10 @@
 const { success, error } = require('../../utils/response');
 const { logger } = require('../../utils');
-const { listRoleService } = require('../../services/role');
+const { listRolesService } = require('../../services/role');
 
 const listRolesController = async (req, res) => {
   try {
-    const roles = await listRoleService(req.query);
+    const roles = await listRolesService(req.query);
 
     if (!roles || roles.length === 0) {
       logger.warn('[ROLE][LIST] No roles found');

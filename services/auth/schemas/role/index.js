@@ -1,6 +1,6 @@
 const createRoleSchema = require('./createRoleSchema');
 const getRoleSchema    = require('./getRoleSchema');
-const listRoleSchema   = require('./listRolesSchema');
+const listRolesSchema   = require('./listRolesSchema');
 const updateRoleSchema = require('./updateRoleSchema');
 const deleteRoleSchema = require('./deleteRoleSchema');
 
@@ -9,7 +9,7 @@ const { logger } = require('../../utils');
 [
   ['createRoleSchema', createRoleSchema],
   ['getRoleSchema', getRoleSchema],
-  ['listRoleSchema', listRoleSchema],
+  ['listRolesSchema', listRolesSchema],
   ['updateRoleSchema', updateRoleSchema],
   ['deleteRoleSchema', deleteRoleSchema]
 ].forEach(([name, schema]) => {
