@@ -15,10 +15,15 @@ async function listRolesService(filters = {}) {
       orderBy: { name: 'asc' }
     });
 
+    if (!roles || roles.length === 0) {
+      logger.warn('[ROLE][LIST] No roles found');
+      return [];
+    }
+
     logger.info(`[ROLE][LIST] Retrieved ${roles.length} role(s)`);
     return roles;
   } catch (err) {
-    logger.error(`[ROLE][LIST] Error: ${err.message}`);
+    logger.error(`[ROLE][LIST] Service error: ${err.message}`);
     throw err;
   }
 }

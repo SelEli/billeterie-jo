@@ -5,35 +5,29 @@ const { loginService } = require('../../services/auth');
 
 const loginController = async (req, res) => {
   try {
-    logger.debug('[AUTH][LOGIN] Attempting login');
+    const { email, password } = req.body;
+    logger.debug(`[AUTH][LOGIN] Attempting login for email=${email}`);
 
-    const result = await loginService(req.body);
-
-    // Aucun résultat → identifiants invalides
-    if (!result) {
-      logger.warn(`[AUTH][LOGIN] Invalid credentials for email=${req.body?.email}`);
-      return res.status(401).json(error(['Invalid credentials.']));
+    if (!email || !password) {
+      return res.status(400).json(error(['VALIDATION_FAILED']));
     }
 
-    // Erreur métier explicite
-    if (result?.error) {
-      logger.warn(`[AUTH][LOGIN] ${result.error} for email=${req.body?.email}`);
-      switch (result.error) {
-        case 'USER_NOT_FOUND':
-          return res.status(404).json(error(['User not found.']));
-        case 'BAD_PASSWORD':
-          return res.status(401).json(error(['Invalid credentials.']));
-        default:
-          return res.status(400).json(error(['Login failed.']));
-      }
+    const result = await loginService({ email, password });
+
+    if (!result) return res.status(404).json(error(['USER_NOT_FOUND']));
+    if (result.error) {
+      const map = {
+        USER_NOT_FOUND: 404,
+        BAD_PASSWORD: 401
+      };
+      return res.status(map[result.error] || 400).json(error([result.error]));
     }
 
-    logger.info(`[AUTH][LOGIN] Login successful for ${req.body?.email}`);
-    return res.status(200).json(success(result));
+    logger.info(`[AUTH][LOGIN] Login successful for email=${email}`);
+    return res.status(200).json(success(result, { message: 'Login successful' }));
 
   } catch (err) {
-    const msg = err.message || '';
-    logger.error(`[AUTH][LOGIN] Unexpected error: ${msg}`);
+    logger.error(`[AUTH][LOGIN] Unexpected error: ${err.message}`);
     return res.status(500).json(error(['Internal server error.']));
   }
 };

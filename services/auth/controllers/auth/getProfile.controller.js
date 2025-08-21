@@ -5,28 +5,22 @@ const { getProfileService } = require('../../services/auth');
 
 const getProfileController = async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = Number(req.user?.userId);
     logger.debug(`[AUTH][PROFILE] Fetching profile for userId=${userId}`);
 
-    if (!userId) {
-      logger.warn('[AUTH][PROFILE] Missing userId in request');
-      return res.status(400).json(error(['Invalid user ID.']));
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json(error(['INVALID_ID']));
     }
 
-    const user = await getProfileService(userId);
+    const result = await getProfileService(userId);
 
-    if (!user) {
-      logger.warn(`[AUTH][PROFILE] Profile not found for userId=${userId}`);
-      return res.status(404).json(error(['Profile not found.']));
-    }
-
-    if (user?.error) {
-      logger.warn(`[AUTH][PROFILE] Business error for userId=${userId}: ${user.error}`);
-      return res.status(400).json(error([user.error]));
+    if (!result) return res.status(404).json(error(['NOT_FOUND']));
+    if (result.error) {
+      return res.status(400).json(error([result.error]));
     }
 
     logger.info(`[AUTH][PROFILE] Profile retrieved for userId=${userId}`);
-    return res.status(200).json(success(user));
+    return res.status(200).json(success(result));
 
   } catch (err) {
     logger.error(`[AUTH][PROFILE] Unexpected error: ${err.message}`);

@@ -4,18 +4,31 @@ const { createRoleService } = require('../../services/role');
 
 const createRoleController = async (req, res) => {
   try {
-    logger.debug('[ROLE][CREATE] Creating new role');
-    const role = await createRoleService(req.body);
+    const { name, description } = req.body;
+    logger.debug(`[ROLE][CREATE] Creating new role: ${name}`);
 
-    if (!role) {
-      logger.warn(`[ROLE][CREATE] Role already exists: ${req.body.name}`);
-      return res.status(409).json(error(['Role already exists.']));
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      logger.warn('[ROLE][CREATE] Missing or invalid role name');
+      return res.status(400).json(error(['ROLE_NAME_REQUIRED']));
+    }
+
+    const role = await createRoleService({ name: name.trim(), description });
+
+    if (role === null) {
+      logger.warn(`[ROLE][CREATE] Role already exists: ${name}`);
+      return res.status(409).json(error(['ROLE_EXISTS']));
+    }
+
+    if (role && role.error) {
+      logger.warn(`[ROLE][CREATE] Business error: ${role.error}`);
+      return res.status(400).json(error([role.error]));
     }
 
     logger.info(`[ROLE][CREATE] Role created successfully: ${role.name}`);
-    return res.status(201).json(success(role));
+    return res.status(201).json(success(role, { message: 'Role created successfully' }));
+
   } catch (err) {
-    logger.error(`[ROLE][CREATE] Internal error: ${err.message}`);
+    logger.error(`[ROLE][CREATE] Unexpected error: ${err.message}`);
     return res.status(500).json(error(['Internal server error.']));
   }
 };

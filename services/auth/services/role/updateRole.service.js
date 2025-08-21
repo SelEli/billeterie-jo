@@ -1,56 +1,53 @@
-// services/role/updateRole.service.js
 const { prisma, logger, publishKafkaEvent } = require('../../utils');
 
-async function updateRoleService(userId, payload) {
+async function updateRoleService(roleId, payload) {
   try {
-    const id = parseInt(userId, 10);
-    if (isNaN(id)) {
-      logger.warn(`[ROLE][UPDATE] Invalid user ID: ${userId}`);
-      throw new Error('INVALID_ID');
+    logger.debug(`[ROLE][UPDATE] Updating role id=${roleId}`);
+
+    const parsedId = Number(roleId);
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      logger.warn(`[ROLE][UPDATE] Invalid role ID: ${roleId}`);
+      return { error: 'INVALID_ROLE_ID' };
     }
 
-    // Récupération de la valeur du rôle depuis payload ou direct string
-    const roleValue = typeof payload === 'string' ? payload : payload?.name || payload?.role;
+    const roleValue = typeof payload === 'string'
+      ? payload
+      : payload?.name || payload?.role;
+
     if (typeof roleValue !== 'string') {
-      logger.warn(`[ROLE][UPDATE] Role not provided or invalid for user update [id=${id}]`);
-      throw new Error('ROLE_REQUIRED');
+      logger.warn(`[ROLE][UPDATE] Role not provided or invalid for role update [id=${parsedId}]`);
+      return { error: 'ROLE_REQUIRED' };
     }
 
     const normalizedRole = roleValue.toUpperCase();
     const validRoles = ['ADMIN', 'AGENT', 'USER', 'VISITOR'];
     if (!validRoles.includes(normalizedRole)) {
-      logger.warn(`[ROLE][UPDATE] Invalid role assignment attempted: ${roleValue}`);
-      throw new Error('INVALID_ROLE');
+      logger.warn(`[ROLE][UPDATE] Invalid role name attempted: ${roleValue}`);
+      return { error: 'INVALID_ROLE' };
     }
 
-    const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) {
-      logger.warn(`[ROLE][UPDATE] User not found [id=${id}]`);
-      return null;
+    const existing = await prisma.role.findUnique({ where: { id: parsedId } });
+    if (!existing) {
+      logger.warn(`[ROLE][UPDATE] Role not found [id=${parsedId}]`);
+      return null; // contrôleur traduira en ROLE_NOT_FOUND
     }
 
-    if (user.role === 'VISITOR' && normalizedRole !== 'USER') {
-      logger.warn(`[ROLE][UPDATE] Visitor role cannot be elevated beyond USER [id=${id}]`);
-      throw new Error('VISITOR_RESTRICTED');
-    }
-
-    const updated = await prisma.user.update({
-      where: { id },
-      data: { role: normalizedRole }
+    const updated = await prisma.role.update({
+      where: { id: parsedId },
+      data: { name: normalizedRole }
     });
 
-    logger.info(`[ROLE][UPDATE] Role updated for user [id=${id}] → ${normalizedRole}`);
+    logger.info(`[ROLE][UPDATE] Role updated [id=${parsedId}] → ${normalizedRole}`);
 
-    // Événement Kafka non bloquant
     try {
-      await publishKafkaEvent('user.role_updated', { userId: id, newRole: normalizedRole });
+      await publishKafkaEvent('role.updated', { roleId: parsedId, newName: normalizedRole });
     } catch (err) {
       logger.warn(`[ROLE][UPDATE] Kafka publish skipped: ${err.message}`);
     }
 
     return updated;
   } catch (err) {
-    logger.error(`[ROLE][UPDATE] Error: ${err.message}`);
+    logger.error(`[ROLE][UPDATE] Service error: ${err.message}`);
     throw err;
   }
 }

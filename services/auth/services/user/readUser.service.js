@@ -1,12 +1,11 @@
-// services/user/readUser.service.js
 const { prisma, logger } = require('../../utils');
 
 const readUserService = async (id) => {
   try {
-    const userId = parseInt(id, 10);
-    if (isNaN(userId)) {
+    const userId = Number(id);
+    if (!Number.isInteger(userId) || userId <= 0) {
       logger.warn(`[USER][READ] Invalid user ID: ${id}`);
-      throw new Error('INVALID_ID');
+      return { error: 'INVALID_USER_ID' };
     }
 
     logger.debug(`[USER][READ] Fetching user [id=${userId}]`);
@@ -21,7 +20,7 @@ const readUserService = async (id) => {
     logger.info(`[USER][READ] Found user [id=${user.id}]`);
     return user;
   } catch (err) {
-    logger.error(`[USER][READ] Error: ${err.message}`);
+    logger.error(`[USER][READ] Service error: ${err.message}`);
     throw err;
   }
 };

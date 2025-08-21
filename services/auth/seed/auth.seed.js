@@ -1,15 +1,15 @@
-// prisma/seed.js (service Auth)
+// seeds/seedAuth.js
 const bcrypt = require('bcrypt');
+const prisma = require('../utils/prismaClient');
+const logger = require('../utils/logger');
 
-/**
- * Génère des seeds de comptes utilisateurs pour Auth
- * @param {import('@prisma/client').PrismaClient} prisma
- */
-async function main(prisma) {
-  const passwordHash = await bcrypt.hash('Password123!', 10);
+module.exports = async function seedAuth() {
+  try {
+    logger.debug('[SEED][AUTH] Starting Auth users seeding process');
 
-  await prisma.user.createMany({
-    data: [
+    const passwordHash = await bcrypt.hash('Password123!', 10);
+
+    const usersData = [
       {
         email: 'admin@example.com',
         hash: passwordHash,
@@ -60,10 +60,19 @@ async function main(prisma) {
         invisibleKey: 'employee-key',
         isBlacklisted: false
       }
-    ]
-  });
+    ];
 
-  console.log('✅ Seed utilisateurs Auth inséré avec succès');
-}
+    const result = await prisma.user.createMany({
+      data: usersData,
+      skipDuplicates: true
+    });
 
-module.exports = main;
+    logger.info(`✅ Auth users seeded successfully (${result.count} inserted or skipped)`);
+  } catch (error) {
+    logger.error('❌ Failed to seed auth users', { error: error.message });
+    process.exitCode = 1;
+  } finally {
+    await prisma.$disconnect();
+    logger.debug('[SEED][AUTH] Prisma disconnected');
+  }
+};

@@ -5,19 +5,27 @@ const { updateProfileService } = require('../../services/auth');
 
 const updateProfileController = async (req, res) => {
   try {
-    logger.debug(`[AUTH][PROFILE][UPDATE] Attempting profile update for userId=${req.user?.userId}`);
+    const userId = Number(req.user?.userId);
+    logger.debug(`[AUTH][PROFILE][UPDATE] Attempting profile update for userId=${userId}`);
 
-    const updated = await updateProfileService(req.user.userId, req.body);
-
-    if (!updated) {
-      logger.warn(`[AUTH][PROFILE][UPDATE] Profile not found for userId=${req.user?.userId}`);
-      return res.status(404).json(error(['Profile not found.']));
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json(error(['INVALID_ID']));
     }
 
-    logger.info(`[AUTH][PROFILE][UPDATE] Profile updated for userId=${updated.id}`);
-    return res.status(200).json(success(updated));
+    const result = await updateProfileService(userId, req.body);
+
+    if (!result) return res.status(404).json(error(['NOT_FOUND']));
+    if (result.error) {
+      return res.status(400).json(error([result.error]));
+    }
+
+    logger.info(`[AUTH][PROFILE][UPDATE] Profile updated for userId=${result.id}`);
+    return res
+      .status(200)
+      .json(success(result, { message: 'Profile updated successfully' }));
+
   } catch (err) {
-    logger.error(`[AUTH][PROFILE][UPDATE] Internal error: ${err.message}`);
+    logger.error(`[AUTH][PROFILE][UPDATE] Unexpected error: ${err.message}`);
     return res.status(500).json(error(['Internal server error.']));
   }
 };
