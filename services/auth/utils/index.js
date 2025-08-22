@@ -36,6 +36,7 @@ module.exports = {
 
   // Logger
   logger,
+  formatLogContext: logger.formatLogContext, // <-- ajout ici
 
   // Prisma
   prisma,

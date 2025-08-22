@@ -1,3 +1,4 @@
+// services/user/updateUser.service.js
 const { prisma, logger } = require('../../utils');
 
 const updateUserService = async (id, data) => {
@@ -8,21 +9,40 @@ const updateUserService = async (id, data) => {
       return { error: 'INVALID_USER_ID' };
     }
 
+    if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+      logger.warn(`[USER][UPDATE] No data provided for update [id=${userId}]`);
+      return { error: 'MISSING_REQUIRED_FIELDS' };
+    }
+
+    if (data.email && (typeof data.email !== 'string' || !data.email.includes('@'))) {
+      logger.warn(`[USER][UPDATE] Invalid email format for update [id=${userId}]`);
+      return { error: 'EMAIL_REQUIRED' };
+    }
+
     logger.debug(`[USER][UPDATE] Updating user [id=${userId}] with data: ${JSON.stringify(data)}`);
 
-    let user;
-    try {
-      user = await prisma.user.update({
-        where: { id: userId },
-        data
-      });
-    } catch {
+    const existing = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
       logger.warn(`[USER][UPDATE] User not found [id=${userId}]`);
       return null;
     }
 
-    logger.info(`[USER][UPDATE] User updated [id=${user.id}]`);
-    return user;
+    let updated;
+    try {
+      updated = await prisma.user.update({
+        where: { id: userId },
+        data
+      });
+    } catch (err) {
+      if (err.code === 'P2002') {
+        logger.warn(`[USER][UPDATE] Unique constraint violation for email: ${data?.email}`);
+        return { error: 'EMAIL_ALREADY_USED' };
+      }
+      throw err;
+    }
+
+    logger.info(`[USER][UPDATE] User updated [id=${updated.id}]`);
+    return updated;
   } catch (err) {
     logger.error(`[USER][UPDATE] Service error: ${err.message}`);
     throw err;

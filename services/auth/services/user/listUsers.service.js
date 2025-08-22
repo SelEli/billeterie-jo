@@ -1,3 +1,4 @@
+// services/user/listUsers.service.js
 const { prisma, logger } = require('../../utils');
 
 const listUsersService = async (filters = {}) => {
@@ -9,6 +10,11 @@ const listUsersService = async (filters = {}) => {
       where.email = { contains: filters.email, mode: 'insensitive' };
     }
     if (filters.role) {
+      const validRoles = ['ADMIN', 'AGENT', 'USER', 'VISITOR'];
+      if (!validRoles.includes(filters.role)) {
+        logger.warn(`[USER][LIST] Invalid role filter: ${filters.role}`);
+        return { error: 'INVALID_ROLE' };
+      }
       where.role = filters.role;
     }
 

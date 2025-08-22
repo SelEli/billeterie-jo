@@ -1,34 +1,36 @@
-// controllers/auth/loginUser.controller.js
-const { success, error } = require('../../utils/response');
+// controllers/auth/login.controller.js
 const { logger } = require('../../utils');
 const { loginService } = require('../../services/auth');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
 const loginController = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
     logger.debug(`[AUTH][LOGIN] Attempting login for email=${email}`);
 
+    // Champs obligatoires
     if (!email || !password) {
-      return res.status(400).json(error(['VALIDATION_FAILED']));
+      return sendBusinessError(res, 'MISSING_CREDENTIALS');
     }
 
     const result = await loginService({ email, password });
 
-    if (!result) return res.status(404).json(error(['USER_NOT_FOUND']));
-    if (result.error) {
-      const map = {
-        USER_NOT_FOUND: 404,
-        BAD_PASSWORD: 401
-      };
-      return res.status(map[result.error] || 400).json(error([result.error]));
+    // Cas métier négatif
+    if (result?.error) {
+      return sendBusinessError(res, result.error);
     }
 
-    logger.info(`[AUTH][LOGIN] Login successful for email=${email}`);
-    return res.status(200).json(success(result, { message: 'Login successful' }));
+    // Utilisateur inexistant
+    if (!result) {
+      return sendBusinessError(res, 'USER_NOT_FOUND');
+    }
 
+    // Succès
+    return sendBusinessSuccess(res, 'CREATE_AUTH', result, { message: 'Login successful' });
   } catch (err) {
     logger.error(`[AUTH][LOGIN] Unexpected error: ${err.message}`);
-    return res.status(500).json(error(['Internal server error.']));
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
   }
 };
 

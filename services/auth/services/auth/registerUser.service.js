@@ -5,57 +5,56 @@ const jwt = require('jsonwebtoken');
 
 const TOKEN_EXPIRATION = '1h';
 
-/**
- * Crée un utilisateur et renvoie un objet plat prêt à passer dans success()
- */
 async function registerUserService({ firstName, lastName, email, password, birthDate, role }) {
   try {
     logger.debug('[AUTH][REGISTER] Preparing to register new user');
 
-    // Validation minimale
     if (!email || !password || !firstName || !lastName || !birthDate) {
       logger.warn('[AUTH][REGISTER] Missing required fields');
-      return { error: 'VALIDATION_FAILED' };
+      return { error: 'MISSING_REQUIRED_FIELDS' };
     }
 
     const emailClean = String(email).toLowerCase().trim();
 
-    // Vérifier si l'email est déjà pris
+    // Vérifier doublon
     const existing = await prisma.user.findUnique({ where: { email: emailClean } });
     if (existing) {
       logger.warn(`[AUTH][REGISTER] Email already registered: ${emailClean}`);
-      return { error: 'DUPLICATE_EMAIL' };
+      return { error: 'EMAIL_ALREADY_USED' };
     }
 
-    // Hachage du mot de passe
     const hash = await bcrypt.hash(password, 10);
-
-    // Génération de la clé invisible
     const invisibleKey = generateInvisibleKey();
 
-    // Création de l’utilisateur
-    const user = await prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        email: emailClean,
-        hash,
-        birthDate: new Date(birthDate),
-        invisibleKey,
-        role: role || 'VISITOR',
-        lastLogin: null,
-        isBlacklisted: false,
-        blacklistReason: null
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          firstName,
+          lastName,
+          email: emailClean,
+          hash,
+          birthDate: new Date(birthDate),
+          invisibleKey,
+          role: role || 'VISITOR',
+          lastLogin: null,
+          isBlacklisted: false,
+          blacklistReason: null
+        }
+      });
+    } catch (err) {
+      if (err.code === 'P2002') {
+        logger.warn(`[AUTH][REGISTER] Unique constraint violation for email: ${emailClean}`);
+        return { error: 'EMAIL_ALREADY_USED' };
       }
-    });
+      throw err;
+    }
 
-    // Vérif config JWT
     if (!process.env.JWT_SECRET) {
       logger.error('[AUTH][REGISTER] JWT_SECRET is not configured');
       return { error: 'SERVER_MISCONFIGURATION' };
     }
 
-    // Création du token JWT
     const token = jwt.sign(
       {
         userId: user.id,
@@ -70,7 +69,6 @@ async function registerUserService({ firstName, lastName, email, password, birth
 
     logger.info(`[AUTH][REGISTER] User registered: ${user.email} (id=${user.id})`);
 
-    // Événement Kafka (non bloquant)
     try {
       await publishKafkaEvent('user.created', {
         userId: user.id,
@@ -81,7 +79,6 @@ async function registerUserService({ firstName, lastName, email, password, birth
       logger.warn(`[AUTH][REGISTER] Kafka publish skipped: ${err.message}`);
     }
 
-    // Objet plat prêt pour le contrôleur
     return {
       id: user.id,
       email: user.email,

@@ -1,35 +1,32 @@
-const { error } = require('../../utils/response');
+// controllers/user/deleteUser.controller.js
 const { logger } = require('../../utils');
 const { deleteUserService } = require('../../services/user');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
 const deleteUserController = async (req, res) => {
   try {
-    logger.debug(`[USER][DELETE] Request to delete user id=${req.params.id}`);
-
     const parsedId = Number(req.params.id);
+    logger.debug(`[USER][DELETE] Request to delete user [id=${parsedId}]`);
+
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
-      logger.warn(`[USER][DELETE] Invalid user ID: ${req.params.id}`);
-      return res.status(400).json(error(['INVALID_USER_ID']));
+      return sendBusinessError(res, 'INVALID_USER_ID');
     }
 
-    const result = await deleteUserService(parsedId);
+    const deleted = await deleteUserService(parsedId);
 
-    if (result?.error) {
-      logger.warn(`[USER][DELETE] Business error for id=${parsedId}: ${result.error}`);
-      return res.status(400).json(error([result.error]));
+    if (deleted?.error) {
+      return sendBusinessError(res, deleted.error);
     }
 
-    if (!result) {
-      logger.warn(`[USER][DELETE] User not found [id=${parsedId}]`);
-      return res.status(404).json(error(['USER_NOT_FOUND']));
+    if (!deleted) {
+      return sendBusinessError(res, 'USER_NOT_FOUND');
     }
 
-    logger.info(`[USER][DELETE] User deleted successfully [id=${parsedId}]`);
-    return res.status(204).end();
-
+    return sendBusinessSuccess(res, 'DELETE');
   } catch (err) {
     logger.error(`[USER][DELETE] Internal error: ${err.message}`);
-    return res.status(500).json(error(['Internal server error.']));
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
   }
 };
 

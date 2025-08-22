@@ -5,33 +5,27 @@ const jwt = require('jsonwebtoken');
 
 const TOKEN_EXPIRATION = '1h';
 
-/**
- * Authentifie un utilisateur et renvoie un objet plat avec token + infos utiles
- */
 async function loginService({ email, password }) {
   try {
     logger.debug('[AUTH][LOGIN] Preparing to authenticate user');
 
-    // Validation entrée
     if (!email || !password) {
       logger.warn('[AUTH][LOGIN] Missing email or password');
-      return { error: 'VALIDATION_FAILED' };
+      return { error: 'MISSING_CREDENTIALS' };
     }
 
     const emailClean = String(email).toLowerCase().trim();
 
-    // Recherche utilisateur
     const user = await prisma.user.findUnique({ where: { email: emailClean } });
     if (!user) {
       logger.warn(`[AUTH][LOGIN] User not found: ${emailClean}`);
       return { error: 'USER_NOT_FOUND' };
     }
 
-    // Vérification mot de passe
     const isValid = await bcrypt.compare(password, user.hash);
     if (!isValid) {
-      logger.warn(`[AUTH][LOGIN] Bad password for ${emailClean}`);
-      return { error: 'BAD_PASSWORD' };
+      logger.warn(`[AUTH][LOGIN] Invalid password for ${emailClean}`);
+      return { error: 'INVALID_PASSWORD' };
     }
 
     if (!process.env.JWT_SECRET) {
@@ -53,7 +47,6 @@ async function loginService({ email, password }) {
 
     logger.info(`[AUTH][LOGIN] User logged in: ${user.email}`);
 
-    // Objet plat prêt pour le contrôleur
     return {
       id: user.id,
       email: user.email,

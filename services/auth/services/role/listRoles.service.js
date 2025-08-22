@@ -17,7 +17,7 @@ async function listRolesService(filters = {}) {
 
     if (!roles || roles.length === 0) {
       logger.warn('[ROLE][LIST] No roles found');
-      return [];
+      return { error: 'NO_ROLES_FOUND' };
     }
 
     logger.info(`[ROLE][LIST] Retrieved ${roles.length} role(s)`);

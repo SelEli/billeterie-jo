@@ -8,7 +8,7 @@ async function deleteRoleService(roleId) {
     const parsedId = Number(roleId);
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
       logger.warn(`[ROLE][DELETE] Invalid role ID: ${roleId}`);
-      return { error: 'INVALID_ID' };
+      return { error: 'INVALID_ROLE_ID' };
     }
 
     const existing = await prisma.role.findUnique({ where: { id: parsedId } });

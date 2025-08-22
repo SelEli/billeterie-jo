@@ -1,30 +1,36 @@
 // controllers/auth/getProfile.controller.js
-const { success, error } = require('../../utils/response');
 const { logger } = require('../../utils');
 const { getProfileService } = require('../../services/auth');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
 const getProfileController = async (req, res) => {
   try {
     const userId = Number(req.user?.userId);
     logger.debug(`[AUTH][PROFILE] Fetching profile for userId=${userId}`);
 
+    // ID invalide
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json(error(['INVALID_ID']));
+      return sendBusinessError(res, 'INVALID_USER_ID');
     }
 
     const result = await getProfileService(userId);
 
-    if (!result) return res.status(404).json(error(['NOT_FOUND']));
-    if (result.error) {
-      return res.status(400).json(error([result.error]));
+    // Cas métier négatif
+    if (result?.error) {
+      return sendBusinessError(res, result.error);
     }
 
-    logger.info(`[AUTH][PROFILE] Profile retrieved for userId=${userId}`);
-    return res.status(200).json(success(result));
+    // Utilisateur inexistant
+    if (!result) {
+      return sendBusinessError(res, 'USER_NOT_FOUND');
+    }
 
+    // Succès
+    return sendBusinessSuccess(res, 'READ_ONE', result, { message: 'Profile retrieved successfully' });
   } catch (err) {
     logger.error(`[AUTH][PROFILE] Unexpected error: ${err.message}`);
-    return res.status(500).json(error(['Internal server error.']));
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
   }
 };
 

@@ -1,3 +1,4 @@
+// services/user/deleteUser.service.js
 const { prisma, logger } = require('../../utils');
 
 const deleteUserService = async (id) => {
@@ -10,19 +11,14 @@ const deleteUserService = async (id) => {
       return { error: 'INVALID_USER_ID' };
     }
 
-    let deleted;
-    try {
-      deleted = await prisma.user.delete({ where: { id: parsedId } });
-    } catch {
-      deleted = null;
-    }
-
-    if (!deleted) {
+    const existing = await prisma.user.findUnique({ where: { id: parsedId } });
+    if (!existing) {
       logger.warn(`[USER][DELETE] User not found [id=${parsedId}]`);
       return null;
     }
 
-    logger.info(`[USER][DELETE] User deleted [id=${parsedId}]`);
+    const deleted = await prisma.user.delete({ where: { id: parsedId } });
+    logger.info(`[USER][DELETE] User deleted [id=${deleted.id}]`);
     return deleted;
   } catch (err) {
     logger.error(`[USER][DELETE] Service error: ${err.message}`);

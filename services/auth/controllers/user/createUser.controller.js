@@ -1,37 +1,32 @@
-const { success, error } = require('../../utils/response');
+// controllers/user/createUser.controller.js
 const { logger } = require('../../utils');
 const { createUserService } = require('../../services/user');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
 const createUserController = async (req, res) => {
   try {
     logger.debug('[USER][CREATE] Creating new user');
 
-    const { email, password, firstName, lastName } = req.body;
-    if (!email || !password || !firstName || !lastName) {
-      logger.warn('[USER][CREATE] Missing required fields');
-      return res.status(400).json(error(['MISSING_REQUIRED_FIELDS']));
+    const { email, password, firstName, lastName, birthDate } = req.body;
+    if (!email || !password || !firstName || !lastName || !birthDate) {
+      return sendBusinessError(res, 'MISSING_REQUIRED_FIELDS');
     }
 
     const user = await createUserService(req.body);
 
     if (user?.error) {
-      logger.warn(`[USER][CREATE] Business error: ${user.error}`);
-      return res.status(400).json(error([user.error]));
+      return sendBusinessError(res, user.error);
     }
 
     if (!user) {
-      logger.warn(`[USER][CREATE] Email already used: ${email}`);
-      return res.status(409).json(error(['EMAIL_ALREADY_USED']));
+      return sendBusinessError(res, 'EMAIL_ALREADY_USED');
     }
 
-    logger.info(`[USER][CREATE] User created successfully: ${user.email}`);
-    return res
-      .status(201)
-      .json(success(user, { message: 'User created successfully' }));
-
+    return sendBusinessSuccess(res, 'CREATE_USER', user, { message: 'User created successfully' });
   } catch (err) {
     logger.error(`[USER][CREATE] Internal error: ${err.message}`);
-    return res.status(500).json(error(['Internal server error.']));
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
   }
 };
 

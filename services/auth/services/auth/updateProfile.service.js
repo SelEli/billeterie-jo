@@ -5,17 +5,16 @@ async function updateProfileService(userId, payload) {
   try {
     logger.debug(`[AUTH][UPDATE_PROFILE] Updating profile for userId=${userId}`);
 
-    // Validation de l'ID
     const parsedId = Number(userId);
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
       logger.warn(`[AUTH][UPDATE_PROFILE] Invalid user ID: ${userId}`);
-      return { error: 'INVALID_ID' };
+      return { error: 'INVALID_USER_ID' };
     }
 
     const user = await prisma.user.findUnique({ where: { id: parsedId } });
     if (!user) {
       logger.warn(`[AUTH][UPDATE_PROFILE] User not found [id=${parsedId}]`);
-      return null; // cas métier: profil inexistant
+      return null;
     }
 
     const updated = await prisma.user.update({
@@ -27,7 +26,7 @@ async function updateProfileService(userId, payload) {
     return updated;
   } catch (err) {
     logger.error(`[AUTH][UPDATE_PROFILE] Service error: ${err.message}`);
-    throw err; // incident technique → contrôleur renverra 500
+    throw err;
   }
 }
 
