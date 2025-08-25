@@ -1,62 +1,43 @@
 // services/role/updateRole.service.js
 const { prisma, logger, publishKafkaEvent } = require('../../utils');
 
-async function updateRoleService(roleId, payload) {
+async function updateRoleService(userId, newRole) {
   try {
-    logger.debug(`[ROLE][UPDATE] Updating role id=${roleId}`);
+    logger.debug(`[ROLE][UPDATE] Updating role for user id=${userId}`);
 
-    const parsedId = Number(roleId);
+    const parsedId = Number(userId);
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
-      logger.warn(`[ROLE][UPDATE] Invalid role ID: ${roleId}`);
       return { error: 'INVALID_ROLE_ID' };
     }
 
-    const roleValue = typeof payload === 'string'
-      ? payload
-      : (Object.prototype.hasOwnProperty.call(payload || {}, 'name')
-          ? payload.name
-          : payload?.role);
-
-    if (roleValue === undefined) {
-      logger.warn(`[ROLE][UPDATE] Role not provided for update [id=${parsedId}]`);
+    if (!newRole) {
       return { error: 'ROLE_REQUIRED' };
     }
 
-    if (typeof roleValue === 'string') {
-      const normalizedRole = roleValue.toUpperCase();
-      const validRoles = ['ADMIN', 'AGENT', 'USER', 'VISITOR'];
-      if (!validRoles.includes(normalizedRole)) {
-        logger.warn(`[ROLE][UPDATE] Invalid role name attempted: ${roleValue}`);
-        return { error: 'INVALID_ROLE' };
-      }
-      // on normalise pour l'enregistrement
-      payload = normalizedRole;
+    const validRoles = ['ADMIN', 'AGENT', 'USER', 'VISITOR', 'EMPLOYEE'];
+    if (typeof newRole === 'string' && !validRoles.includes(newRole.toUpperCase())) {
+      return { error: 'INVALID_ROLE' };
     }
 
-    const existing = await prisma.role.findUnique({ where: { id: parsedId } });
-    if (!existing) {
-      logger.warn(`[ROLE][UPDATE] Role not found [id=${parsedId}]`);
+    const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
+    if (!existingUser) {
       return null;
     }
 
     let updated;
     try {
-      updated = await prisma.role.update({
+      updated = await prisma.user.update({
         where: { id: parsedId },
-        data: { name: payload }
+        data: { role: newRole.toUpperCase() }
       });
     } catch (err) {
-      if (err.code === 'P2002') {
-        logger.warn(`[ROLE][UPDATE] Unique constraint violation for role: ${payload}`);
-        return { error: 'ROLE_EXISTS' };
-      }
+      if (err.message?.includes('Invalid enum value')) return { error: 'INVALID_ROLE' };
+      if (err.message?.includes('Required')) return { error: 'ROLE_REQUIRED' };
       throw err;
     }
 
-    logger.info(`[ROLE][UPDATE] Role updated [id=${parsedId}] → ${payload}`);
-
     try {
-      await publishKafkaEvent('role.updated', { roleId: parsedId, newName: payload });
+      await publishKafkaEvent('role.updated', { userId: parsedId, newRole: updated.role });
     } catch (err) {
       logger.warn(`[ROLE][UPDATE] Kafka publish skipped: ${err.message}`);
     }

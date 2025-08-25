@@ -1,25 +1,21 @@
-// createRole.schema.js
+// schemas/role/createRole.schema.js
 const { z } = require('zod');
 
-const createRoleSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, { message: 'Role name must be at least 2 characters long.' })
-    .max(50, { message: 'Role name must be at most 50 characters long.' })
-    .regex(/^[A-Z0-9_]+$/, {
-      message: 'Role name must be uppercase letters, numbers or underscores only.'
-    }),
+const validRoles = ['VISITOR', 'USER', 'ADMIN', 'EMPLOYEE', 'AGENT'];
 
-  permissions: z
-    .array(
-      z
-        .string()
-        .trim()
-        .min(1, { message: 'Permission name cannot be empty.' })
-    )
-    .optional()
-    .default([])
+const createRoleSchema = z.object({
+  userId: z.number().int().positive({ message: 'USER_ID_REQUIRED' }),
+  role: z.enum(validRoles, {
+    errorMap: (issue) => {
+      if (issue.code === 'invalid_type' && issue.received === 'undefined') {
+        return { message: 'ROLE_REQUIRED' };
+      }
+      if (issue.code === 'invalid_enum_value') {
+        return { message: 'INVALID_ROLE' };
+      }
+      return { message: 'INVALID_ROLE' };
+    }
+  })
 }).strict();
 
 module.exports = createRoleSchema;

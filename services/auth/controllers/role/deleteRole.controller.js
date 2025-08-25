@@ -7,26 +7,26 @@ const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const deleteRoleController = async (req, res) => {
   try {
     const parsedId = Number(req.params.id);
-    logger.debug(`[ROLE][DELETE] Request to delete role [id=${parsedId}]`);
+    logger.debug(`[ROLE][DELETE] Resetting role for user [id=${parsedId}]`);
 
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
-      return sendBusinessError(res, 'INVALID_ROLE_ID');
+      return sendBusinessError(res, 'INVALID_ROLE_ID', 400);
     }
 
-    const deleted = await deleteRoleService(parsedId);
+    const result = await deleteRoleService(parsedId);
 
-    if (deleted?.error) {
-      return sendBusinessError(res, deleted.error);
+    if (result?.error) {
+      return sendBusinessError(res, result.error, 400);
     }
 
-    if (!deleted) {
-      return sendBusinessError(res, 'ROLE_NOT_FOUND');
+    if (!result) {
+      return sendBusinessError(res, 'USER_NOT_FOUND', 404);
     }
 
-    return sendBusinessSuccess(res, 'DELETE');
+    return sendBusinessSuccess(res, 'DELETE_ROLE', result, { message: 'Role reset to VISITOR' }, 200);
   } catch (err) {
-    logger.error(`[ROLE][DELETE] Unexpected error: ${err.message}`);
-    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
+    logger.error(`[ROLE][DELETE] Unexpected error: ${err.message}`, { stack: err.stack });
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR', 500);
   }
 };
 

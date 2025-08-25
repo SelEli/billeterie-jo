@@ -1,27 +1,20 @@
 // services/role/listRoles.service.js
 const { prisma, logger } = require('../../utils');
 
-async function listRolesService(filters = {}) {
+async function listRolesService() {
   try {
-    logger.debug('[ROLE][LIST] Fetching roles list');
+    logger.debug('[ROLE][LIST] Listing distinct roles from users');
 
-    const where = {};
-    if (filters.name) {
-      where.name = { contains: filters.name, mode: 'insensitive' };
-    }
-
-    const roles = await prisma.role.findMany({
-      where,
-      orderBy: { name: 'asc' }
+    const roles = await prisma.user.findMany({
+      distinct: ['role'],
+      select: { role: true }
     });
 
     if (!roles || roles.length === 0) {
-      logger.warn('[ROLE][LIST] No roles found');
       return { error: 'NO_ROLES_FOUND' };
     }
 
-    logger.info(`[ROLE][LIST] Retrieved ${roles.length} role(s)`);
-    return roles;
+    return roles.map(r => r.role);
   } catch (err) {
     logger.error(`[ROLE][LIST] Service error: ${err.message}`);
     throw err;

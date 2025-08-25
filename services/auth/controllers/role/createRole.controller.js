@@ -6,27 +6,38 @@ const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
 const createRoleController = async (req, res) => {
   try {
-    const { name, description } = req.body;
-    logger.debug(`[ROLE][CREATE] Creating new role: ${name}`);
+    const { userId, role } = req.body;
+    logger.debug(`[ROLE][CREATE] Assigning role ${role} to user ${userId}`);
 
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return sendBusinessError(res, 'ROLE_NAME_REQUIRED');
+    if (!userId || !Number.isInteger(Number(userId)) || Number(userId) <= 0) {
+      return sendBusinessError(res, 'INVALID_ROLE_ID', 400);
+    }
+    if (!role || typeof role !== 'string' || !role.trim()) {
+      return sendBusinessError(res, 'ROLE_REQUIRED', 400);
     }
 
-    const role = await createRoleService({ name: name.trim(), description });
+    const result = await createRoleService({ userId, role });
 
-    if (role?.error) {
-      return sendBusinessError(res, role.error);
+    if (result?.error) {
+      const statusMap = {
+        USER_NOT_FOUND: 404,
+        INVALID_ROLE_ID: 400,
+        ROLE_REQUIRED: 400,
+        INVALID_ROLE: 400
+      };
+      return sendBusinessError(res, result.error, statusMap[result.error] || 400);
     }
 
-    if (role === null) {
-      return sendBusinessError(res, 'ROLE_EXISTS');
-    }
-
-    return sendBusinessSuccess(res, 'CREATE_ROLE', role, { message: 'Role created successfully' });
+    return sendBusinessSuccess(
+      res,
+      'CREATE_ROLE',
+      result,
+      { message: 'Role assigned successfully' },
+      201
+    );
   } catch (err) {
-    logger.error(`[ROLE][CREATE] Unexpected error: ${err.message}`);
-    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
+    logger.error(`[ROLE][CREATE] Unexpected error: ${err.message}`, { stack: err.stack });
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR', 500);
   }
 };
 

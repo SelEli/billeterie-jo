@@ -45,9 +45,13 @@ app.use((req, res) => {
   res.status(404).json(error(['Route not found.']));
 });
 
-// 🛑 Gestion globale des erreurs
+// 🛑 Gestion globale des erreurs (debug enrichi)
 app.use((err, req, res, next) => {
-  logger.error(`[APP][ERROR] ${err.message}`, { stack: err.stack });
+  logger.error('[APP][ERROR] Unhandled error object:', err);
+  logger.error('[APP][ERROR] Stack trace:', err && err.stack);
+  if (req.body && Object.keys(req.body).length) {
+    logger.error('[APP][ERROR] Request body at error time:', req.body);
+  }
   const code = err.statusCode || 500;
   res.status(code).json(
     error([err.message || 'Internal server error.'])

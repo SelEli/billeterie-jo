@@ -1,23 +1,25 @@
 // services/role/getRole.service.js
 const { prisma, logger } = require('../../utils');
 
-async function getRoleService(roleId) {
+async function getRoleService(userId) {
   try {
-    logger.debug(`[ROLE][GET] Fetching role id=${roleId}`);
+    logger.debug(`[ROLE][GET] Fetching role for user id=${userId}`);
 
-    const parsedId = Number(roleId);
+    const parsedId = Number(userId);
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
-      logger.warn(`[ROLE][GET] Invalid role ID: ${roleId}`);
       return { error: 'INVALID_ROLE_ID' };
     }
 
-    const role = await prisma.role.findUnique({ where: { id: parsedId } });
-    if (!role) {
-      logger.warn(`[ROLE][GET] Role not found [id=${parsedId}]`);
+    const user = await prisma.user.findUnique({
+      where: { id: parsedId },
+      select: { role: true }
+    });
+
+    if (!user) {
       return null;
     }
 
-    return role;
+    return { id: parsedId, role: user.role };
   } catch (err) {
     logger.error(`[ROLE][GET] Service error: ${err.message}`);
     throw err;

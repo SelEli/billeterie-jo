@@ -14,12 +14,15 @@ const updateUserService = async (id, data) => {
       return { error: 'MISSING_REQUIRED_FIELDS' };
     }
 
-    if (data.email && (typeof data.email !== 'string' || !data.email.includes('@'))) {
-      logger.warn(`[USER][UPDATE] Invalid email format for update [id=${userId}]`);
-      return { error: 'EMAIL_REQUIRED' };
+    if (data.email) {
+      if (typeof data.email !== 'string' || !data.email.includes('@')) {
+        logger.warn(`[USER][UPDATE] Invalid email format for update [id=${userId}]`);
+        return { error: 'EMAIL_REQUIRED' };
+      }
+      data.email = data.email.trim().toLowerCase();
     }
 
-    logger.debug(`[USER][UPDATE] Updating user [id=${userId}] with data: ${JSON.stringify(data)}`);
+    logger.debug(`[USER][UPDATE] Updating user [id=${userId}]`);
 
     const existing = await prisma.user.findUnique({ where: { id: userId } });
     if (!existing) {
@@ -31,7 +34,21 @@ const updateUserService = async (id, data) => {
     try {
       updated = await prisma.user.update({
         where: { id: userId },
-        data
+        data,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          birthDate: true,
+          role: true,
+          invisibleKey: true,
+          lastLogin: true,
+          isBlacklisted: true,
+          blacklistReason: true,
+          createdAt: true,
+          updatedAt: true
+        }
       });
     } catch (err) {
       if (err.code === 'P2002') {

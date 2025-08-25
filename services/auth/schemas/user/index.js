@@ -1,10 +1,9 @@
 // schemas/user/index.js
 const createUserSchema    = require('./createUserSchema');
-const registerUserSchema  = require('./registerUserSchema');
 const updateProfileSchema = require('./updateProfileSchema');
 const updateUserSchema    = require('./updateUserSchema');
 const listUsersSchema     = require('./listUsersSchema');
-const readUserSchema      = require('./readUsersSchema');
+const readUserSchema      = require('./readUserSchema');
 const deleteUserSchema    = require('./deleteUserSchema');
 
 const { logger } = require('../../utils');
@@ -12,7 +11,6 @@ const { logger } = require('../../utils');
 // Vérification stricte au chargement
 [
   ['createUserSchema', createUserSchema],
-  ['registerUserSchema', registerUserSchema],
   ['updateProfileSchema', updateProfileSchema],
   ['updateUserSchema', updateUserSchema],
   ['listUsersSchema', listUsersSchema],
@@ -28,7 +26,6 @@ const { logger } = require('../../utils');
 
 module.exports = {
   createUserSchema,
-  registerUserSchema,
   updateProfileSchema,
   updateUserSchema,
   listUsersSchema,

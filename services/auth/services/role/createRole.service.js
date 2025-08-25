@@ -1,51 +1,50 @@
 // services/role/createRole.service.js
 const { prisma, logger, publishKafkaEvent } = require('../../utils');
 
-async function createRoleService(data) {
+async function createRoleService({ userId, role }) {
   try {
-    const { name, permissions } = data || {};
-    logger.debug(`[ROLE][CREATE] Requested creation of role: ${name}`);
+    logger.debug(`[ROLE][CREATE] Assigning role ${role} to user ${userId}`);
 
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      logger.warn('[ROLE][CREATE] Missing or invalid role name');
-      return { error: 'ROLE_NAME_REQUIRED' };
+    const parsedId = Number(userId);
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      return { error: 'INVALID_ROLE_ID' };
     }
 
-    if (permissions && !Array.isArray(permissions)) {
-      logger.warn('[ROLE][CREATE] Invalid permissions format');
-      return { error: 'INVALID_PERMISSIONS' }; // à ajouter dans ERROR_STATUS si utilisé
+    if (!role) {
+      return { error: 'ROLE_REQUIRED' };
     }
 
-    const existing = await prisma.role.findUnique({ where: { name: name.trim() } });
-    if (existing) {
-      logger.warn(`[ROLE][CREATE] Role already exists: ${name}`);
-      return { error: 'ROLE_EXISTS' };
+    const validRoles = ['ADMIN', 'AGENT', 'USER', 'VISITOR', 'EMPLOYEE'];
+    if (typeof role === 'string' && !validRoles.includes(role.toUpperCase())) {
+      return { error: 'INVALID_ROLE' };
     }
 
-    let role;
+    const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
+    if (!existingUser) {
+      return { error: 'USER_NOT_FOUND' };
+    }
+
+    let updated;
     try {
-      role = await prisma.role.create({
-        data: { name: name.trim(), permissions }
+      updated = await prisma.user.update({
+        where: { id: parsedId },
+        data: { role: role.toUpperCase() }
       });
     } catch (err) {
-      if (err.code === 'P2002') {
-        logger.warn(`[ROLE][CREATE] Unique constraint violation for role: ${name}`);
-        return { error: 'ROLE_EXISTS' };
-      }
+      if (err.message?.includes('Invalid enum value')) return { error: 'INVALID_ROLE' };
+      if (err.message?.includes('Required')) return { error: 'ROLE_REQUIRED' };
       throw err;
     }
 
-    logger.info(`[ROLE][CREATE] Role created: ${role.name} (id=${role.id})`);
-
     try {
-      await publishKafkaEvent('role.created', { roleId: role.id, name: role.name });
+      await publishKafkaEvent('role.assigned', { userId: parsedId, role: updated.role });
     } catch (err) {
       logger.warn(`[ROLE][CREATE] Kafka publish skipped: ${err.message}`);
     }
 
-    return role;
+    return updated;
   } catch (err) {
-    logger.error(`[ROLE][CREATE] Service error: ${err.message}`);
+    logger.error(`[ROLE][CREATE] Service error: ${err.message}`, { stack: err.stack });
     throw err;
   }
 }

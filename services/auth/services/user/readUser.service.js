@@ -11,7 +11,23 @@ const readUserService = async (id) => {
 
     logger.debug(`[USER][READ] Fetching user [id=${userId}]`);
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        birthDate: true,
+        role: true,
+        invisibleKey: true,
+        lastLogin: true,
+        isBlacklisted: true,
+        blacklistReason: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
 
     if (!user) {
       logger.warn(`[USER][READ] User not found [id=${userId}]`);

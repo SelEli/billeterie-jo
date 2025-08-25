@@ -3,14 +3,8 @@ const express = require('express');
 const router = express.Router();
 
 const { authenticate, validateRequest } = require('../middlewares');
-const {
-  logger,
-  requestId,
-  formatLogContext,
-  createAuditTrail
-} = require('../utils');
+const { logger, requestId, formatLogContext } = require('../utils');
 
-// ✅ Tous les schémas User depuis l'index
 const {
   createUserSchema,
   readUserSchema,
@@ -19,7 +13,6 @@ const {
   deleteUserSchema
 } = require('../schemas/user');
 
-// ✅ Tous les contrôleurs User depuis l'index
 const {
   createUserController,
   readUserController,
@@ -28,10 +21,9 @@ const {
   deleteUserController
 } = require('../controllers/user');
 
-// ✅ Contrôleur rôle (pour mise à jour de rôle utilisateur)
 const { updateRoleController } = require('../controllers/role');
 
-// Vérification stricte
+// Vérification stricte des exports
 [
   ['createUserController', createUserController],
   ['readUserController', readUserController],
@@ -61,7 +53,6 @@ router.post(
   validateRequest(createUserSchema, 'body'),
   (req, res, next) => {
     logger.info('[USER][POST /] → createUserController');
-    createAuditTrail(req, 'user.create');
     next();
   },
   createUserController
@@ -98,7 +89,6 @@ router.put(
   validateRequest(updateUserSchema, 'body'),
   (req, res, next) => {
     logger.info('[USER][PUT /:id] → updateUserController');
-    createAuditTrail(req, 'user.update');
     next();
   },
   updateUserController
@@ -111,22 +101,22 @@ router.delete(
   validateRequest(deleteUserSchema, 'params'),
   (req, res, next) => {
     logger.info('[USER][DELETE /:id] → deleteUserController');
-    createAuditTrail(req, 'user.delete');
     next();
   },
   deleteUserController
 );
 
-// UPDATE ROLE
+// UPDATE ROLE — format officiel
 router.put(
   '/:id/role',
   authenticate,
   (req, res, next) => {
     logger.info('[USER][PUT /:id/role] → updateRoleController');
-    createAuditTrail(req, 'user.role.update');
     next();
   },
   updateRoleController
 );
+
+
 
 module.exports = router;

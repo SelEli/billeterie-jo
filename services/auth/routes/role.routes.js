@@ -1,19 +1,14 @@
+// routes/role.routes.js
 const express = require('express');
 const router = express.Router();
 
 const { authenticate, validateRequest } = require('../middlewares');
-const {
-  logger,
-  requestId,
-  formatLogContext,
-  createAuditTrail
-} = require('../utils');
+const { logger, requestId, formatLogContext } = require('../utils');
 
-// ✅ Import complet depuis l'index schemas/role
 const {
   createRoleSchema,
   getRoleSchema,
-  listRolesSchema,   // ← pluriel
+  listRolesSchema,
   updateRoleSchema,
   deleteRoleSchema
 } = require('../schemas/role');
@@ -21,12 +16,12 @@ const {
 const {
   createRoleController,
   getRoleController,
-  listRolesController, // ← pluriel
+  listRolesController,
   updateRoleController,
   deleteRoleController
 } = require('../controllers/role');
 
-// Vérification stricte des contrôleurs
+// Vérification stricte des exports
 [
   ['createRoleController', createRoleController],
   ['getRoleController', getRoleController],
@@ -55,7 +50,6 @@ router.post(
   validateRequest(createRoleSchema, 'body'),
   (req, res, next) => {
     logger.info('[ROLE][POST /] → createRoleController');
-    createAuditTrail(req, 'role.create');
     next();
   },
   createRoleController
@@ -65,12 +59,12 @@ router.post(
 router.get(
   '/',
   authenticate,
-  validateRequest(listRolesSchema, 'query'), // ← pluriel
+  validateRequest(listRolesSchema, 'query'),
   (req, res, next) => {
-    logger.info('[ROLE][GET /] → listRolesController'); // ← pluriel
+    logger.info('[ROLE][GET /] → listRolesController');
     next();
   },
-  listRolesController // ← pluriel
+  listRolesController
 );
 
 // GET ONE
@@ -85,14 +79,13 @@ router.get(
   getRoleController
 );
 
-// UPDATE
+// UPDATE — format attendu par les tests d’intégration
 router.put(
-  '/:id/role',
+  '/:id',
   authenticate,
   validateRequest(updateRoleSchema, 'body'),
   (req, res, next) => {
-    logger.info('[ROLE][PUT /:id/role] → updateRoleController');
-    createAuditTrail(req, 'user.role.update');
+    logger.info('[ROLE][PUT /:id] → updateRoleController');
     next();
   },
   updateRoleController
@@ -105,7 +98,6 @@ router.delete(
   validateRequest(deleteRoleSchema, 'params'),
   (req, res, next) => {
     logger.info('[ROLE][DELETE /:id] → deleteRoleController');
-    createAuditTrail(req, 'role.delete');
     next();
   },
   deleteRoleController

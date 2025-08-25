@@ -1,9 +1,9 @@
 // utils/index.js
 
-// 🔐 Gestion des clés
-const clefs = require('./clefs');
+// 🔐 Keys management (ex-clefs.js)
+const keys = require('./keys');
 
-// 🔑 JWT
+// 🔑 JWT utilities
 const jwtUtils = require('./jwt');
 
 // 📡 Kafka
@@ -21,12 +21,16 @@ const { initRedis, getRedis } = require('./redisClient');
 // 🆔 Request ID middleware
 const requestId = require('./requestId');
 
-// 📦 Réponses uniformes (TypeScript → import via require)
+// 📦 Uniform JSON responses
 const { success, error } = require('./response');
 
 module.exports = {
-  // Clés & JWT
-  clefs,
+  // Keys
+  generateInvisibleKey: keys.generateInvisibleKey,
+  combineKeys: keys.combineKeys,
+  verifyKeys: keys.verifyKeys,
+
+  // JWT
   ...jwtUtils,
 
   // Kafka
@@ -36,7 +40,7 @@ module.exports = {
 
   // Logger
   logger,
-  formatLogContext: logger.formatLogContext, // <-- ajout ici
+  formatLogContext: logger.formatLogContext,
 
   // Prisma
   prisma,
@@ -48,7 +52,7 @@ module.exports = {
   // Request ID
   requestId,
 
-  // Réponses JSON
+  // JSON responses
   success,
   error
 };

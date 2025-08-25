@@ -1,7 +1,8 @@
+// schemas/role/getRole.schema.js
 const { z } = require('zod');
 
 const getRoleSchema = z.object({
-  id: z.string().regex(/^\d+$/, { message: 'ID must be a numeric string' })
+  id: z.coerce.number().int().positive({ message: 'INVALID_ROLE_ID' })
 }).strict();
 
 module.exports = getRoleSchema;

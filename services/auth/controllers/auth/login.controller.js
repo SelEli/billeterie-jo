@@ -27,7 +27,7 @@ const loginController = async (req, res) => {
     }
 
     // Succès
-    return sendBusinessSuccess(res, 'CREATE_AUTH', result, { message: 'Login successful' });
+    return sendBusinessSuccess(res, 'LOGIN', result, { message: 'Login successful' });
   } catch (err) {
     logger.error(`[AUTH][LOGIN] Unexpected error: ${err.message}`);
     return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');

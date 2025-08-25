@@ -1,32 +1,37 @@
 // services/role/deleteRole.service.js
 const { prisma, logger, publishKafkaEvent } = require('../../utils');
 
-async function deleteRoleService(roleId) {
+async function deleteRoleService(userId) {
   try {
-    logger.debug(`[ROLE][DELETE] Request to delete role id=${roleId}`);
+    logger.debug(`[ROLE][DELETE] Resetting role for user id=${userId}`);
 
-    const parsedId = Number(roleId);
+    const parsedId = Number(userId);
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
-      logger.warn(`[ROLE][DELETE] Invalid role ID: ${roleId}`);
       return { error: 'INVALID_ROLE_ID' };
     }
 
-    const existing = await prisma.role.findUnique({ where: { id: parsedId } });
-    if (!existing) {
-      logger.warn(`[ROLE][DELETE] Role not found [id=${parsedId}]`);
+    const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
+    if (!existingUser) {
       return null;
     }
 
-    const deleted = await prisma.role.delete({ where: { id: parsedId } });
-    logger.info(`[ROLE][DELETE] Role deleted: ${deleted.name} (id=${parsedId})`);
+    let updated;
+    try {
+      updated = await prisma.user.update({
+        where: { id: parsedId },
+        data: { role: 'VISITOR' }
+      });
+    } catch (err) {
+      throw err;
+    }
 
     try {
-      await publishKafkaEvent('role.deleted', { roleId: parsedId, name: deleted.name });
+      await publishKafkaEvent('role.deleted', { userId: parsedId, oldRole: existingUser.role });
     } catch (err) {
       logger.warn(`[ROLE][DELETE] Kafka publish skipped: ${err.message}`);
     }
 
-    return deleted;
+    return updated;
   } catch (err) {
     logger.error(`[ROLE][DELETE] Service error: ${err.message}`);
     throw err;
