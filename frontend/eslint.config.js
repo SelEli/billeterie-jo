@@ -19,5 +19,17 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Désactive la règle JS de base
+      'no-unused-vars': 'off',
+      // Active la règle TypeScript stricte
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_', // autorise paramètres préfixés par _
+          varsIgnorePattern: '^_', // autorise variables préfixées par _
+        },
+      ],
+    },
   },
 ])

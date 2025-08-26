@@ -1,16 +1,21 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { HomePage } from '../modules/home/HomePage';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginPage } from '../modules/auth/pages/LoginPage';
-import { TicketRoutes } from '../modules/ticketing/TicketRoutes';
+import { RegisterPage } from '../modules/auth/pages/RegisterPage';
+import { useAuthStore } from '../modules/auth/store/useAuthStore';
 
-export function AppRouter(): JSX.Element {
+export default function AppRouter() {
+  const { _userId } = useAuthStore();
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/tickets/*" element={<TicketRoutes />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      {/* Auth */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* Ici tu peux ajouter d'autres routes protégées plus tard */}
+
+      {/* Redirection par défaut */}
+      <Route path="*" element={<Navigate to={_userId ? '/' : '/login'} replace />} />
+    </Routes>
   );
 }

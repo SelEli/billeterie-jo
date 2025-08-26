@@ -1,4 +1,4 @@
-import { VerificationResult } from '../types';
+import type { VerificationResult } from '../types';
 
 export const verifyTicket = (ticketId: string): Promise<VerificationResult> => {
   const isPaid = Math.random() > 0.3;

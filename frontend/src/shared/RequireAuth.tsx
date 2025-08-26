@@ -6,10 +6,10 @@ interface Props {
 }
 
 export function RequireAuth({ children }: Props): JSX.Element {
-  const { userId } = useAuthStore();
+  const { _userId } = useAuthStore();
   const location = useLocation();
 
-  if (!userId) {
+  if (!_userId) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

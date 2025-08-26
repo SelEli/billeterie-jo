@@ -1,6 +1,7 @@
-export interface Ticket {
-  id: string;
+export interface _Ticket {
+  id: number;
   title: string;
-  ownerId: string;
   isPaid: boolean;
+  date?: string;
+  price?: number;
 }

@@ -8,13 +8,14 @@ ENV NODE_ENV=development \
 
 # Installer dépendances système pour bcrypt, Prisma, etc.
 RUN apt-get update && \
-    apt-get install -y openssl libssl-dev ca-certificates python3 make g++ && \
+    apt-get install -y --no-install-recommends \
+      openssl libssl-dev ca-certificates python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
 
 # Dossier de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Copier uniquement les fichiers de dépendances pour profiter du cache Docker
 COPY package*.json ./
 
 # Installation tolérante (pas de blocage sur lockfile)
@@ -27,7 +28,7 @@ COPY . .
 RUN npx prisma generate
 
 # Exposer le port
-EXPOSE 3000
+EXPOSE 3001
 
 # Commande par défaut
 CMD ["npm", "run", "dev"]

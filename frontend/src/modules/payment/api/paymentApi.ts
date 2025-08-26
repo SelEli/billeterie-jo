@@ -1,6 +1,6 @@
-import { Payment } from '../types';
+import type { Payment } from '../types';
 
-export const processPayment = (payment: Payment): Promise<'paid' | 'failed'> => {
+export const processPayment = (_payment: Payment): Promise<'paid' | 'failed'> => {
   // Simule un paiement avec succès aléatoire
   const success = Math.random() > 0.2;
   return new Promise((resolve) => {

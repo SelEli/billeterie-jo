@@ -1,22 +1,22 @@
 import { api } from '../../../shared/apiClient';
-import { Ticket } from '../types';
+import type { _Ticket } from '../types';
 
-export const getTickets = async (): Promise<Ticket[]> => {
+export const getTickets = async (): Promise<_Ticket[]> => {
   const res = await api.get('/ticketing/ticket');
   return res.data;
 };
 
-export const getTicket = async (id: string): Promise<Ticket> => {
+export const _getTicket = async (id: string): Promise<_Ticket> => {
   const res = await api.get(`/ticketing/ticket/${id}`);
   return res.data;
 };
 
-export const createTicket = async (data: Partial<Ticket>) => {
+export const createTicket = async (data: Partial<_Ticket>) => {
   const res = await api.post('/ticketing/ticket', data);
   return res.data;
 };
 
-export const updateTicket = async (id: string, data: Partial<Ticket>) => {
+export const updateTicket = async (id: string, data: Partial<_Ticket>) => {
   const res = await api.put(`/ticketing/ticket/${id}`, data);
   return res.data;
 };

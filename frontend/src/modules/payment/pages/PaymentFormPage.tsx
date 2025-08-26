@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { processPayment } from '../api/paymentApi';
-import { Ticket } from '../../ticketing/types';
-import { updateTicket, getTicket } from '../../ticketing/api/ticketApi';
+import type { _Ticket } from '../../ticketing/types';
+import { updateTicket, _getTicket } from '../../ticketing/api/ticketApi';
 
 export function PaymentForm(): JSX.Element {
   const { id } = useParams();
