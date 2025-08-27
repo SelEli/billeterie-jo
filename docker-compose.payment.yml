@@ -20,3 +20,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    volumes:
+      - /app/services/payment/node_modules   # ← protège les deps installées au build
+
+volumes:
+  payment_node_modules: {}

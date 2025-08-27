@@ -13,3 +13,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    volumes:
+      - /app/frontend/node_modules   # ← protège les deps installées au build
+
+volumes:
+  frontend_node_modules: {}

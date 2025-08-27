@@ -1,4 +1,3 @@
-
 services:
   kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -49,8 +48,6 @@ services:
       POSTGRES_DB: auth
     volumes:
       - auth-db-data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
     networks: [jo-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
@@ -67,8 +64,6 @@ services:
       POSTGRES_DB: ticketing
     volumes:
       - ticketing-db-data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
     networks: [jo-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
@@ -85,8 +80,6 @@ services:
       POSTGRES_DB: payment
     volumes:
       - payment-db-data:/var/lib/postgresql/data
-    ports:
-      - "5435:5432"
     networks: [jo-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
@@ -103,8 +96,6 @@ services:
       POSTGRES_DB: verification
     volumes:
       - verification-db-data:/var/lib/postgresql/data
-    ports:
-      - "5436:5432"
     networks: [jo-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
@@ -113,19 +104,13 @@ services:
       retries: 10
       start_period: 10s
 
-  # Gateway en dev → dépend seulement de Kafka & Redis
   gateway:
     build:
       context: .
       dockerfile: services/gateway/Dockerfile
-    env_file: ./services/gateway/.env.development
+    env_file: ./services/gateway/.env.production
     ports:
       - "3000:3000"
-    volumes:
-      - ./services/gateway:/app/services/gateway
-      - gateway_node_modules:/app/services/gateway/node_modules
-      - ./shared:/app/shared
-    command: npm run dev
     depends_on:
       kafka:
         condition: service_healthy
@@ -139,22 +124,104 @@ services:
       retries: 10
       start_period: 5s
 
-  # Frontend en dev → aucune dépendance
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    env_file: ./frontend/.env.development
+    env_file: ./frontend/.env.production
     ports:
-      - "8080:5173"
-    volumes:
-      - ./frontend:/app/frontend
-      - frontend_node_modules:/app/frontend/node_modules
-      - ./shared:/app/shared
-    command: npm run dev
+      - "8080:80"
     networks: [jo-net]
     healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:5173 || exit 1"]
+      test: ["CMD-SHELL", "curl -sSf http://localhost:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    env_file: ./services/auth/.env.production
+    ports:
+      - "3001:3001"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  ticketing:
+    build:
+      context: .
+      dockerfile: services/ticketing/Dockerfile
+    env_file: ./services/ticketing/.env.production
+    ports:
+      - "3002:3002"
+    depends_on:
+      ticketing-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  payment:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    env_file: ./services/payment/.env.production
+    ports:
+      - "3003:3003"
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  verification:
+    build:
+      context: .
+      dockerfile: services/verification/Dockerfile
+    env_file: ./services/verification/.env.production
+    ports:
+      - "3004:3004"
+    depends_on:
+      verification-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3004/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -165,8 +232,6 @@ volumes:
   ticketing-db-data:
   payment-db-data:
   verification-db-data:
-  gateway_node_modules:
-  frontend_node_modules:
 
 networks:
   jo-net:

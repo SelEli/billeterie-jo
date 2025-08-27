@@ -3,8 +3,7 @@
 FROM node:18-slim
 
 # Variables d'environnement
-ENV NODE_ENV=development \
-    TZ=Europe/Paris \
+ENV TZ=Europe/Paris \
     PATH=/app/node_modules/.bin:$PATH
 
 # Installer dépendances système

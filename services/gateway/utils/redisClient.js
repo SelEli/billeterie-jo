@@ -1,7 +1,18 @@
-const redis = require('redis');
-const client = redis.createClient({ url: process.env.REDIS_URL || 'redis://redis:6379' });
+// utils/redisClient.js
+const Redis = require('ioredis');
+const logger = require('./logger');
 
-client.on('error', err => console.error('Redis error:', err));
-client.connect();
+let client;
 
-module.exports = client;
+function initRedis() {
+  client = new Redis(process.env.REDIS_URL);
+  client.on('connect', () => logger.info(`[redis] Connecté à ${process.env.REDIS_URL}`));
+  client.on('error', (err) => logger.error(`[redis] Erreur: ${err.message}`));
+}
+
+function getRedis() {
+  if (!client) throw new Error('Redis not initialized');
+  return client;
+}
+
+module.exports = { initRedis, getRedis };

@@ -3,10 +3,8 @@ services:
     image: confluentinc/cp-kafka:7.4.0
     container_name: kafka
     environment:
-      # KRaft single-node: cluster ID required by Confluent entrypoint
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
-
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_NODE_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
@@ -202,7 +200,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
-
 
   payment:
     build:

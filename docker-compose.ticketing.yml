@@ -20,3 +20,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    volumes:
+      - /app/services/ticketing/node_modules   # ← protège les deps du build
+
+volumes:
+  ticketing_node_modules: {}

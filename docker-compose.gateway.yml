@@ -4,6 +4,9 @@ services:
       context: .
       dockerfile: services/gateway/Dockerfile
     env_file: ./services/gateway/.env.production
+    environment:
+      NODE_ENV: production
+    command: ["npm", "start"]
     ports:
       - "3000:3000"
     depends_on:
@@ -18,3 +21,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    volumes:
+      - /app/services/gateway/node_modules
+
+volumes:
+  gateway_node_modules: {}
