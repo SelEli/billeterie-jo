@@ -1,4 +1,9 @@
 # ───────────────────────────────
+# Node
+node_modules
+**/node_modules
+
+# ───────────────────────────────
 # Logs
 logs
 *.log
@@ -9,30 +14,34 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # ───────────────────────────────
-# Dépendances
-node_modules
-
-# ───────────────────────────────
-# Builds
+# Builds / sorties compilées
 dist
 dist-ssr
-*.local
+build
+.cache
+.tmp
+out
+coverage
 
 # ───────────────────────────────
-# Variables d'environnement (tous services)
+# Env (ne jamais envoyer les secrets dans l'image)
 .env
 .env.*
 */.env
 */.env.*
 
 # ───────────────────────────────
-# Dossiers et fichiers d'éditeur
-.vscode/*
-!.vscode/extensions.json
+# Éditeur / OS
+.vscode
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ───────────────────────────────
+# Divers
+*.local
