@@ -1,0 +1,30 @@
+services:
+  payment:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    env_file: ./services/payment/.env.development         # fichier env dédié au dev
+    ports:
+      - "3003:3003"                                       # accès local
+    volumes:
+      - ./services/payment:/app/services/payment          # monte uniquement le code source du service
+      - payment_node_modules:/app/services/payment/node_modules  # conserve les deps compilées
+      - ./shared:/app/shared                              # si besoin du dossier partagé
+    command: npm run dev                                  # ex: nodemon ou ts-node en watch
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  payment_node_modules:

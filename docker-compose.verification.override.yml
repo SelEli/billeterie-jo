@@ -1,0 +1,30 @@
+services:
+  verification:
+    build:
+      context: .
+      dockerfile: services/verification/Dockerfile
+    env_file: ./services/verification/.env.development             # fichier env pour dev
+    ports:
+      - "3004:3004"                                                 # accès local
+    volumes:
+      - ./services/verification:/app/services/verification         # monte uniquement le code source du service
+      - verification_node_modules:/app/services/verification/node_modules  # conserve les deps compilées
+      - ./shared:/app/shared                                        # si besoin du code partagé
+    command: npm run dev                                            # serveur de dev avec hot-reload
+    depends_on:
+      verification-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  verification_node_modules:

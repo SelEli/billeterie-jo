@@ -11,7 +11,7 @@ docker compose -f docker-compose.infra.yml up -d
 ```bash
 docker compose -f docker-compose.<service>.yml -f docker-compose.<service>.override.yml up --build
 ```
-Remplacer `<service>` par `auth`, `ticketing`, `payment` ou `verification`.
+Remplacer `<service>` par auth, ticketing, payment ou verification.
 
 ### Lancer un service en production (image figée, sans volume)
 ```bash
@@ -36,88 +36,45 @@ Concevoir une plateforme billetterie :
 
 ## 🏗 Architecture technique
 
-| Service      | Rôle métier                                             |
-|--------------|----------------------------------------------------------|
-| `auth/`      | Inscription, connexion, clefs invisibles                |
-| `paiement/`  | Session Stripe, clef achat, Kafka billet-achat          |
-| `ticketing/` | Création des billets, QR code, statuts                  |
-| `verification/` | Scan, validation de billet, contrôles événement     |
-| `gateway/`   | Reverse proxy centralisé                                |
+| Service      | Rôle métier                                      |
+|--------------|-------------------------------------------------|
+| auth/        | Inscription, connexion, clefs invisibles         |
+| paiement/    | Session Stripe, clef achat, Kafka billet-achat  |
+| ticketing/   | Création des billets, QR code, statuts          |
+| verification/| Scan, validation de billet, contrôles événement |
+| gateway/     | Reverse proxy centralisé                        |
 
 Chaque microservice est isolé, Dockerisé, et contient :
 
-- `controllers/` : logique métier par action
-- `routes/` : endpoints REST modulaire
-- `schemas/` : validation Zod par use case
-- `utils/` : modules internes (logger, redis, kafka…)
-- `middlewares/` : auth, validation, etc.
-- `src/index.js` : démarrage Express
+- **controllers/** : logique métier par action
+- **routes/** : endpoints REST modulaires
+- **schemas/** : validation Zod par use case
+- **utils/** : modules internes (logger, redis, kafka…)
+- **middlewares/** : auth, validation, etc.
+- **src/index.js** : démarrage Express
 
 ## 🧰 Stack technique
 
-| Module        | Usage commun                                      |
-|---------------|---------------------------------------------------|
-| `express`     | Serveur HTTP REST                                 |
-| `dotenv`      | Variables d’environnement                         |
-| `winston`     | Logging par service avec `SERVICE_NAME`           |
-| `redis`       | Session, cache, Pub/Sub                           |
-| `jsonwebtoken`| Authentification JWT                              |
-| `crypto`      | HMAC, clefs invisibles                            |
-| `zod`         | Validation stricte des entrées                    |
-| `kafkajs`     | Messaging distribué — billet-achat, etc.          |
-| `stripe`      | Paiement sécurisé                                 |
-| `prisma`      | ORM SQL généré                                    |
-| `uuid`        | Identifiants et tracking                          |
-
-## ⚙ Scripts de génération automatique
-
-Tous les scripts sont regroupés dans `scripts/setup/` :
-
-| Script                     | Fonction technique                                        |
-|----------------------------|-----------------------------------------------------------|
-| `generate-kafka.cjs`       | Injecte `kafkaClient.js`, `kafkaConsumer`, route test Kafka |
-| `generate-redis.cjs`       | Injecte `redisClient.js` + variable `REDIS_URL`           |
-| `generate-logger.cjs`      | Injecte Winston avec nom de service                       |
-| `generate-validateBody.cjs`| Middleware universel Zod                                  |
-| `generate-schemas.cjs`     | Pose les schémas Zod pour chaque service                  |
-| `generate-swagger.cjs`     | Ajoute Swagger UI + fichier de doc `.json`                |
-| `generate-utils.cjs`       | Crée `clefs.js`, `jwt.js`, `requestId.js`, etc.           |
-| `generate-middlewares.cjs` | `Auth.js`, `validateBody.js`, etc.                        |
-| `generate-env-example.cjs` | `.env.example` avec clés techniques                       |
-| `generate-health-route.cjs`| Route `/api/health` par service                           |
-| `generate-index.cjs`       | Serveur Express prêt à démarrer (`src/index.js`)          |
-| `check-health.cjs`         | Vérifie disponibilité des services (`/api/health`)        |
+| Module        | Usage commun                                    |
+|---------------|-------------------------------------------------|
+| express       | Serveur HTTP REST                               |
+| dotenv        | Variables d’environnement                       |
+| winston       | Logging par service avec SERVICE_NAME           |
+| redis         | Session, cache, Pub/Sub                         |
+| jsonwebtoken  | Authentification JWT                            |
+| crypto        | HMAC, clefs invisibles                          |
+| zod           | Validation stricte des entrées                  |
+| kafkajs       | Messaging distribué — billet-achat, etc.        |
+| stripe        | Paiement sécurisé                               |
+| prisma        | ORM SQL généré                                  |
+| uuid          | Identifiants et tracking                        |
 
 ## 🚀 Installation rapide
-
 ```bash
-npm run setup
+npm install
 ```
 
-Alias dans `package.json` :
-
-```json
-"scripts": {
-  "setup": "node scripts/setup/generate-kafka.cjs && node scripts/setup/generate-redis.cjs && node scripts/setup/generate-logger.cjs && node scripts/setup/generate-validateBody.cjs && node scripts/setup/generate-schemas.cjs && node scripts/setup/generate-swagger.cjs && node scripts/setup/generate-utils.cjs && node scripts/setup/generate-middlewares.cjs && node scripts/setup/generate-env-example.cjs && node scripts/setup/generate-health-route.cjs && node scripts/setup/generate-index.cjs"
-}
-```
-
-## ▶ Lancer le projet
-
-### Générer les fichiers
-
-```bash
-npm run setup
-```
-
-### Vérifier la structure
-
-```bash
-node scripts/setup/check-health.cjs
-```
-
-### Démarrer toute la stack
-
+### Démarrer toute la stack (prod)
 ```bash
 docker compose up --build
 ```
@@ -125,27 +82,27 @@ docker compose up --build
 ## 🔐 Sécurité
 
 - JWT sécurisé
-- Clef invisible par utilisateur
-- Clef d’achat unique + session Stripe
+- Clé invisible par utilisateur
+- Clé d’achat unique + session Stripe
 - QR codé signé (HMAC)
-- Middleware `Auth.js` par route
+- Middleware Auth.js par route
 - Validation Zod par payload
-- `bcrypt` pour les mots de passe
+- bcrypt pour les mots de passe
 
 ## 📊 Monitoring & observabilité
 
-- `Winston` + `SERVICE_NAME`
-- `Kafka` (pub/consume)
-- `Redis` (cache + session)
-- `Swagger UI` par service (`/api/docs`)
-- `Prometheus` pour métriques
-- `Grafana Loki` ou `ELK` pour logs
-- `Jaeger` (optionnel) pour traçage distribué
+- Winston + SERVICE_NAME
+- Kafka (pub/consume)
+- Redis (cache + session)
+- Swagger UI par service (/api/docs)
+- Prometheus pour métriques
+- Grafana Loki ou ELK pour logs
+- Jaeger (optionnel) pour traçage distribué
 
 ## 📁 Structure du projet
 
-```
-Code
+### Code
+```plaintext
 services/
 ├── auth/
 │   ├── controllers/
@@ -157,18 +114,10 @@ services/
 │   └── .env.example
 ├── paiement/
 │   └── ...
-scripts/
-└── setup/
-    ├── generate-kafka.cjs
-    ├── generate-redis.cjs
-    ├── generate-logger.cjs
-    ├── generate-schemas.cjs
-    ├── generate-validateBody.cjs
-    ├── generate-swagger.cjs
-    ├── generate-utils.cjs
-    ├── generate-middlewares.cjs
-    ├── generate-env-example.cjs
-    ├── generate-health-route.cjs
-    ├── generate-index.cjs
-    └── check-health.cjs
+├── ticketing/
+│   └── ...
+├── verification/
+│   └── ...
+gateway/
+└── ...
 ```

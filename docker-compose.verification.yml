@@ -1,11 +1,13 @@
 services:
-  ticketing:
-    build: ./services/ticketing
-    env_file: ./services/ticketing/.env
+  verification:
+    build:
+      context: .
+      dockerfile: services/verification/Dockerfile
+    env_file: ./services/verification/.env.production
     ports:
-      - "3002:3002"
+      - "3004:3004"
     depends_on:
-      ticketing-db:
+      verification-db:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -13,8 +15,8 @@ services:
         condition: service_healthy
     networks: [jo-net]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3002/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3004/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 15s
+      retries: 10
+      start_period: 5s

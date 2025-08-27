@@ -1,11 +1,22 @@
 services:
   auth:
-    build: ./services/auth
-    env_file: ./services/auth/.env
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    env_file: ./services/auth/.env.production
     ports:
       - "3001:3001"
     depends_on:
-      - auth-db
-      - kafka
-      - redis
+      auth-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s

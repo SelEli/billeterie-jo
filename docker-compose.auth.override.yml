@@ -1,0 +1,29 @@
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    env_file: ./services/auth/.env.development   # fichier d'env dédié au dev
+    ports:
+      - "3001:3001"                              # accessible sur localhost:3001
+    volumes:
+      - ./services/auth:/app/services/auth       # monte seulement le code source du service
+      - auth_node_modules:/app/services/auth/node_modules # volume persistant pour les deps compilées
+    command: npm run dev                         # lance avec hot-reload (ex: nodemon)
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  auth_node_modules:

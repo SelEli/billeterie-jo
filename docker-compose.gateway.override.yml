@@ -1,0 +1,28 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    env_file: ./services/gateway/.env.development      # fichier env spécifique dev
+    ports:
+      - "3000:3000"                                    # accès local
+    volumes:
+      - ./services/gateway:/app/services/gateway       # monte seulement le code source du service
+      - gateway_node_modules:/app/services/gateway/node_modules  # conserve les deps compilées dans le conteneur
+      - ./shared:/app/shared                           # si usage du code partagé
+    command: npm run dev                               # serveur de dev avec hot reload
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  gateway_node_modules:

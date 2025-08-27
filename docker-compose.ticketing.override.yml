@@ -1,0 +1,30 @@
+services:
+  ticketing:
+    build:
+      context: .
+      dockerfile: services/ticketing/Dockerfile
+    env_file: ./services/ticketing/.env.development           # fichier env dédié au dev
+    ports:
+      - "3002:3002"                                           # accès local
+    volumes:
+      - ./services/ticketing:/app/services/ticketing          # monte uniquement le code source du service
+      - ticketing_node_modules:/app/services/ticketing/node_modules  # conserve les deps compilées
+      - ./shared:/app/shared                                  # si besoin du dossier partagé
+    command: npm run dev                                      # ex: nodemon ou ts-node en watch
+    depends_on:
+      ticketing-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  ticketing_node_modules:

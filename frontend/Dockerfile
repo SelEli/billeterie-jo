@@ -9,20 +9,21 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
+# Dépendances système minimales pour builder
 RUN apk add --no-cache python3 make g++ bash
 
-# Copier uniquement les fichiers de dépendances pour profiter du cache Docker
-COPY frontend/package*.json ./
-COPY frontend/tsconfig*.json ./
+# Copier uniquement les fichiers de dépendances pour profiter du cache
+COPY frontend/package*.json ./frontend/
+COPY frontend/tsconfig*.json ./frontend/
 
-# Installation des dépendances
+# Installer les dépendances dans le conteneur Linux
+WORKDIR /app/frontend
 RUN npm ci --legacy-peer-deps
 
-# Copier le code source du frontend
-COPY frontend/. .
-
-# Copier le dossier shared pour les imports @shared/*
-COPY shared ./shared
+# Copier le reste du code source du frontend
+COPY frontend/ ./ 
+# Copier le dossier partagé
+COPY shared/ ../shared
 
 # Build de l'application
 RUN npm run build
@@ -32,10 +33,12 @@ RUN npm run build
 ########################################
 FROM nginx:alpine
 
+# Remplacer la conf par la tienne
 RUN rm /etc/nginx/conf.d/default.conf
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copier le build statique
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
 
 EXPOSE 80
 

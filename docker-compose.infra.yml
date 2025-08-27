@@ -106,43 +106,115 @@ services:
       retries: 10
       start_period: 10s
 
-  ticketing:
-    build: ./services/ticketing
-    env_file: ./services/ticketing/.env
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    env_file: ./services/gateway/.env.production
     ports:
-      - "3002:3002"
+      - "3000:3000"
     depends_on:
-      kafka:
-        condition: service_healthy
-      ticketing-db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [jo-net]
-
-  auth:
-    build: ./services/auth
-    env_file: ./services/auth/.env
-    ports:
-      - "3001:3001"
-    depends_on:
-      kafka:
+      frontend:
         condition: service_healthy
       auth-db:
         condition: service_healthy
+      auth:
+        condition: service_healthy
+      ticketing-db:
+        condition: service_healthy
+      ticketing:
+        condition: service_healthy
+      payment-db:
+        condition: service_healthy
+      payment:
+        condition: service_healthy
+      verification-db:
+        condition: service_healthy
+      verification:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
-  verification:
-    build: ./services/verification
-    env_file: ./services/verification/.env
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    env_file: ./frontend/.env.production
+    ports:
+      - "8080:80"
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    env_file: ./services/auth/.env.production
+    ports:
+      - "3001:3001"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  ticketing:
+    build:
+      context: .
+      dockerfile: services/ticketing/Dockerfile
+    env_file: ./services/ticketing/.env.production
+    ports:
+      - "3002:3002"
+    depends_on:
+      ticketing-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+
+  payment:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    env_file: ./services/payment/.env.production
     ports:
       - "3003:3003"
     depends_on:
-      kafka:
+      payment-db:
         condition: service_healthy
-      verification-db:
+      kafka:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -152,7 +224,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 15s
+      start_period: 5s
+
+  verification:
+    build:
+      context: .
+      dockerfile: services/verification/Dockerfile
+    env_file: ./services/verification/.env.production
+    ports:
+      - "3004:3004"
+    depends_on:
+      verification-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [jo-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:3004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
 volumes:
   auth-db-data:

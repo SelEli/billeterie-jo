@@ -2,12 +2,12 @@
 # Base image : Node 18 slim (Debian Bookworm)
 FROM node:18-slim
 
-# Variables d'environnement (adaptées à ton app)
+# Variables d'environnement
 ENV NODE_ENV=development \
     TZ=Europe/Paris \
     PATH=/app/node_modules/.bin:$PATH
 
-# Installer OpenSSL 3 + dépendances de build (nécessaires à bcrypt, Prisma, etc.)
+# Installer dépendances système
 RUN apt-get update && \
     apt-get install -y openssl libssl-dev ca-certificates python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
@@ -16,19 +16,24 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copier uniquement les fichiers de dépendances en premier
-COPY package*.json ./
+COPY services/ticketing/package*.json ./services/ticketing
 
 # Installer les dépendances NPM avec cache Docker
-RUN npm ci --legacy-peer-deps && npm rebuild bcrypt --force
+RUN cd services/ticketing && npm ci --legacy-peer-deps && npm rebuild bcrypt --force
 
 # Copier tout le reste du code
-COPY . .
+COPY services/ticketing ./services/ticketing
+COPY shared ./shared
+RUN rm -rf services/ticketing/node_modules
 
-# Générer le client Prisma (sans lancer de migrations)
-RUN npx prisma generate
+# Générer le client Prisma
+RUN cd services/ticketing && npx prisma generate
 
-# Port exposé (backend Event/Ticketing)
+# Exposer le port
 EXPOSE 3002
+
+# Dossier de travail final = service Ticketing
+WORKDIR /app/services/ticketing
 
 # Commande par défaut
 CMD ["npm", "run", "dev"]
