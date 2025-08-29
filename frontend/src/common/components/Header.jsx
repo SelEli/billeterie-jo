@@ -1,48 +1,34 @@
 // src/common/components/Header.jsx
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch {
-      // no-op
-    }
-  };
 
   return (
-    <header className="header-jo fixed top-0 w-full z-10">
-      <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
-        <Link to="/" className="text-lg sm:text-2xl font-bold">
-          🎟 Billetterie Officielle JO 2024
+    <header className="header-jo">
+      <div className="header-jo__inner">
+        <Link to="/" className="header-jo__brand">
+          🏅 JO Paris 2024
         </Link>
-
-        <nav className="hidden sm:flex gap-6 font-medium">
-          <Link to="/" className="hover:text-[var(--or-secondaire)]">Accueil</Link>
-
+        <nav className="header-jo__nav">
+          <Link to="/" className="header-jo__link">Accueil</Link>
           {user?.role === 'ADMIN' && (
             <>
-              <Link to="/users" className="hover:text-[var(--or-secondaire)]">Utilisateurs</Link>
-              <Link to="/roles" className="hover:text-[var(--or-secondaire)]">Rôles</Link>
+              <Link to="/users" className="header-jo__link">Utilisateurs</Link>
+              <Link to="/roles" className="header-jo__link">Rôles</Link>
             </>
           )}
-
           {!user && (
             <>
-              <Link to="/login" className="hover:text-[var(--or-secondaire)]">Connexion</Link>
-              <Link to="/register" className="hover:text-[var(--or-secondaire)]">Inscription</Link>
+              <Link to="/login" className="header-jo__link">Connexion</Link>
+              <Link to="/register" className="header-jo__link">Inscription</Link>
             </>
           )}
-
           {user && (
             <>
-              <Link to="/profile" className="hover:text-[var(--or-secondaire)]">Mon profil</Link>
-              <button onClick={handleLogout} className="hover:text-[var(--or-secondaire)]">Déconnexion</button>
+              <Link to="/profile" className="header-jo__link">Mon profil</Link>
+              <button onClick={logout} className="header-jo__link">Déconnexion</button>
             </>
           )}
         </nav>

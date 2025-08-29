@@ -1,16 +1,40 @@
-// src/common/components/PageLayout.jsx
 import Header from './Header';
 import Footer from './Footer';
 
-export default function PageLayout({ title, children }) {
+export default function PageLayout({
+  title,
+  subtitle,
+  children,
+  fullWidth = false,
+  hideHeader = false,
+  hideFooter = false,
+}) {
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 pb-12 px-4 max-w-6xl mx-auto w-full">
-        {title && <h1 className="text-2xl font-bold mb-6">{title}</h1>}
+      {!hideHeader && <Header />}
+
+      <main
+        className={[
+          'flex-1',
+          hideHeader ? '' : 'pt-20',
+          'pb-12',
+          fullWidth ? '' : 'px-4 max-w-6xl mx-auto w-full',
+        ].join(' ')}
+      >
+        {title && (
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold text-white drop-shadow">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="mt-2 text-white/85 drop-shadow-sm">{subtitle}</p>
+            )}
+          </header>
+        )}
         {children}
       </main>
-      <Footer />
+
+      {!hideFooter && <Footer />}
     </div>
   );
 }
