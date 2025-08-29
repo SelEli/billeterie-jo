@@ -1,4 +1,3 @@
-# ───────────────────────────────
 # Logs
 logs
 *.log
@@ -8,25 +7,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# ───────────────────────────────
-# Dépendances
 node_modules
-
-# ───────────────────────────────
-# Builds
 dist
 dist-ssr
 *.local
 
-# ───────────────────────────────
-# Variables d'environnement (tous services)
-.env
-.env.*
-*/.env
-*/.env.*
-
-# ───────────────────────────────
-# Dossiers et fichiers d'éditeur
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea

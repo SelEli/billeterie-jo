@@ -1,0 +1,38 @@
+# ───────────────────────────────
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ───────────────────────────────
+# Dépendances
+node_modules
+
+# ───────────────────────────────
+# Builds
+dist
+dist-ssr
+*.local
+
+# ───────────────────────────────
+# Variables d'environnement (tous services)
+.env
+.env.*
+*/.env
+*/.env.*
+
+# ───────────────────────────────
+# Dossiers et fichiers d'éditeur
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

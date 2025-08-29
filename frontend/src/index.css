@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* 🌟 Thème global JO Paris 2024 */
+:root {
+  --bleu-primaire: #002654;      /* Bleu France */
+  --or-secondaire: #FFD700;      /* Or JO */
+  --texte-fonce: #1e293b;
+  --texte-clair: #ffffff;
+  --fond-verre: rgba(255, 255, 255, 0.15);
+  --ombre-douce: 0 4px 30px rgba(0,0,0,0.1);
+}
+
+/* Fond image plein écran */
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: url('/images/paris2024-bg.png') no-repeat center center fixed;
+  background-size: cover;
+}
+
+/* Effet verre dépoli */
+.glass {
+  background: var(--fond-verre);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--ombre-douce);
+}
+
+/* Header */
+.header-jo {
+  background: var(--fond-verre);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--ombre-douce);
+  color: var(--bleu-primaire);
+}
+
+/* Bouton premium */
+.btn-jo {
+  background-color: var(--or-secondaire);
+  color: var(--bleu-primaire);
+  border-radius: 0.5rem;
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  display: inline-block;
+  transition: background-color 0.3s, transform 0.2s;
+  box-shadow: var(--ombre-douce);
+}
+.btn-jo:hover {
+  background-color: #e6c200;
+  transform: translateY(-2px);
+}
+
+/* Carte */
+.card-jo {
+  padding: 1.5rem;
+  background: var(--fond-verre);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 0.75rem;
+  box-shadow: var(--ombre-douce);
+  color: var(--texte-fonce);
+}
+
+/* Footer */
+.footer-jo {
+  background-color: var(--bleu-primaire);
+  color: var(--texte-clair);
+}

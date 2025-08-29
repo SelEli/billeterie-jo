@@ -106,11 +106,13 @@ services:
 
   gateway:
     build:
-      context: .
-      dockerfile: services/gateway/Dockerfile
+      context: ./services/gateway
+      dockerfile: Dockerfile
     env_file: ./services/gateway/.env.production
     ports:
-      - "3000:3000"
+      - "3000:80"   # 3000 hôte → 80 interne Nginx
+    networks: [jo-net]
+    restart: unless-stopped
     depends_on:
       frontend:
         condition: service_healthy
@@ -134,13 +136,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [jo-net]
     healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sSf http://localhost/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 5s
+
 
   frontend:
     build:

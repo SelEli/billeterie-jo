@@ -1,28 +1,21 @@
 services:
   gateway:
     build:
-      context: .
-      dockerfile: services/gateway/Dockerfile
-    env_file: ./services/gateway/.env.production
-    environment:
-      NODE_ENV: production
-    command: ["npm", "start"]
+      context: ./services/gateway
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-    depends_on:
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - "3000:80"   # hôte 3000 → conteneur 80
     networks: [jo-net]
+    restart: unless-stopped
+    #depends_on:
+    #  - frontend
+    #  - auth
+    #  - ticketing
+    #  - payment
+    #  - verification
     healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 5s
-    volumes:
-      - /app/services/gateway/node_modules
-
-volumes:
-  gateway_node_modules: {}
