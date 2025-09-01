@@ -17,6 +17,11 @@ async function updateProfileService(userId, payload) {
       return null;
     }
 
+    // 🔹 Conversion de birthDate en objet Date si présent
+    if (payload.birthDate) {
+      payload.birthDate = new Date(payload.birthDate);
+    }
+
     const updated = await prisma.user.update({
       where: { id: parsedId },
       data: payload

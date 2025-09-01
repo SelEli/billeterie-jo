@@ -15,13 +15,18 @@ export default function UserDetail() {
     getUser(id).then(res => setUser(res?.data || res));
   }, [id]);
 
-  if (!user) return <PageLayout title={`Utilisateur #${id}`}><Loader /></PageLayout>;
+  if (!user) {
+    return (
+      <PageLayout title={`Utilisateur #${id}`}>
+        <Loader />
+      </PageLayout>
+    );
+  }
 
   const handleUpdate = async (values) => {
     // Filtrage strict selon updateUser.schema.js (admin)
     const allowed = (({
       email,
-      password,
       firstName,
       lastName,
       birthDate,
@@ -30,7 +35,6 @@ export default function UserDetail() {
       blacklistReason
     }) => ({
       email,
-      password,
       firstName,
       lastName,
       birthDate,
@@ -53,9 +57,10 @@ export default function UserDetail() {
     <PageLayout title={`Utilisateur #${id}`}>
       <div className="max-w-lg mx-auto space-y-4">
         <UserForm
-          initialValues={{ ...user, password: '' }}
+          initialValues={{ ...user }}
           onSubmit={handleUpdate}
           submitLabel="Mettre à jour"
+          isEdit={true} // 🔹 masque le champ mot de passe en édition
         />
         <button className="btn-jo w-full" onClick={handleDelete}>
           Supprimer
@@ -64,4 +69,3 @@ export default function UserDetail() {
     </PageLayout>
   );
 }
-

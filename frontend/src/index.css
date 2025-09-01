@@ -8,8 +8,9 @@
   --texte-fonce: #1e293b;
   --texte-clair: #ffffff;
   --fond-verre: rgba(255, 255, 255, 0.15);
-  --ombre-douce: 0 4px 30px rgba(0,0,0,0.1);
-  --ombre-carte: 0 8px 24px rgba(0,0,0,0.15);
+  --ombre-douce: 0 4px 12px rgba(0,0,0,0.08);
+  --ombre-carte: 0 6px 16px rgba(0,0,0,0.12);
+  color-scheme: light dark;
 }
 
 /* 🖼️ Fond image plein écran */
@@ -19,7 +20,9 @@ body {
   background: url('/images/paris2024-bg.jpg') no-repeat center center fixed;
   background-size: cover;
   font-family: 'Inter', sans-serif;
-  color: var(--texte-clair);
+  color: var(--texte-fonce);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Effet verre dépoli */
@@ -29,19 +32,20 @@ body {
   -webkit-backdrop-filter: blur(10px);
   box-shadow: var(--ombre-douce);
   border-radius: 0.75rem;
+  color: var(--texte-fonce);
 }
 
 /* HEADER sticky */
 .header-jo {
-  position: fixed;
-  top: 0; left: 0; width: 100%;
+  position: sticky;
+  top: 0;
+  width: 100%;
   z-index: 50;
   background: rgba(0, 38, 84, 0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   color: var(--texte-clair);
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .header-jo__inner {
@@ -61,7 +65,7 @@ body {
   font-weight: bold;
   font-size: 1.125rem;
   text-decoration: none;
-  color: var(--texte-clair);
+  color: inherit;
 }
 
 .header-jo__nav {
@@ -72,7 +76,7 @@ body {
 
 .header-jo__link {
   text-decoration: none;
-  color: var(--texte-clair);
+  color: inherit;
   transition: color 0.25s ease;
 }
 .header-jo__link:hover {
@@ -111,47 +115,37 @@ body {
 
 .footer-jo__link {
   text-decoration: none;
-  color: var(--texte-clair);
+  color: inherit;
   transition: color 0.25s ease;
 }
 .footer-jo__link:hover {
   color: var(--or-secondaire);
 }
 
-/* 🎯 Bouton premium effet 3D bombé */
+/* 🎯 Bouton flat & agile */
 .btn-jo {
-  background: linear-gradient(to bottom, #ffe766, var(--or-secondaire));
+  background-color: var(--or-secondaire);
   color: var(--bleu-primaire);
-  border-radius: 0.75rem;
-  font-weight: 800;
-  font-size: 1.125rem;
-  padding: 0.9rem 2rem;
-  display: inline-block;
-  box-shadow:
-    inset 0 2px 0 rgba(255,255,255,0.6),
-    inset 0 -2px 0 rgba(0,0,0,0.15),
-    0 6px 12px rgba(0,0,0,0.25);
-  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.5rem 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: var(--ombre-douce);
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
-
 .btn-jo:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 2px 0 rgba(255,255,255,0.6),
-    inset 0 -2px 0 rgba(0,0,0,0.15),
-    0 8px 16px rgba(0,0,0,0.3);
+  background-color: var(--or-hover);
+  transform: translateY(-1px);
 }
-
 .btn-jo:active {
-  transform: translateY(1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.6),
-    inset 0 -1px 0 rgba(0,0,0,0.15),
-    0 4px 8px rgba(0,0,0,0.2);
+  transform: translateY(0);
 }
 
-/* Cartes glass */
+/* Cartes flat */
 .card-jo {
   padding: 1.5rem;
   background: var(--fond-verre);
@@ -160,9 +154,23 @@ body {
   border-radius: 0.75rem;
   box-shadow: var(--ombre-carte);
   color: var(--texte-fonce);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
-.card-jo:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+
+/* Liste utilisateurs / rôles */
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.user-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.8);
+  color: var(--texte-fonce);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
 }

@@ -22,6 +22,11 @@ const updateUserService = async (id, data) => {
       data.email = data.email.trim().toLowerCase();
     }
 
+    // 🔹 Conversion de birthDate en objet Date si présent
+    if (data.birthDate) {
+      data.birthDate = new Date(data.birthDate);
+    }
+
     logger.debug(`[USER][UPDATE] Updating user [id=${userId}]`);
 
     const existing = await prisma.user.findUnique({ where: { id: userId } });

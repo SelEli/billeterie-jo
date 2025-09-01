@@ -17,6 +17,16 @@ export async function apiFetch(path, { method = 'GET', body, params, headers } =
     }
   };
 
+  // 🔹 Correction minimale : remplacer null/undefined par "" au premier niveau
+  if (body && typeof body === 'object') {
+    body = Object.fromEntries(
+      Object.entries(body).map(([key, value]) => [
+        key,
+        value == null ? "" : value
+      ])
+    );
+  }
+
   if (body) opts.body = JSON.stringify(body);
 
   const res = await fetch(url, opts);

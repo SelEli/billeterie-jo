@@ -28,6 +28,8 @@ export default function AuthProfile() {
       lastName,
       birthDate
     }))(values);
+
+    // 🔹 Plus de conversion ISO ici : on laisse le back gérer
     await updateProfile(allowed);
   };
 
