@@ -10,7 +10,6 @@ export default function AuthRegister() {
   const navigate = useNavigate();
 
   const handleRegister = async (values) => {
-    // Filtrage strict selon registerUser.schema.js
     const allowed = (({ email, password, firstName, lastName, birthDate }) => ({
       email,
       password,
@@ -25,13 +24,11 @@ export default function AuthRegister() {
   };
 
   return (
-    <PageLayout title="Inscription">
-      <div className="max-w-md mx-auto space-y-4">
-        <AuthForm mode="register" onSubmit={handleRegister} />
-        <p className="text-white drop-shadow text-center">
-          Déjà un compte ? <Link to="/login" className="underline">Connectez-vous</Link>
-        </p>
-      </div>
+    <PageLayout title="Inscription" containerSize="md" gap="4">
+      <AuthForm mode="register" onSubmit={handleRegister} />
+      <p className="text-white drop-shadow text-center">
+        Déjà un compte ? <Link to="/login" className="underline">Connectez-vous</Link>
+      </p>
     </PageLayout>
   );
 }

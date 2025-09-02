@@ -3,7 +3,13 @@ import { useState } from 'react';
 import Input from './Input';
 import Button from './Button';
 
-export default function GenericForm({ fields, initialValues = {}, onSubmit, submitLabel = 'Valider' }) {
+export default function GenericForm({
+  fields,
+  initialValues = {},
+  onSubmit,
+  submitLabel = 'Valider',
+  readOnly = false // 🔹 nouveau paramètre
+}) {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -15,6 +21,7 @@ export default function GenericForm({ fields, initialValues = {}, onSubmit, subm
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (readOnly) return; // 🔹 pas de submit en lecture seule
     setLoading(true);
     setErrors(null);
     try {
@@ -30,22 +37,47 @@ export default function GenericForm({ fields, initialValues = {}, onSubmit, subm
   return (
     <form onSubmit={handleSubmit} className="space-y-4 card-jo">
       {errors?.global && (
-        <div className="text-red-700 bg-red-50 border border-red-200 p-3 rounded">{errors.global}</div>
+        <div className="alert alert--error">{errors.global}</div>
       )}
-      {fields.map(field => (
-        <Input
-          key={field.name}
-          type={field.type}
-          label={field.label}
-          placeholder={field.placeholder}
-          options={field.options}
-          value={values[field.name] ?? ''}
-          onChange={(val) => handleChange(field.name, val)}
-        />
-      ))}
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading ? 'Veuillez patienter…' : submitLabel}
-      </Button>
+
+      {fields
+        // 🔹 On ne rend pas les champs internes
+        .filter(field => !field.internal)
+        .map(field => {
+          const isFieldReadOnly = readOnly || field.readOnly;
+          return (
+            <div key={field.name} className="form-group">
+              {field.label && <label>{field.label}</label>}
+              {isFieldReadOnly ? (
+                <p className="form-readonly">
+                  {values[field.name] !== undefined && values[field.name] !== ''
+                    ? String(values[field.name])
+                    : '—'}
+                </p>
+              ) : (
+                <Input
+                  type={field.type}
+                  label={null} // label déjà affiché au-dessus
+                  placeholder={field.placeholder}
+                  options={field.options}
+                  value={values[field.name] ?? ''}
+                  onChange={(val) => handleChange(field.name, val)}
+                  disabled={loading}
+                />
+              )}
+            </div>
+          );
+        })}
+
+      {!readOnly && (
+        <Button
+          type="submit"
+          disabled={loading}
+          className="btn--block"
+        >
+          {loading ? 'Veuillez patienter…' : submitLabel}
+        </Button>
+      )}
     </form>
   );
 }

@@ -58,9 +58,16 @@ async function createTicketController(req, res) {
     timer.stop();
     logger.info('[TICKET CONTROLLER] Ticket created successfully');
 
+    // 🔒 Ne pas exposer secretKey; conserver signature pour QR/validation
+    // Garder un shape compatible: data.id présent pour les tests, et data.ticketId pour commodité
+    const { secretKey, ...safeTicket } = ticket;
+
     return res.status(201).json({
       status: 'success',
-      data: ticket,
+      data: {
+        ...safeTicket,
+        ticketId: ticket.id
+      },
       errors: [],
       meta: { message: 'Ticket created successfully' }
     });

@@ -90,6 +90,9 @@ model Ticket {
   status    TicketStatus @default(RESERVED)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  secretKey String   @unique
+  signature String   @unique
+
 
   userId    Int?
   eventId   Int?

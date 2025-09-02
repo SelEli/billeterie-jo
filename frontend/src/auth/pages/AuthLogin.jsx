@@ -14,13 +14,11 @@ export default function AuthLogin() {
   };
 
   return (
-    <PageLayout title="Connexion">
-      <div className="max-w-md mx-auto space-y-4">
-        <AuthForm mode="login" onSubmit={handleLogin} />
-        <p className="text-white drop-shadow text-center">
-          Pas de compte ? <Link to="/register" className="underline">Inscrivez-vous</Link>
-        </p>
-      </div>
+    <PageLayout title="Connexion" containerSize="md" gap="4">
+      <AuthForm mode="login" onSubmit={handleLogin} />
+      <p className="text-white drop-shadow text-center">
+        Pas de compte ? <Link to="/register" className="underline">Inscrivez-vous</Link>
+      </p>
     </PageLayout>
   );
 }

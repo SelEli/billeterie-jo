@@ -1,3 +1,4 @@
+// controllers/tickets/updateTicket.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { updateTicketService } = require('../../services/ticket/updateTicket.service');
@@ -31,9 +32,13 @@ async function updateTicketController(req, res, next) {
 
     timer.stop();
     logger.info('Ticket updated successfully');
+
+    // 🔒 Retirer la clé secrète avant de renvoyer
+    const { secretKey, ...safeTicket } = ticket;
+
     return res.status(200).json({
       status: 'success',
-      data:   ticket,
+      data:   safeTicket,
       errors: [],
       meta:   { message: 'Ticket updated successfully' }
     });

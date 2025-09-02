@@ -1,25 +1,15 @@
 // src/auth/pages/UsersList.jsx
-import { useEffect, useState } from 'react';
 import PageLayout from '../../common/components/PageLayout';
 import List from '../../common/components/List';
-import Loader from '../../common/components/Loader';
 import UserForm from '../components/UserForm';
+import Pagination from '../../common/components/Pagination';
 import { listUsers, createUser } from '../api/user';
+import { useState } from 'react';
 
 export default function UsersList() {
-  const [users, setUsers] = useState(null);
   const [showForm, setShowForm] = useState(false);
 
-  const refresh = () => listUsers().then(res => setUsers(res?.data || res));
-
-  useEffect(() => {
-    refresh();
-  }, []);
-
-  if (!users) return <PageLayout title="Utilisateurs"><Loader /></PageLayout>;
-
   const handleCreate = async (values) => {
-    // Filtrage strict selon createUser.schema.js
     const allowed = (({
       email,
       password,
@@ -38,27 +28,44 @@ export default function UsersList() {
 
     await createUser(allowed);
     setShowForm(false);
-    refresh();
   };
 
   return (
     <PageLayout title="Utilisateurs">
-      <div className="flex justify-end mb-4">
-        <button className="btn-jo" onClick={() => setShowForm(v => !v)}>
+      <div className="actions-bar">
+        <button
+          className="btn btn--primary"
+          onClick={() => setShowForm(v => !v)}
+        >
           {showForm ? 'Fermer' : 'Ajouter un utilisateur'}
         </button>
       </div>
 
       {showForm && (
-        <div className="mb-6">
+        <div className="form-container">
           <UserForm
             onSubmit={handleCreate}
             submitLabel="Créer"
+            isEdit={false}
           />
         </div>
       )}
 
-      <List data={users} columns={['email', 'role']} linkBase="/users" />
+      <Pagination
+        fetchFn={listUsers}
+        render={(users) => (
+          <List
+            data={users}
+            columns={['email', 'role']}
+            linkBase="/users"
+            // On peut injecter ici des actions si besoin
+            // actions={[
+            //   { label: 'Modifier', onClick: (id) => navigate(`/users/${id}`), roles: ['ADMIN'] },
+            //   { label: 'Supprimer', onClick: deleteUser, danger: true, roles: ['ADMIN'] }
+            // ]}
+          />
+        )}
+      />
     </PageLayout>
   );
 }

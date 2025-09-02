@@ -11,47 +11,54 @@ export default function Home() {
   return (
     <PageLayout fullWidth>
       {/* HERO */}
-      <section className="relative min-h-[80vh] flex items-center justify-center text-center">
-        {/* Overlay plus clair */}
-        <div className="absolute inset-0 hero-overlay" />
-        {/* Contenu central */}
-        <div className="relative z-10 max-w-3xl px-4 space-y-8">
-          <h1 className="text-5xl sm:text-7xl font-extrabold text-white drop-shadow-lg leading-tight">
+      <section className="hero-section relative flex items-center justify-center text-center text-white px-4 py-16 md:py-24">
+        <div className="hero-overlay"></div>
+        <div className="hero-content relative z-10 max-w-3xl">
+          <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">
             Vivez l’émotion des Jeux Olympiques<br />de Paris 2024
           </h1>
-          <p className="text-xl sm:text-2xl text-white/90 drop-shadow">
+          <p className="text-lg md:text-xl mb-6">
             Réservez vos billets officiels et participez à l’histoire.
           </p>
-          <a href="/tickets" className="btn-jo inline-block">
+          <a
+            href="/tickets"
+            className="btn btn--primary btn--lg inline-flex items-center justify-center"
+          >
             🎟 Voir les billets
           </a>
         </div>
       </section>
 
       {/* ÉPREUVES À VENIR */}
-      <section className="py-16 px-6 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-12 text-white drop-shadow">
-          Épreuves à venir
-        </h2>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((event, idx) => (
-            <div key={idx} className="card-jo glass overflow-hidden">
-              <img
-                src={event.img}
-                alt={event.title}
-                className="w-full h-40 object-cover"
-              />
-              <div className="p-4 space-y-2 text-center">
-                <h3 className="text-xl font-semibold text-[var(--bleu-primaire)]">
-                  {event.title}
-                </h3>
-                <p className="text-sm text-gray-700">{event.date}</p>
-                <a href="/tickets" className="btn-jo mt-2 inline-block">
-                  Réserver
-                </a>
+      <section className="py-12 bg-gray-100">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-center text-2xl md:text-3xl font-bold mb-10">
+            Épreuves à venir
+          </h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((event, idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden flex flex-col"
+              >
+                <img
+                  src={event.img}
+                  alt={event.title}
+                  className="w-full h-48 object-cover"
+                />
+                <div className="p-6 flex flex-col flex-1 text-center">
+                  <h5 className="text-lg font-semibold mb-2">{event.title}</h5>
+                  <p className="text-gray-500 mb-4">{event.date}</p>
+                  <a
+                    href="/tickets"
+                    className="btn btn--secondary mt-auto inline-flex items-center justify-center"
+                  >
+                    Réserver
+                  </a>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
     </PageLayout>

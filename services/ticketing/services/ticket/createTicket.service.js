@@ -1,4 +1,5 @@
 // services/ticket/createTicket.service.js
+const crypto = require('crypto');
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 
@@ -36,13 +37,31 @@ async function createTicketService({
       throw new Error('[createTicket.service] offerId invalide');
     }
 
+    // 🔐 Double clé: génération et signature
+    const secretKey = crypto.randomBytes(32).toString('hex');
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { invisibleKey: true }
+    });
+    if (!user) {
+      throw new Error('[createTicket.service] Utilisateur introuvable');
+    }
+
+    const signature = crypto
+      .createHmac('sha256', user.invisibleKey)
+      .update(secretKey)
+      .digest('hex');
+
     const data = {
       price,
       zone,
       userId,
       status,
       eventId: eventIdNum,
-      offerId: offerIdNum
+      offerId: offerIdNum,
+      secretKey,
+      signature
     };
 
     const ticket = await prisma.ticket.create({ data });

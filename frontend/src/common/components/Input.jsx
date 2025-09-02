@@ -1,3 +1,4 @@
+// src/common/components/Input.jsx
 export default function Input({ type, label, placeholder, value, onChange, options }) {
   return (
     <div>

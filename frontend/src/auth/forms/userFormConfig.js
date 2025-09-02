@@ -1,3 +1,4 @@
+// src/auth/foms/userFormConfig.jsx
 export const userFields = [
   { name: 'email', label: 'Email', type: 'email' },
   { name: 'password', label: 'Mot de passe', type: 'password' },

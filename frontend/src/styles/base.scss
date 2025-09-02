@@ -1,0 +1,165 @@
+/* =========================
+   GLOBAL
+   ========================= */
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: url('/images/paris2024-bg.jpg') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Inter', sans-serif;
+  color: var(--texte-fonce);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
+}
+
+/* Effet verre */
+.glass {
+  background: var(--fond-verre);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--ombre-douce);
+  border-radius: 0.75rem;
+  color: var(--texte-fonce);
+}
+
+/* =========================
+   HEADER
+   ========================= */
+.header-jo {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+  background: rgba(0, 38, 84, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: var(--texte-clair);
+
+  &__inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: bold;
+    font-size: 1.125rem;
+    text-decoration: none;
+    color: inherit;
+    white-space: nowrap;
+  }
+
+  &__nav {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.95rem;
+    flex-wrap: wrap;
+  }
+
+  &__link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.25s ease;
+
+    &:hover {
+      color: var(--or-secondaire);
+    }
+  }
+}
+
+/* =========================
+   FOOTER
+   ========================= */
+.footer-jo {
+  background-color: var(--bleu-primaire);
+  color: var(--texte-clair);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  &__inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    @media (min-width: 640px) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  &__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.9rem;
+  }
+
+  &__link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.25s ease;
+
+    &:hover {
+      color: var(--or-secondaire);
+    }
+  }
+}
+
+/* =========================
+   HERO
+   ========================= */
+.hero-section {
+  position: relative;
+  min-height: 80vh;
+  background: url('/images/hero-bg.jpg') center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    padding: 4rem 2rem;
+  }
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  color: var(--texte-clair);
+
+  h1 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  p {
+    font-size: 1.125rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn {
+    font-size: 1rem;
+    padding: 0.65rem 1.5rem;
+  }
+}

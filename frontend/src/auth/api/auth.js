@@ -1,3 +1,4 @@
+// src/auth/api/auth.js
 import { apiFetch } from '../../common/utils/fetcher';
 
 export const login = (data) => apiFetch('/auth/login', { method: 'POST', body: data });

@@ -1,11 +1,11 @@
 // src/auth/pages/AuthProfile.jsx
-import { useEffect, useState } from 'react';
 import PageLayout from '../../common/components/PageLayout';
 import Loader from '../../common/components/Loader';
 import ProfileForm from '../components/ProfileForm';
 import { getProfile, updateProfile, deleteProfile } from '../api/auth';
 import { useAuth } from '../../common/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 export default function AuthProfile() {
   const [profile, setProfile] = useState(null);
@@ -22,33 +22,27 @@ export default function AuthProfile() {
   if (loading) return <Loader />;
 
   const handleUpdate = async (values) => {
-    // Filtrage strict selon updateProfile.schema.js
     const allowed = (({ firstName, lastName, birthDate }) => ({
       firstName,
       lastName,
       birthDate
     }))(values);
-
-    // 🔹 Plus de conversion ISO ici : on laisse le back gérer
     await updateProfile(allowed);
   };
 
   const handleDelete = async () => {
-    const ok = window.confirm('Supprimer définitivement votre compte ?');
-    if (!ok) return;
+    if (!window.confirm('Supprimer définitivement votre compte ?')) return;
     await deleteProfile();
     await logout();
     navigate('/');
   };
 
   return (
-    <PageLayout title="Mon profil">
-      <div className="max-w-lg mx-auto space-y-4">
-        <ProfileForm initialValues={profile} onSubmit={handleUpdate} />
-        <button className="btn-jo w-full" onClick={handleDelete}>
-          Supprimer mon compte
-        </button>
-      </div>
+    <PageLayout title="Mon profil" containerSize="lg" gap="4">
+      <ProfileForm initialValues={profile} onSubmit={handleUpdate} />
+      <button className="btn btn--danger w-full" onClick={handleDelete}>
+        Supprimer mon compte
+      </button>
     </PageLayout>
   );
 }

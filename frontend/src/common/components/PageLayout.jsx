@@ -1,3 +1,4 @@
+// src/common/components/PageLayout.jsx
 import Header from './Header';
 import Footer from './Footer';
 
@@ -8,7 +9,15 @@ export default function PageLayout({
   fullWidth = false,
   hideHeader = false,
   hideFooter = false,
+  containerSize, // 'sm' | 'md' | 'lg'
+  gap = '4',
 }) {
+  const maxWidth =
+    containerSize === 'sm' ? 'max-w-sm' :
+    containerSize === 'lg' ? 'max-w-lg' :
+    containerSize === 'md' ? 'max-w-md' :
+    '';
+
   return (
     <div className="min-h-screen flex flex-col">
       {!hideHeader && <Header />}
@@ -31,7 +40,14 @@ export default function PageLayout({
             )}
           </header>
         )}
-        {children}
+
+        {maxWidth ? (
+          <div className={`${maxWidth} mx-auto space-y-${gap} w-full`}>
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </main>
 
       {!hideFooter && <Footer />}

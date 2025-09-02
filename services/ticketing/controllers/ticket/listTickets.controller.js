@@ -14,11 +14,14 @@ async function listTicketsController(req, res) {
     timer.stop();
     logger.info(`[TICKET CONTROLLER] Tickets listed successfully: count=${tickets.length}`);
 
+    // 🔒 Retirer la clé secrète de chaque ticket
+    const safeTickets = tickets.map(({ secretKey, ...rest }) => rest);
+
     return res.status(200).json({
       status: 'success',
-      data: tickets,
+      data: safeTickets,
       errors: [],
-      meta: { count: tickets.length }
+      meta: { count: safeTickets.length }
     });
   } catch (error) {
     timer.stop();

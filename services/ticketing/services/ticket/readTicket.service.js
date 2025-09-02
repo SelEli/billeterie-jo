@@ -1,8 +1,7 @@
-// services/ticket/readTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const { timer } = require('../../monitor/monitor');
 const logger = require('../../utils/logger');
-const { cacheTicket, getCachedTicket } = require('../../cache/ticket.cache'); // à créer comme event/offer
+const { cacheTicket, getCachedTicket } = require('../../cache/ticket.cache');
 
 async function readTicketService(id) {
   const t = timer('readTicketService').start();
@@ -15,10 +14,20 @@ async function readTicketService(id) {
       return cached;
     }
 
-    // Lecture DB
+    // Lecture DB sans secretKey
     const ticket = await prisma.ticket.findUnique({
       where: { id: parseInt(id) },
-      include: {
+      select: {
+        id: true,
+        price: true,
+        zone: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+        eventId: true,
+        offerId: true,
+        signature: true,
         event: true,
         offer: true
       }
