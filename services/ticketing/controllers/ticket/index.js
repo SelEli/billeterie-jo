@@ -1,9 +1,11 @@
 // controllers/ticket/index.js
-const { createTicketController } = require('./createTicket.controller');
-const { readTicketController }   = require('./readTicket.controller');
-const { listTicketsController }  = require('./listTickets.controller');
-const { updateTicketController } = require('./updateTicket.controller');
-const { deleteTicketController } = require('./deleteTicket.controller');
+const { createTicketController }  = require('./createTicket.controller');
+const { readTicketController }    = require('./readTicket.controller');
+const { listTicketsController }   = require('./listTickets.controller');
+const { updateTicketController }  = require('./updateTicket.controller');
+const { deleteTicketController }  = require('./deleteTicket.controller');
+const { validateTicketController }= require('./validateTicket.controller');
+const { verifyTicketController }  = require('./verifyTicket.controller');
 
 const logger = require('../../utils/logger');
 
@@ -13,7 +15,9 @@ const logger = require('../../utils/logger');
   ['readTicketController', readTicketController],
   ['listTicketsController', listTicketsController],
   ['updateTicketController', updateTicketController],
-  ['deleteTicketController', deleteTicketController]
+  ['deleteTicketController', deleteTicketController],
+  ['validateTicketController', validateTicketController],
+  ['verifyTicketController', verifyTicketController]
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -27,5 +31,7 @@ module.exports = {
   readTicketController,
   listTicketsController,
   updateTicketController,
-  deleteTicketController
+  deleteTicketController,
+  validateTicketController,
+  verifyTicketController
 };

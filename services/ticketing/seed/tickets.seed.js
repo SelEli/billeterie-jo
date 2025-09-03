@@ -6,12 +6,14 @@ module.exports = async function seedTickets() {
   try {
     const ticketsData = [
       {
-        userId: 1,
+        userId: 1, // ID d'un user existant dans Auth
         eventId: 999,
         offerId: 101,
         zone: 'A',
         price: 70.0,
-        status: 'RESERVED'
+        status: 'RESERVED',
+        secretKey: 'seed-secret-A',
+        signature: 'seed-signature-A'
       },
       {
         userId: 2,
@@ -19,7 +21,9 @@ module.exports = async function seedTickets() {
         offerId: null,
         zone: 'B',
         price: 120.0,
-        status: 'VALID'
+        status: 'VALID',
+        secretKey: 'seed-secret-B',
+        signature: 'seed-signature-B'
       },
       {
         userId: 1,
@@ -27,7 +31,9 @@ module.exports = async function seedTickets() {
         offerId: 102,
         zone: 'C',
         price: 0.0,
-        status: 'VALID'
+        status: 'VALID',
+        secretKey: 'seed-secret-C',
+        signature: 'seed-signature-C'
       }
     ];
 

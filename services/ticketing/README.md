@@ -58,11 +58,11 @@ Healthcheck : GET /health → 200 OK
 📋 Endpoints API
 🎫 Tickets
 Méthode	Endpoint	Description	Protection
-POST	/ticketing/tickets	Créer un ticket	✅ authenticate
-GET	/ticketing/tickets/:id	Lire un ticket	✅ authenticate
-GET	/ticketing/tickets	Lister les tickets	✅ authenticate
-PUT	/ticketing/tickets/:id	Mettre à jour un ticket	✅ authenticate
-DELETE	/ticketing/tickets/:id	Supprimer un ticket	✅ authenticate
+POST	/ticket	Créer un ticket	✅ authenticate
+GET	/ticket/:id	Lire un ticket	✅ authenticate
+GET	/ticket	Lister les tickets	✅ authenticate
+PUT	/ticket/:id	Mettre à jour un ticket	✅ authenticate
+DELETE	/ticket/:id	Supprimer un ticket	✅ authenticate
 🎤 Events
 Méthode	Endpoint	Description	Protection
 POST	/ticketing/events	Créer un événement	✅ authenticate

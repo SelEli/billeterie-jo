@@ -10,17 +10,27 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (token) {
       getProfile()
-        .then(res => setUser(res.data))
+        .then(res => {
+          if (isMounted) setUser(res.data);
+        })
         .catch(() => {
           setToken(null);
           localStorage.removeItem('token');
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
     } else {
       setLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   const login = async (credentials) => {
@@ -37,8 +47,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const hasRole = (role) => {
+    return user?.role === role;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

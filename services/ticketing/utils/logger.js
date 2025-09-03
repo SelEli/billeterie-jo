@@ -2,6 +2,7 @@
 const winston = require('winston');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const env = process.env.NODE_ENV || 'development';
 const isProd = env === 'production';
@@ -41,7 +42,7 @@ const logger = winston.createLogger({
     service: serviceName,
     env,
     pid: process.pid,
-    hostname: require('os').hostname()
+    hostname: os.hostname()
   },
   transports: [
     new winston.transports.Console(),
@@ -59,5 +60,15 @@ const logger = winston.createLogger({
 if (logLevel === 'debug') {
   logger.debug(`[LOGGER INIT] Mode debug activé pour ${serviceName} (${env})`);
 }
+
+/**
+ * Formate un résumé compact de la requête pour les logs.
+ * Inclut méthode, URL et ID de requête si présent.
+ */
+logger.formatLogContext = (req) => {
+  if (!req) return '';
+  const id = req.id || req.requestId || '-';
+  return `${req.method} ${req.originalUrl} [id=${id}]`;
+};
 
 module.exports = logger;

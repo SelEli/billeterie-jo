@@ -15,7 +15,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copier uniquement les fichiers de dépendances en premier
-COPY services/ticketing/package*.json ./services/ticketing
+COPY services/ticketing/package*.json ./services/ticketing/
 
 # Installer les dépendances NPM avec cache Docker
 RUN cd services/ticketing && npm ci --legacy-peer-deps && npm rebuild bcrypt --force

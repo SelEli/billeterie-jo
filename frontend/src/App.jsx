@@ -36,8 +36,8 @@ export default function App() {
           <Route path="/infos-pratiques" element={<InfosPratiques />} />
 
           {/* Billets */}
-          <Route path="/tickets" element={<TicketsList />} />
-          <Route path="/tickets/:id" element={<TicketDetail />} />
+          <Route path="/ticket" element={<TicketsList />} />
+          <Route path="/ticket/:id" element={<TicketDetail />} />
 
           {/* Authentification */}
           <Route path="/login" element={<AuthLogin />} />

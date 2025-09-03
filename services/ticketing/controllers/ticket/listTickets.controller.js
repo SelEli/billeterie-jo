@@ -1,38 +1,55 @@
-// controllers/tickets/listTickets.controller.js
+// controllers/ticket/listTickets.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { listTicketsService } = require('../../services/ticket/listTickets.service');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
 async function listTicketsController(req, res) {
   const timer = monitor.timer('ticket_list').start();
   try {
-    logger.debug('[TICKET CONTROLLER] Listing tickets');
+    logger.debug('[TICKET CONTROLLER] Listing tickets', { filters: req.query });
 
-    // Si demain on ajoute des filtres, on pourra parser req.query ici
-    const tickets = await listTicketsService();
+    // Validation simple de limit/page si non filtré par Zod
+    if (req.query?.limit && isNaN(Number(req.query.limit))) {
+      timer.stop();
+      return sendBusinessError(res, 'INVALID_QUERY_LIMIT', 400);
+    }
+    if (req.query?.page && isNaN(Number(req.query.page))) {
+      timer.stop();
+      return sendBusinessError(res, 'INVALID_QUERY_PAGE', 400);
+    }
 
+    // Appel du service avec les filtres et pagination
+    const result = await listTicketsService(req.query);
     timer.stop();
-    logger.info(`[TICKET CONTROLLER] Tickets listed successfully: count=${tickets.length}`);
 
-    // 🔒 Retirer la clé secrète de chaque ticket
-    const safeTickets = tickets.map(({ secretKey, ...rest }) => rest);
+    // Gestion des erreurs métier
+    if (result?.error) {
+      const statusMap = {
+        INVALID_USER_ID: 400,
+        INVALID_STATUS: 400
+      };
+      return sendBusinessError(res, result.error, statusMap[result.error] || 400);
+    }
 
-    return res.status(200).json({
-      status: 'success',
-      data: safeTickets,
-      errors: [],
-      meta: { count: safeTickets.length }
-    });
+    // On retire les champs sensibles (secretKey) avant envoi
+    const safeTickets = result.tickets.map(({ secretKey, ...rest }) => rest);
+
+    return sendBusinessSuccess(
+      res,
+      'READ_LIST',
+      safeTickets,
+      {
+        message: 'Tickets retrieved successfully',
+        pagination: result.pagination
+      },
+      200
+    );
   } catch (error) {
     timer.stop();
     logger.error('[TICKET CONTROLLER] Error listing tickets', error);
-
-    return res.status(500).json({
-      status: 'error',
-      data: null,
-      errors: [error.message || 'Internal server error'],
-      meta: { message: 'Failed to list tickets' }
-    });
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR', 500);
   }
 }
 

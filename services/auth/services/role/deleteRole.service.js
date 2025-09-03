@@ -25,8 +25,18 @@ async function deleteRoleService(userId) {
       throw err;
     }
 
+    // Kafka non bloquant
     try {
-      await publishKafkaEvent('role.deleted', { userId: parsedId, oldRole: existingUser.role });
+      await publishKafkaEvent('user', {
+        type: 'UserUpdated',
+        userId: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+        invisibleKey: updated.invisibleKey
+      });
+      logger.debug('[ROLE][DELETE] Kafka event published');
     } catch (err) {
       logger.warn(`[ROLE][DELETE] Kafka publish skipped: ${err.message}`);
     }

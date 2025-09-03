@@ -9,10 +9,9 @@ import { useAuth } from '../../common/context/AuthContext';
 
 export default function TicketsList() {
   const [showForm, setShowForm] = useState(false);
-  const { user, hasRole } = useAuth();
+  const { user, loading, hasRole } = useAuth();
 
   const handleCreate = async (values) => {
-    // On envoie toutes les valeurs nécessaires
     const allowed = (({ price, zone, status, eventId, offerId }) => ({
       price,
       zone,
@@ -25,28 +24,36 @@ export default function TicketsList() {
     setShowForm(false);
   };
 
-  // Fonction de fetch adaptée au rôle
-  const fetchFn = (params) => {
-    if (hasRole('ADMIN')) {
-      // Admin → tous les tickets
+  const fetchFn = async (params) => {
+    if (!user) return [];
+    if (hasRole && hasRole('ADMIN')) {
       return listTickets(params);
     }
-    // Utilisateur → seulement ses tickets
     return listTickets({ ...params, userId: user.id });
   };
+
+  if (loading) {
+    return (
+      <PageLayout title="Tickets">
+        <p>Chargement...</p>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout title="Tickets">
       <div className="actions-bar">
-        <button
-          className="btn btn--primary"
-          onClick={() => setShowForm(v => !v)}
-        >
-          {showForm ? 'Fermer' : 'Créer un ticket'}
-        </button>
+        {user && (
+          <button
+            className="btn btn--primary"
+            onClick={() => setShowForm(v => !v)}
+          >
+            {showForm ? 'Fermer' : 'Créer un ticket'}
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && user && (
         <div className="form-container">
           <TicketForm
             onSubmit={handleCreate}
@@ -59,11 +66,11 @@ export default function TicketsList() {
 
       <Pagination
         fetchFn={fetchFn}
-        render={(tickets) => (
+        render={(tickets = []) => (
           <List
             data={tickets}
             columns={
-              hasRole('ADMIN')
+              hasRole && hasRole('ADMIN')
                 ? ['id', 'eventId', 'price', 'status', 'userId']
                 : ['id', 'eventId', 'price', 'status']
             }

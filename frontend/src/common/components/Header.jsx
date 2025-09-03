@@ -43,7 +43,7 @@ export default function Header() {
           <Link to="/infos-pratiques" className="header-jo__link" onClick={closeMenu}>
             Infos pratiques
           </Link>
-          <Link to="/tickets" className="header-jo__link" onClick={closeMenu}>
+          <Link to="/ticket" className="header-jo__link" onClick={closeMenu}>
             Billets
           </Link>
 

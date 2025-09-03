@@ -1,4 +1,3 @@
-// utils/kafkaClient.js
 const { Kafka } = require('kafkajs');
 const logger = require('./logger');
 
@@ -20,6 +19,13 @@ async function initKafka() {
   }
 }
 
+function getKafka() {
+  if (!kafka) {
+    throw new Error('Kafka non initialisé — appelez initKafka() avant');
+  }
+  return kafka;
+}
+
 async function publishKafkaEvent(topic, message) {
   if (!producer) throw new Error('Kafka producer not initialized');
   try {
@@ -34,4 +40,4 @@ async function publishKafkaEvent(topic, message) {
   }
 }
 
-module.exports = { initKafka, publishKafkaEvent, kafka };
+module.exports = { initKafka, getKafka, publishKafkaEvent };

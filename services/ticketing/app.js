@@ -1,64 +1,90 @@
+require('dotenv').config();
+
 const express = require('express');
-const morgan = require('morgan');
 const helmet = require('helmet');
 const cors = require('cors');
-const logger = require('./utils/logger');
+const morgan = require('morgan');
 
-const ticketRoutes = require('./routes/ticket.routes');
-const eventRoutes  = require('./routes/event.routes');
-const offerRoutes  = require('./routes/offer.routes');
+const {
+  logger,
+  requestId,
+  formatLogContext
+} = require('./utils');
+const { error } = require('./utils/response');
 
-const { initRedis } = require('./utils/redisClient');
-const { initKafka } = require('./utils/kafkaClient');
+const mainRoutes = require('./routes'); // <-- index des routes
 
 const app = express();
 
-// Initialisations externes hors test
-if (!process.env.JEST_WORKER_ID) {
-  logger.info('[INIT] Initialisation Redis & Kafka...');
-  initRedis();
-  initKafka()
-    .then(() => logger.info('[INIT] Kafka connecté'))
-    .catch(err => {
-      logger.error(`[INIT][ERR] Kafka non connecté: ${err.message}`);
-      process.exit(1);
-    });
-}
-
+// 🌍 Middlewares globaux
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// 🔹 Log compact toutes requêtes entrantes (désactivable via LOG_LEVEL)
+// --- CORS dynamique ---
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+// --- Fin CORS ---
+
+app.use(express.json());
+app.use(
+  morgan(
+    process.env.MORGAN_FORMAT ||
+      (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')
+  )
+);
+
+// 🆔 ID unique pour chaque requête
+app.use(requestId);
+
+// 🪵 Logger compact global
 app.use((req, res, next) => {
-  logger.debug(
-    `[REQ] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
-  );
+  logger.debug(`[APP][REQ] ${formatLogContext(req)}`);
   next();
 });
 
-// 🔹 Mount des routes
-app.use('/ticketing/tickets', ticketRoutes);
-app.use('/ticketing/events',  eventRoutes);
-app.use('/ticketing/offers',  offerRoutes);
+// 🚏 Montage des routes via index
+app.use('/', mainRoutes);
 
-// 🔹 Healthcheck
+// 💓 Healthcheck
 app.get('/health', (req, res) => {
   logger.info('[HEALTH] 💓 OK');
   res.status(200).send('OK');
 });
 
-// 🔹 Gestion globale des erreurs
+// 🚫 404 — non trouvé
+app.use((req, res) => {
+  logger.warn(`[APP][404] Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json(error(['Route not found.']));
+});
+
+// 🛑 Gestion globale des erreurs
 app.use((err, req, res, next) => {
-  logger.error(`[APP ERROR] ${err.message}`, { stack: err.stack });
+  logger.error('[APP][ERROR] Unhandled error object:', err);
+  logger.error('[APP][ERROR] Stack trace:', err && err.stack);
+  if (req.body && Object.keys(req.body).length) {
+    logger.error('[APP][ERROR] Request body at error time:', req.body);
+  }
   const code = err.statusCode || 500;
-  res.status(code).json({
-    status: 'error',
-    data: null,
-    errors: [err.message || 'Internal server error.'],
-    meta: {}
-  });
+  res.status(code).json(
+    error([err.message || 'Internal server error.'])
+  );
 });
 
 module.exports = app;

@@ -1,5 +1,5 @@
 // services/user/deleteUser.service.js
-const { prisma, logger } = require('../../utils');
+const { prisma, logger, publishKafkaEvent } = require('../../utils');
 
 const deleteUserService = async (id) => {
   try {
@@ -19,6 +19,18 @@ const deleteUserService = async (id) => {
 
     const deleted = await prisma.user.delete({ where: { id: parsedId } });
     logger.info(`[USER][DELETE] User deleted [id=${deleted.id}]`);
+
+    // Kafka non bloquant
+    try {
+      await publishKafkaEvent('user', {
+        type: 'UserDeleted',
+        userId: deleted.id
+      });
+      logger.debug('[USER][DELETE] Kafka event published');
+    } catch (err) {
+      logger.warn(`[USER][DELETE] Kafka publish skipped: ${err.message}`);
+    }
+
     return deleted;
   } catch (err) {
     logger.error(`[USER][DELETE] Service error: ${err.message}`);

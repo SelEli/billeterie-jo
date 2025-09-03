@@ -35,24 +35,6 @@ enum TicketStatus {
 // Modèles
 // ----------------------
 
-model User {
-  id              Int       @id @default(autoincrement())
-  email           String    @unique
-  hash            String
-  firstName       String?
-  lastName        String?
-  birthDate       DateTime?
-  role            Role      @default(VISITOR)
-  invisibleKey    String
-  lastLogin       DateTime?
-  isBlacklisted   Boolean   @default(false)
-  blacklistReason String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  tickets         Ticket[]  // Relation vers Ticket
-}
-
 model Event {
   id         Int       @id @default(autoincrement())
   label      String
@@ -64,7 +46,7 @@ model Event {
   deletedAt  DateTime?              // Soft delete
 
   tickets    Ticket[]               // Tickets liés à cet événement
-  offers     Offer[]                // 🔧 Relation inverse vers Offer
+  offers     Offer[]                // Relation inverse vers Offer
 }
 
 model Offer {
@@ -73,9 +55,9 @@ model Offer {
   discount   Float
   active     Boolean   @default(true)
   targetRole Role
-  validFrom  DateTime?             // Optionnel : début de validité de l’offre
-  validTo    DateTime?             // Optionnel : fin de validité de l’offre
-  quota      Int?                  // Optionnel : nombre max de tickets concernés
+  validFrom  DateTime?             // Optionnel : début de validité
+  validTo    DateTime?             // Optionnel : fin de validité
+  quota      Int?                  // Optionnel : nombre max de tickets
 
   eventId    Int?
   event      Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -90,15 +72,14 @@ model Ticket {
   status    TicketStatus @default(RESERVED)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
-  secretKey String   @unique
-  signature String   @unique
+  secretKey String       @unique
+  signature String       @unique
 
-
-  userId    Int?
+  // On garde juste l'ID, plus de relation Prisma vers User
+  userId    Int
   eventId   Int?
   offerId   Int?
 
-  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
   event     Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   offer     Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
 }

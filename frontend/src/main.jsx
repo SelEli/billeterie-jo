@@ -1,9 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.jsx'; // ← il te manque sûrement cette ligne !
+import App from './App.jsx';
 
-import './styles/tailwind.css';   // Tailwind d’abord
-import './styles/main.scss';      // Ton Sass ensuite
+import './styles/tailwind.css';   
+import './styles/main.scss';      
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

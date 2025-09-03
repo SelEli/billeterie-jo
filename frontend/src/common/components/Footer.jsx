@@ -20,7 +20,7 @@ export default function Footer() {
           <h4 className="font-semibold mb-3">Navigation</h4>
           <nav className="flex flex-col gap-2">
             <a href="/" className="footer-jo__link">Accueil</a>
-            <a href="/tickets" className="footer-jo__link">Billets</a>
+            <a href="/ticket" className="footer-jo__link">Billets</a>
             <a href="/sites-plan" className="footer-jo__link">Plan des sites</a>
             <a href="/infos-pratiques" className="footer-jo__link">Infos pratiques</a>
           </nav>

@@ -1,5 +1,5 @@
 // services/user/updateUser.service.js
-const { prisma, logger } = require('../../utils');
+const { prisma, logger, publishKafkaEvent } = require('../../utils');
 
 const updateUserService = async (id, data) => {
   try {
@@ -22,7 +22,6 @@ const updateUserService = async (id, data) => {
       data.email = data.email.trim().toLowerCase();
     }
 
-    // 🔹 Conversion de birthDate en objet Date si présent
     if (data.birthDate) {
       data.birthDate = new Date(data.birthDate);
     }
@@ -64,6 +63,23 @@ const updateUserService = async (id, data) => {
     }
 
     logger.info(`[USER][UPDATE] User updated [id=${updated.id}]`);
+
+    // Kafka non bloquant
+    try {
+      await publishKafkaEvent('user', {
+        type: 'UserUpdated',
+        userId: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+        invisibleKey: updated.invisibleKey
+      });
+      logger.debug('[USER][UPDATE] Kafka event published');
+    } catch (err) {
+      logger.warn(`[USER][UPDATE] Kafka publish skipped: ${err.message}`);
+    }
+
     return updated;
   } catch (err) {
     logger.error(`[USER][UPDATE] Service error: ${err.message}`);

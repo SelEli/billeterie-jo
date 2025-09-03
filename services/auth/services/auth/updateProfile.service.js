@@ -1,5 +1,5 @@
 // services/auth/updateProfile.service.js
-const { prisma, logger } = require('../../utils');
+const { prisma, logger, publishKafkaEvent } = require('../../utils');
 
 async function updateProfileService(userId, payload) {
   try {
@@ -17,7 +17,6 @@ async function updateProfileService(userId, payload) {
       return null;
     }
 
-    // 🔹 Conversion de birthDate en objet Date si présent
     if (payload.birthDate) {
       payload.birthDate = new Date(payload.birthDate);
     }
@@ -28,6 +27,23 @@ async function updateProfileService(userId, payload) {
     });
 
     logger.info(`[AUTH][UPDATE_PROFILE] Profile updated for userId=${parsedId}`);
+
+    // Kafka non bloquant
+    try {
+      await publishKafkaEvent('user', {
+        type: 'UserUpdated',
+        userId: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+        invisibleKey: updated.invisibleKey
+      });
+      logger.debug('[AUTH][UPDATE_PROFILE] Kafka event published');
+    } catch (err) {
+      logger.warn(`[AUTH][UPDATE_PROFILE] Kafka publish skipped: ${err.message}`);
+    }
+
     return updated;
   } catch (err) {
     logger.error(`[AUTH][UPDATE_PROFILE] Service error: ${err.message}`);

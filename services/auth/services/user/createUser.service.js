@@ -1,5 +1,5 @@
 // services/user/createUser.service.js
-const { prisma, logger } = require('../../utils');
+const { prisma, logger, publishKafkaEvent } = require('../../utils');
 const bcrypt = require('bcrypt');
 
 const createUserService = async (data) => {
@@ -7,21 +7,16 @@ const createUserService = async (data) => {
     logger.debug('[USER][CREATE] Creating new user', { email: data?.email });
 
     if (!data?.email || typeof data.email !== 'string' || !data.email.includes('@')) {
-      logger.warn('[USER][CREATE] Missing or invalid email');
       return { error: 'EMAIL_REQUIRED' };
     }
     if (!data?.password || typeof data.password !== 'string') {
-      logger.warn('[USER][CREATE] Missing or invalid password');
       return { error: 'PASSWORD_REQUIRED' };
     }
 
     data.email = data.email.trim().toLowerCase();
 
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
-    if (existing) {
-      logger.warn(`[USER][CREATE] Email already exists: ${data.email}`);
-      return { error: 'EMAIL_ALREADY_USED' };
-    }
+    if (existing) return { error: 'EMAIL_ALREADY_USED' };
 
     const hash = await bcrypt.hash(data.password, 10);
 
@@ -53,14 +48,27 @@ const createUserService = async (data) => {
         }
       });
     } catch (err) {
-      if (err.code === 'P2002') {
-        logger.warn(`[USER][CREATE] Unique constraint violation for email: ${data?.email}`);
-        return { error: 'EMAIL_ALREADY_USED' };
-      }
+      if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
       throw err;
     }
 
     logger.info(`[USER][CREATE] User created [id=${user.id}]`);
+
+    try {
+      await publishKafkaEvent('user', {
+        type: 'UserCreated',
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        invisibleKey: user.invisibleKey
+      });
+      logger.debug('[USER][CREATE] Kafka event published');
+    } catch (err) {
+      logger.warn(`[USER][CREATE] Kafka publish skipped: ${err.message}`);
+    }
+
     return user;
   } catch (err) {
     logger.error(`[USER][CREATE] Service error: ${err.message}`);

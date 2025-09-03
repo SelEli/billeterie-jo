@@ -48,6 +48,6 @@ export const routesConfig = [
   // { path: '/offers/:id', element: <OfferDetail />, private: true },
 
   // Tickets
-  { path: '/tickets', element: <TicketsList />, private: true },
-  { path: '/tickets/:id', element: <TicketDetail />, private: true }
+  { path: '/ticket', element: <TicketsList />, private: true },
+  { path: '/ticket/:id', element: <TicketDetail />, private: true }
 ];

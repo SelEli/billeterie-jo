@@ -11,11 +11,12 @@ const {
   TicketUpdateSchema
 } = require('../schemas/ticket.schema');
 
-const { createTicketController } = require('../controllers/ticket/createTicket.controller');
-const { readTicketController }   = require('../controllers/ticket/readTicket.controller');
-const { updateTicketController } = require('../controllers/ticket/updateTicket.controller');
-const { deleteTicketController } = require('../controllers/ticket/deleteTicket.controller');
-const { listTicketsController }  = require('../controllers/ticket/listTickets.controller');
+const { createTicketController }   = require('../controllers/ticket/createTicket.controller');
+const { readTicketController }     = require('../controllers/ticket/readTicket.controller');
+const { updateTicketController }   = require('../controllers/ticket/updateTicket.controller');
+const { deleteTicketController }   = require('../controllers/ticket/deleteTicket.controller');
+const { listTicketsController }    = require('../controllers/ticket/listTickets.controller');
+const { validateTicketController } = require('../controllers/ticket/validateTicket.controller');
 
 // Vérification stricte des contrôleurs
 [
@@ -23,7 +24,8 @@ const { listTicketsController }  = require('../controllers/ticket/listTickets.co
   ['readTicketController', readTicketController],
   ['updateTicketController', updateTicketController],
   ['deleteTicketController', deleteTicketController],
-  ['listTicketsController', listTicketsController]
+  ['listTicketsController', listTicketsController],
+  ['validateTicketController', validateTicketController]
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     throw new Error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -90,6 +92,17 @@ router.get(
     next();
   },
   listTicketsController
+);
+
+// ✅ Nouveau endpoint pour validation par Payment
+router.post(
+  '/validate',
+  authenticate,
+  (req, res, next) => {
+    logger.info('[TICKET ROUTES][POST /validate] → validateTicketController');
+    next();
+  },
+  validateTicketController
 );
 
 module.exports = router;

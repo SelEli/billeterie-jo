@@ -1,18 +1,19 @@
-// controllers/tickets/deleteTicket.controller.js
-
+// controllers/ticket/deleteTicket.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { deleteTicketService } = require('../../services/ticket/deleteTicket.service');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
-async function deleteTicketController(req, res, next) {
+async function deleteTicketController(req, res) {
+  // Vérification rôle : seuls ADMIN et AGENT peuvent supprimer
+  if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
+    return sendBusinessError(res, 'FORBIDDEN', 403);
+  }
+
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({
-      status: 'error',
-      data:   null,
-      errors: ['Invalid ticket ID'],
-      meta:   { message: 'Invalid request' }
-    });
+    return sendBusinessError(res, 'INVALID_TICKET_ID', 400);
   }
 
   const timer = monitor.timer('ticket_delete').start();
@@ -20,40 +21,16 @@ async function deleteTicketController(req, res, next) {
     const deleted = await deleteTicketService(id);
     timer.stop();
 
-    // Si ton service retourne null pour un ID inexistant
     if (!deleted) {
-      logger.warn('Ticket not found for deletion');
-      return res.status(404).json({
-        status: 'error',
-        data:   null,
-        errors: ['Ticket not found'],
-        meta:   { message: 'No ticket with this ID to delete' }
-      });
+      return sendBusinessError(res, 'TICKET_NOT_FOUND', 404);
     }
 
-    logger.info('Ticket deleted successfully');
-    return res.status(204).end();
+    logger.info(`[TICKET CONTROLLER] Ticket ${id} deleted successfully`);
+    return sendBusinessSuccess(res, 'DELETE_TICKET', null, { message: 'Ticket deleted successfully' }, 204);
   } catch (error) {
     timer.stop();
-
-    // Prisma renvoie une erreur P2025 quand l'enregistrement n'existe pas
-    if (error.code === 'P2025' || error.message.toLowerCase().includes('not found')) {
-      logger.warn('Ticket not found for deletion', error);
-      return res.status(404).json({
-        status: 'error',
-        data:   null,
-        errors: ['Ticket not found'],
-        meta:   { message: 'No ticket with this ID to delete' }
-      });
-    }
-
-    logger.error('Error deleting ticket', error);
-    return res.status(500).json({
-      status: 'error',
-      data:   null,
-      errors: [error.message],
-      meta:   { message: 'Failed to delete ticket' }
-    });
+    logger.error(`[TICKET CONTROLLER] Error deleting ticket ${id}: ${error.message}`);
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR', 500);
   }
 }
 

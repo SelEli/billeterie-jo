@@ -1,56 +1,32 @@
+// controllers/ticket/readTicket.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { readTicketService } = require('../../services/ticket/readTicket.service');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 
 async function readTicketController(req, res) {
   const { id } = req.params;
   const numId = Number(id);
 
-  // 🔹 Vérif paramètre ID
   if (!id || isNaN(numId) || numId <= 0) {
-    logger.warn(`[TICKET CONTROLLER] Invalid ticket ID param: "${id}"`);
-    return res.status(400).json({
-      status: 'error',
-      data: null,
-      errors: ['Invalid ticket ID'],
-      meta: {}
-    });
+    return sendBusinessError(res, 'INVALID_TICKET_ID');
   }
 
   const timer = monitor.timer('ticket_read').start();
   try {
-    logger.debug(`[TICKET CONTROLLER] Reading ticket ${numId}`);
-    const ticket = await readTicketService(numId);
+    const ticket = await readTicketService(numId, req.headers.authorization);
+    timer.stop();
 
     if (!ticket) {
-      timer.stop();
-      logger.info(`[TICKET CONTROLLER] Ticket not found: ${numId}`);
-      return res.status(404).json({
-        status: 'error',
-        data: null,
-        errors: ['Ticket not found'],
-        meta: {}
-      });
+      return sendBusinessError(res, 'TICKET_NOT_FOUND');
     }
 
-    timer.stop();
-    logger.info(`[TICKET CONTROLLER] Ticket read successfully: ${ticket.id}`);
-    return res.status(200).json({
-      status: 'success',
-      data: ticket,
-      errors: [],
-      meta: {}
-    });
-
+    return sendBusinessSuccess(res, 'READ_ONE', ticket);
   } catch (error) {
     timer.stop();
     logger.error(`[TICKET CONTROLLER] Error reading ticket ${numId}: ${error.message}`);
-    return res.status(500).json({
-      status: 'error',
-      data: null,
-      errors: [error.message || 'Internal server error'],
-      meta: {}
-    });
+    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
   }
 }
 

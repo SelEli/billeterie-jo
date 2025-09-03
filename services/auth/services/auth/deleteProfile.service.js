@@ -16,7 +16,11 @@ async function deleteProfileService(userId) {
 
     // Kafka non bloquant
     try {
-      await publishKafkaEvent('user.deleted', { userId });
+      await publishKafkaEvent('user', {
+        type: 'UserDeleted',
+        userId: userId
+      });
+      logger.debug('[AUTH][DELETE_PROFILE] Kafka event published');
     } catch (err) {
       logger.warn(`[AUTH][DELETE_PROFILE] Kafka publish skipped: ${err.message}`);
     }

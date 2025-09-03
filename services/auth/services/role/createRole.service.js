@@ -36,8 +36,18 @@ async function createRoleService({ userId, role }) {
       throw err;
     }
 
+    // Kafka non bloquant
     try {
-      await publishKafkaEvent('role.assigned', { userId: parsedId, role: updated.role });
+      await publishKafkaEvent('user', {
+        type: 'UserUpdated',
+        userId: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+        invisibleKey: updated.invisibleKey
+      });
+      logger.debug('[ROLE][CREATE] Kafka event published');
     } catch (err) {
       logger.warn(`[ROLE][CREATE] Kafka publish skipped: ${err.message}`);
     }
