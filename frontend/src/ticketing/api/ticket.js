@@ -20,3 +20,7 @@ export const updateTicket = (id, data) =>
 // Supprimer un ticket
 export const deleteTicket = (id) =>
   apiFetch(`/ticket/${id}`, { method: 'DELETE' });
+
+// Valider un ticket (simulation Payment)
+export const validateTicket = (ticketId) =>
+  apiFetch('/ticket/validate', { method: 'POST', body: { ticketId } });

@@ -1,4 +1,3 @@
-// src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './common/context/AuthContext';
 import PrivateRoute from './common/components/PrivateRoute';
@@ -11,8 +10,9 @@ import InfosPratiques from './pages/InfosPratiques';
 // Billetterie
 import TicketsList from './ticketing/pages/TicketsList';
 import TicketDetail from './ticketing/pages/TicketDetail';
+import TicketValidate from './ticketing/pages/TicketValidate'; // ✅
 
-// Authentification
+ // Authentification
 import AuthLogin from './auth/pages/AuthLogin';
 import AuthRegister from './auth/pages/AuthRegister';
 import AuthProfile from './auth/pages/AuthProfile';
@@ -38,6 +38,14 @@ export default function App() {
           {/* Billets */}
           <Route path="/ticket" element={<TicketsList />} />
           <Route path="/ticket/:id" element={<TicketDetail />} />
+          <Route
+            path="/ticket/validate"
+            element={
+              <PrivateRoute roles={['PAYMENT']}>
+                <TicketValidate />
+              </PrivateRoute>
+            }
+          />
 
           {/* Authentification */}
           <Route path="/login" element={<AuthLogin />} />
