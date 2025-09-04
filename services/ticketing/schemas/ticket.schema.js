@@ -1,4 +1,3 @@
-// schemas/ticket.schema.js
 const { z } = require('zod');
 
 /**
@@ -7,7 +6,7 @@ const { z } = require('zod');
  * - eventId et offerId peuvent être null ou absents (nullable().optional())
  * - zone obligatoire (min 1 caractère)
  * - price >= 0 (y compris billets gratuits)
- * - status optionnel dans un ensemble fixé
+ * - status optionnel dans un ensemble fixé (pas de AVAILABLE ici)
  */
 const TicketCreateSchema = z.object({
   userId: z.number().min(1, { message: 'userId doit être un nombre positif' }),

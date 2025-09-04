@@ -1,8 +1,12 @@
+// services/ticket/updateTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
+/**
+ * Mise à jour d'un ticket et publication d'un event Kafka
+ */
 async function updateTicketService(id, data) {
   const numericId = typeof id === 'string' ? Number(id) : id;
 
@@ -18,9 +22,14 @@ async function updateTicketService(id, data) {
     throw err;
   }
 
+  if (!ticket) {
+    const err = new Error('TICKET_NOT_FOUND');
+    err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
+    throw err;
+  }
+
   logger.info(`[TICKET] Updated: ${ticket.id}`);
 
-  // Kafka non bloquant
   try {
     await publishKafkaEvent('ticket', {
       type: 'TicketUpdated',

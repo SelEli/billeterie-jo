@@ -1,9 +1,11 @@
+// controllers/ticket/createTicket.controller.js
 const logger = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { createTicketService } = require('../../services/ticket/createTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function createTicketController(req, res) {
   if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
@@ -29,8 +31,7 @@ async function createTicketController(req, res) {
 
   const timer = monitor.timer('ticket_create').start();
   try {
-    // Forcer le statut initial à RESERVED
-    const payload = { ...req.body, userId: req.user.userId, status: 'RESERVED' };
+    const payload = { ...req.body, userId: req.user.userId, role: req.user.role, status: 'RESERVED' };
     const ticket = await createTicketService(payload, req.headers.authorization);
 
     try {
@@ -55,13 +56,16 @@ async function createTicketController(req, res) {
     return sendBusinessSuccess(
       res,
       'CREATE_TICKET',
-      { ...safeTicket, ticketId: ticket.id },
+      safeTicket,
       { message: 'Ticket created successfully' }
     );
   } catch (error) {
     timer.stop();
     logger.error('[TICKET CONTROLLER] Error creating ticket', error);
-    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
+    const code = error.message && error.message in ERROR_STATUS
+      ? error.message
+      : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

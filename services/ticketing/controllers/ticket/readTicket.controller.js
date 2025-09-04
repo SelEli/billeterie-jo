@@ -1,9 +1,9 @@
-// controllers/ticket/readTicket.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { readTicketService } = require('../../services/ticket/readTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function readTicketController(req, res) {
   const { id } = req.params;
@@ -26,7 +26,10 @@ async function readTicketController(req, res) {
   } catch (error) {
     timer.stop();
     logger.error(`[TICKET CONTROLLER] Error reading ticket ${numId}: ${error.message}`);
-    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
+    const code = error.message && error.message in ERROR_STATUS
+      ? error.message
+      : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

@@ -12,16 +12,8 @@ datasource db {
 }
 
 // ----------------------
-// Enumérations
+// Énumérations
 // ----------------------
-
-enum Role {
-  VISITOR
-  USER
-  ADMIN
-  EMPLOYEE
-  AGENT
-}
 
 enum TicketStatus {
   RESERVED
@@ -45,8 +37,9 @@ model Event {
   updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?              // Soft delete
 
+  // Relations
   tickets    Ticket[]               // Tickets liés à cet événement
-  offers     Offer[]                // Relation inverse vers Offer
+  offers     Offer[]                // Offres associées à cet événement
 }
 
 model Offer {
@@ -54,15 +47,16 @@ model Offer {
   label      String
   discount   Float
   active     Boolean   @default(true)
-  targetRole Role
-  validFrom  DateTime?             // Optionnel : début de validité
-  validTo    DateTime?             // Optionnel : fin de validité
-  quota      Int?                  // Optionnel : nombre max de tickets
+  validFrom  DateTime?               // Début de validité
+  validTo    DateTime?               // Fin de validité
+  quota      Int?                    // Nombre max de tickets
 
+  // Relation vers Event
   eventId    Int?
   event      Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  tickets    Ticket[]             // Tickets associés à cette offre
+  // Relation inverse vers Ticket
+  tickets    Ticket[]
 }
 
 model Ticket {
@@ -75,11 +69,12 @@ model Ticket {
   secretKey String       @unique
   signature String       @unique
 
-  // On garde juste l'ID, plus de relation Prisma vers User
+  // Référence utilisateur (pas de relation Prisma vers User)
   userId    Int
+
+  // Relations vers Event et Offer
   eventId   Int?
   offerId   Int?
-
   event     Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   offer     Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
 }

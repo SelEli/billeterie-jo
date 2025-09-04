@@ -1,3 +1,5 @@
+// utils/httpSuccessMap.js
+
 const SUCCESS_STATUS = {
   // --- CREATE ---
   CREATE_USER:     { status: 201, wrap: (payload) => payload },

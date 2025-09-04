@@ -1,23 +1,16 @@
 // services/ticket/validateTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
-const crypto = require('crypto');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
+/**
+ * Passe un ticket de RESERVED à VALID et publie un event Kafka
+ */
 async function validateTicketService(ticketId) {
-  const id = Number(ticketId);
-  if (Number.isNaN(id)) {
-    const err = new Error('INVALID_TICKET_ID');
-    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
-    throw err;
-  }
+  const numericId = typeof ticketId === 'string' ? Number(ticketId) : ticketId;
 
-  const ticket = await prisma.ticket.findUnique({
-    where: { id },
-    include: { user: { select: { invisibleKey: true } }, event: true }
-  });
-
+  const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
   if (!ticket) {
     const err = new Error('TICKET_NOT_FOUND');
     err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
@@ -30,23 +23,12 @@ async function validateTicketService(ticketId) {
     throw err;
   }
 
-  if (ticket.event && ticket.event.date < new Date()) {
-    const err = new Error('EVENT_EXPIRED');
-    err.statusCode = ERROR_STATUS.EVENT_EXPIRED;
-    throw err;
-  }
-
-  const signature = crypto
-    .createHmac('sha256', ticket.user.invisibleKey)
-    .update(ticket.secretKey)
-    .digest('hex');
-
   const updated = await prisma.ticket.update({
-    where: { id },
-    data: { signature, status: 'VALID' }
+    where: { id: numericId },
+    data: { status: 'VALID' }
   });
 
-  logger.info(`[TICKET] Validated: ${updated.id}`);
+  logger.info(`[TICKET SERVICE] Ticket ${numericId} validated`);
 
   try {
     await publishKafkaEvent('ticketing', {
@@ -54,11 +36,12 @@ async function validateTicketService(ticketId) {
       ticketId: updated.id,
       userId: updated.userId,
       eventId: updated.eventId,
-      status: updated.status,
-      signature: updated.signature
+      offerId: updated.offerId,
+      status: updated.status
     });
+    logger.debug(`[TICKET SERVICE] Kafka event TicketValidated published for ticket ${numericId}`);
   } catch (err) {
-    logger.warn(`[TICKET][VALIDATE] Kafka publish skipped: ${err.message}`);
+    logger.warn(`[TICKET SERVICE] Kafka publish failed: ${err.message}`);
   }
 
   return updated;

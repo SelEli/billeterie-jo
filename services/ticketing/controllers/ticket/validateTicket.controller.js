@@ -1,33 +1,46 @@
 // controllers/ticket/validateTicket.controller.js
+const { createAdapters } = require('../../adapters');
 const { validateTicketService } = require('../../services/ticket/validateTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 
-/**
- * 🎯 Contrôleur : Validation d'un ticket
- * 🔒 Réservé au rôle PAYMENT uniquement
- * ✅ Appelle le service pour passer le ticket à VALID
- */
 async function validateTicketController(req, res) {
   try {
-    // 🔒 Vérification du rôle
     if (!req.user || req.user.role !== 'PAYMENT') {
-      return sendBusinessError(res, 'FORBIDDEN', 403);
+      return sendBusinessError(res, 'FORBIDDEN');
     }
 
     const { ticketId } = req.body;
     if (!ticketId || isNaN(Number(ticketId))) {
-      return sendBusinessError(res, 'INVALID_TICKET_ID', 400);
+      return sendBusinessError(res, 'INVALID_TICKET_ID');
     }
 
+    const adapters = createAdapters();
+
+    if ((process.env.USE_EXTERNAL_PAYMENT || '').toLowerCase() === 'true') {
+      logger.info('[VALIDATE CTRL] Délégation au service Payment externe');
+      const out = await adapters.payment.requestTicketValidation(
+        Number(ticketId),
+        req.headers.authorization
+      );
+      return res.status(200).json(out);
+    }
+
+    logger.info('[VALIDATE CTRL] Validation interne');
     const updated = await validateTicketService(Number(ticketId));
-    return sendBusinessSuccess(res, 'VALIDATE_TICKET', updated, {
-      message: 'Ticket validated successfully'
-    });
+
+    if (!updated) {
+      return sendBusinessError(res, 'TICKET_NOT_FOUND');
+    }
+
+    return sendBusinessSuccess(res, 'VALIDATE_TICKET', updated);
   } catch (err) {
-    logger.error('[TICKET][VALIDATE] Error:', err);
-    return sendBusinessError(res, err.message || 'INTERNAL_SERVER_ERROR');
+    logger.error('[VALIDATE CTRL] Error:', err);
+    const code = err && err.message && err.message in require('../../utils/httpErrorMap').ERROR_STATUS
+      ? err.message
+      : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

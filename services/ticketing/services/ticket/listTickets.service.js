@@ -1,8 +1,9 @@
-// services/ticket/listTickets.service.js
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
+/**
+ * Liste paginée des tickets avec filtres
+ */
 async function listTicketsService(filters = {}) {
   try {
     logger.debug('[TICKET SERVICE] Fetching tickets list');
@@ -13,18 +14,20 @@ async function listTicketsService(filters = {}) {
     if (filters.userId) {
       const userId = Number(filters.userId);
       if (Number.isNaN(userId)) {
-        logger.warn(`[TICKET SERVICE] Invalid userId filter: ${filters.userId}`);
-        return { error: 'INVALID_USER_ID' };
+        const err = new Error('INVALID_USER_ID');
+        err.statusCode = ERROR_STATUS.INVALID_USER_ID;
+        throw err;
       }
       where.userId = userId;
     }
 
     // Filtre par status
     if (filters.status) {
-      const validStatuses = ['RESERVED', 'VALID', 'CANCELLED', 'USED'];
+      const validStatuses = ['RESERVED', 'VALID', 'CANCELLED', 'USED', 'EXPIRED'];
       if (!validStatuses.includes(filters.status)) {
-        logger.warn(`[TICKET SERVICE] Invalid status filter: ${filters.status}`);
-        return { error: 'INVALID_STATUS' };
+        const err = new Error('INVALID_TICKET_STATUS');
+        err.statusCode = ERROR_STATUS.INVALID_TICKET_STATUS;
+        throw err;
       }
       where.status = filters.status;
     }
@@ -42,7 +45,7 @@ async function listTicketsService(filters = {}) {
       };
     }
 
-    // Requête + total en parallèle (sans jointure User)
+    // Requête + total en parallèle
     const [tickets, total] = await Promise.all([
       prisma.ticket.findMany({
         where,

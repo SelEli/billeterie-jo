@@ -1,10 +1,10 @@
-// controllers/ticket/updateTicket.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { updateTicketService } = require('../../services/ticket/updateTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function updateTicketController(req, res) {
   const id = Number(req.params.id);
@@ -14,7 +14,6 @@ async function updateTicketController(req, res) {
 
   const timer = monitor.timer('ticket_update').start();
   try {
-    // Pas de passage à VALID ici: réservé à Payment
     if (req.body.status && req.body.status === 'VALID') {
       return sendBusinessError(res, 'INVALID_TICKET_STATUS');
     }
@@ -47,7 +46,10 @@ async function updateTicketController(req, res) {
   } catch (error) {
     timer.stop();
     logger.error('Error updating ticket', error);
-    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
+    const code = error.message && error.message in ERROR_STATUS
+      ? error.message
+      : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

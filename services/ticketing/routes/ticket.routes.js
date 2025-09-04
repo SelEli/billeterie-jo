@@ -1,4 +1,3 @@
-// routes/ticket.routes.js
 const express = require('express');
 const router = express.Router();
 
@@ -17,6 +16,7 @@ const { updateTicketController }   = require('../controllers/ticket/updateTicket
 const { deleteTicketController }   = require('../controllers/ticket/deleteTicket.controller');
 const { listTicketsController }    = require('../controllers/ticket/listTickets.controller');
 const { validateTicketController } = require('../controllers/ticket/validateTicket.controller');
+const { verifyTicketController }   = require('../controllers/ticket/verifyTicket.controller');
 
 // Vérification stricte des contrôleurs
 [
@@ -25,7 +25,8 @@ const { validateTicketController } = require('../controllers/ticket/validateTick
   ['updateTicketController', updateTicketController],
   ['deleteTicketController', deleteTicketController],
   ['listTicketsController', listTicketsController],
-  ['validateTicketController', validateTicketController]
+  ['validateTicketController', validateTicketController],
+  ['verifyTicketController', verifyTicketController]
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     throw new Error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -94,15 +95,32 @@ router.get(
   listTicketsController
 );
 
-// ✅ Nouveau endpoint pour validation par Payment
+// ✅ Endpoint pour validation par Payment
+//    - Auth obligatoire
+//    - Rôle PAYMENT vérifié dans le contrôleur
+//    - Appelle validateTicketController qui met à jour la DB et émet Kafka
 router.post(
   '/validate',
   authenticate,
   (req, res, next) => {
-    logger.info('[TICKET ROUTES][POST /validate] → validateTicketController');
+    logger.info('[TICKET ROUTES][POST /validate] → validateTicketController (via Payment)');
     next();
   },
   validateTicketController
+);
+
+// ✅ Endpoint pour vérification sur site (AGENT / EMPLOYEE)
+//    - Auth obligatoire
+//    - Rôle vérifié dans le contrôleur
+//    - Appelle verifyTicketController qui met à jour le statut (USED) et émet Kafka
+router.post(
+  '/verify',
+  authenticate,
+  (req, res, next) => {
+    logger.info('[TICKET ROUTES][POST /verify] → verifyTicketController (contrôle sur site)');
+    next();
+  },
+  verifyTicketController
 );
 
 module.exports = router;

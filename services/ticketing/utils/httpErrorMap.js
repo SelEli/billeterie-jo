@@ -1,3 +1,5 @@
+// utils/httpErrorMap.js
+
 const ERROR_STATUS = {
   // --- Champs requis / validation ---
   EMAIL_REQUIRED:           400,

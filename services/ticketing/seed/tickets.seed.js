@@ -1,4 +1,4 @@
-// seeds/seedTickets.js
+// seeds/tickets.seed.js
 const prisma = require('../utils/prismaClient');
 const logger = require('../utils/logger');
 
@@ -6,7 +6,7 @@ module.exports = async function seedTickets() {
   try {
     const ticketsData = [
       {
-        userId: 1, // ID d'un user existant dans Auth
+        userId: 1,
         eventId: 999,
         offerId: 101,
         zone: 'A',
@@ -24,16 +24,6 @@ module.exports = async function seedTickets() {
         status: 'VALID',
         secretKey: 'seed-secret-B',
         signature: 'seed-signature-B'
-      },
-      {
-        userId: 1,
-        eventId: null,
-        offerId: 102,
-        zone: 'C',
-        price: 0.0,
-        status: 'VALID',
-        secretKey: 'seed-secret-C',
-        signature: 'seed-signature-C'
       }
     ];
 
@@ -45,7 +35,7 @@ module.exports = async function seedTickets() {
     logger.info(`✅ Tickets seeded (${result.count} inserted or skipped)`);
   } catch (error) {
     logger.error('❌ Failed to seed tickets', { error: error.message });
-    process.exitCode = 1; // utile si utilisé en CLI
+    process.exitCode = 1;
   } finally {
     await prisma.$disconnect();
   }

@@ -5,12 +5,12 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function startUserConsumer() {
-  const consumer = getKafka().consumer({ groupId: 'ticketing-users-group' });
+  const consumer = getKafka().consumer({ groupId: 'ticketing-user-group' });
 
   await consumer.connect();
-  await consumer.subscribe({ topic: 'users', fromBeginning: true });
+  await consumer.subscribe({ topic: 'user', fromBeginning: true });
 
-  logger.info('[Kafka][UserConsumer] Abonné au topic "users"');
+  logger.info('[Kafka][UserConsumer] Abonné au topic "user"');
 
   await consumer.run({
     eachMessage: async ({ message }) => {

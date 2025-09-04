@@ -6,6 +6,9 @@ const { cacheTicket, getCachedTicket } = require('../../cache/ticket.cache');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const axios = require('axios');
 
+/**
+ * Lecture d'un ticket par ID, avec cache et vérification optionnelle de l'utilisateur via Auth
+ */
 async function readTicketService(id, authHeader) {
   const t = timer('readTicketService').start();
 
@@ -17,7 +20,7 @@ async function readTicketService(id, authHeader) {
   }
 
   try {
-    // Lecture cache
+    // 1. Lecture cache
     const cached = await getCachedTicket(numericId);
     if (cached) {
       logger.info(`[cache] Ticket ${numericId} trouvé en cache`);
@@ -25,7 +28,7 @@ async function readTicketService(id, authHeader) {
       return cached;
     }
 
-    // Lecture DB sans secretKey ni jointure User
+    // 2. Lecture DB
     const ticket = await prisma.ticket.findUnique({
       where: { id: numericId },
       select: {
@@ -50,9 +53,9 @@ async function readTicketService(id, authHeader) {
       throw err;
     }
 
-    // Optionnel : vérifier l'utilisateur via Auth
+    // 3. Vérification utilisateur via Auth (non bloquante)
     try {
-      const res = await axios.get(`${process.env.AUTH_SERVICE_URL}/user/${ticket.userId}`, {
+      const res = await axios.get(`${process.env.AUTH_URL}/user/${ticket.userId}`, {
         headers: { Authorization: authHeader }
       });
       if (!res.data || !res.data.data) {
@@ -62,6 +65,7 @@ async function readTicketService(id, authHeader) {
       logger.warn(`[TICKET SERVICE] Auth check failed: ${err.message}`);
     }
 
+    // 4. Mise en cache
     await cacheTicket(ticket);
     logger.info(`[cache] Ticket ${numericId} mis en cache`);
 
