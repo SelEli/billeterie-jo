@@ -1,13 +1,18 @@
 // controllers/ticket/verifyTicket.controller.js
+const axios = require('axios');
 const { createAdapters } = require('../../adapters');
 const { verifyTicketService } = require('../../services/ticket/verifyTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 
+// Cache simple en mémoire : { userId: { role, expiresAt } }
+const roleCache = new Map();
+const CACHE_TTL_MS = 60_000; // 1 minute
+
 async function verifyTicketController(req, res) {
   try {
-    if (!req.user || !['AGENT', 'EMPLOYEE'].includes(req.user.role)) {
+    if (!req.user) {
       return sendBusinessError(res, 'FORBIDDEN');
     }
 
@@ -16,22 +21,34 @@ async function verifyTicketController(req, res) {
       return sendBusinessError(res, 'INVALID_TICKET_ID');
     }
 
-    const adapters = createAdapters();
+    const userId = req.user.userId;
+    let role;
 
-    if ((process.env.USE_EXTERNAL_VERIFICATION || '').toLowerCase() === 'true') {
-      logger.info('[VERIFY CTRL] Délégation au service Verification externe');
-      const out = await adapters.verification.requestTicketVerification(
-        Number(ticketId),
-        req.headers.authorization
+    // 🔹 Vérifie si le rôle est en cache et encore valide
+    const cached = roleCache.get(userId);
+    if (cached && cached.expiresAt > Date.now()) {
+      role = cached.role;
+    } else {
+      // 🔹 Sinon, récupère depuis Auth
+      const { data: profileRes } = await axios.get(
+        `${process.env.USER_URL}/${userId}`,
+        { headers: { Authorization: req.headers.authorization } }
       );
-      return res.status(200).json(out);
+      role = profileRes?.data?.role;
+
+      // 🔹 Met en cache
+      roleCache.set(userId, { role, expiresAt: Date.now() + CACHE_TTL_MS });
+    }
+
+    if (!['AGENT', 'EMPLOYEE'].includes(role)) {
+      return sendBusinessError(res, 'FORBIDDEN');
     }
 
     logger.info('[VERIFY CTRL] Vérification interne');
     const updated = await verifyTicketService(
       Number(ticketId),
-      req.user.userId,
-      req.user.role,
+      userId,
+      role, // rôle issu d’Auth ou du cache
       req.headers.authorization
     );
 
@@ -39,6 +56,7 @@ async function verifyTicketController(req, res) {
       return sendBusinessError(res, 'TICKET_NOT_FOUND');
     }
 
+    const adapters = createAdapters();
     adapters.verification.notifyTicketVerified(updated).catch(() => {});
 
     return sendBusinessSuccess(res, 'VERIFY_TICKET', updated);

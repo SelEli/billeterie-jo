@@ -1,13 +1,19 @@
 // controllers/ticket/validateTicket.controller.js
 const { createAdapters } = require('../../adapters');
-const { validateTicketService } = require('../../services/ticket/validateTicket.service');
+const { validateTicketService, PAYMENT_SERVICE_USER_ID } = require('../../services/ticket/validateTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 
 async function validateTicketController(req, res) {
   try {
-    if (!req.user || req.user.role !== 'PAYMENT') {
+    if (
+      !req.user ||
+      !(
+        req.user.role === 'PAYMENT' ||
+        (req.user.role === 'AGENT' && req.user.userId === Number(PAYMENT_SERVICE_USER_ID))
+      )
+    ) {
       return sendBusinessError(res, 'FORBIDDEN');
     }
 
@@ -28,7 +34,11 @@ async function validateTicketController(req, res) {
     }
 
     logger.info('[VALIDATE CTRL] Validation interne');
-    const updated = await validateTicketService(Number(ticketId));
+    const updated = await validateTicketService(
+      Number(ticketId),
+      req.user.userId, // <-- corrigé ici
+      req.user.role
+    );
 
     if (!updated) {
       return sendBusinessError(res, 'TICKET_NOT_FOUND');
@@ -37,9 +47,12 @@ async function validateTicketController(req, res) {
     return sendBusinessSuccess(res, 'VALIDATE_TICKET', updated);
   } catch (err) {
     logger.error('[VALIDATE CTRL] Error:', err);
-    const code = err && err.message && err.message in require('../../utils/httpErrorMap').ERROR_STATUS
-      ? err.message
-      : 'INTERNAL_SERVER_ERROR';
+    const code =
+      err &&
+      err.message &&
+      err.message in require('../../utils/httpErrorMap').ERROR_STATUS
+        ? err.message
+        : 'INTERNAL_SERVER_ERROR';
     return sendBusinessError(res, code);
   }
 }

@@ -6,9 +6,16 @@ FROM node:18-slim
 ENV TZ=Europe/Paris \
     PATH=/app/node_modules/.bin:$PATH
 
-# Installer dépendances système
+# Installer dépendances système (ajout de curl ici)
 RUN apt-get update && \
-    apt-get install -y openssl libssl-dev ca-certificates python3 make g++ && \
+    apt-get install -y \
+      curl \
+      openssl \
+      libssl-dev \
+      ca-certificates \
+      python3 \
+      make \
+      g++ && \
     rm -rf /var/lib/apt/lists/*
 
 # Dossier de travail
