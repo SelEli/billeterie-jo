@@ -1,28 +1,15 @@
 // src/ticketing/pages/TicketsList.jsx
-import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import List from '../../common/components/List';
 import Pagination from '../../common/components/Pagination';
-import TicketForm from '../components/TicketForm';
-import { listTickets, createTicket } from '../api/ticket';
+import { listTickets } from '../api/ticket';
 import { useAuth } from '../../common/context/AuthContext';
+import TicketStatusBadge from '../components/TicketStatusBadge';
 
 export default function TicketsList() {
-  const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
   const { user, loading, hasRole } = useAuth();
-
-  const handleCreate = async (values) => {
-    const allowed = (({ price, zone, status, eventId, offerId }) => ({
-      price,
-      zone,
-      status,
-      eventId,
-      offerId
-    }))(values);
-
-    await createTicket(allowed);
-    setShowForm(false);
-  };
 
   const fetchFn = async (params) => {
     if (!user) return [];
@@ -46,35 +33,44 @@ export default function TicketsList() {
         {user && (
           <button
             className="btn btn--primary"
-            onClick={() => setShowForm(v => !v)}
+            onClick={() => navigate('/ticket/create')}
           >
-            {showForm ? 'Fermer' : 'Créer un ticket'}
+            Créer un ticket
           </button>
         )}
       </div>
-
-      {showForm && user && (
-        <div className="form-container">
-          <TicketForm
-            onSubmit={handleCreate}
-            submitLabel="Créer"
-            isEdit={false}
-            createdById={user.id}
-          />
-        </div>
-      )}
 
       <Pagination
         fetchFn={fetchFn}
         render={(tickets = []) => (
           <List
             data={tickets}
-            columns={
-              hasRole && hasRole('ADMIN')
-                ? ['id', 'eventId', 'price', 'status', 'userId']
-                : ['id', 'eventId', 'price', 'status']
-            }
-            linkBase="/tickets"
+            columns={['id', 'eventId', 'price', 'status', 'actions']}
+            linkBase="/ticket"
+            renderCell={(col, value, row) => {
+              if (col === 'status') {
+                return <TicketStatusBadge status={value} />;
+              }
+              if (col === 'actions') {
+                if (row.status === 'RESERVED') {
+                  return (
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--sm"
+                      onClick={(e) => {
+                        e.preventDefault();   // bloque le lien
+                        e.stopPropagation();  // bloque le clic ligne
+                        navigate(`/payment/start?ticketId=${row.id}`);
+                      }}
+                    >
+                      Payer
+                    </button>
+                  );
+                }
+                return null;
+              }
+              return value;
+            }}
           />
         )}
       />

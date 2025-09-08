@@ -1,4 +1,5 @@
 // utils/httpErrorMap.js
+
 const ERROR_STATUS = {
   // --- Champs requis / validation ---
   EMAIL_REQUIRED:           400,
@@ -21,8 +22,8 @@ const ERROR_STATUS = {
   INVALID_TICKET_STATUS:    400,
   EVENT_EXPIRED:            400,
   PAYMENT_NOT_CONFIRMED:    400,
-  TICKET_ALREADY_USED:      400,
-  TICKET_NOT_VALID:         400,
+  TICKET_ALREADY_USED:      400, // ajouté pour contrôle d’accès
+  TICKET_NOT_VALID:         400, // ajouté si pas encore VALID
 
   // --- Authentification / autorisation ---
   INVALID_PASSWORD:         401,

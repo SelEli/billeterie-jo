@@ -27,13 +27,13 @@ export default function RoleDetail() {
   const handleUpdateRole = async (values) => {
     const allowed = (({ role }) => ({ role }))(values);
     await updateRole(id, allowed.role);
-    navigate('/roles');
+    navigate('/role');
   };
 
   return (
     <PageLayout title={`Rôle de ${user.email}`} containerSize="sm" gap="4">
       <RoleForm initialValues={{ role: user.role }} onSubmit={handleUpdateRole} />
-      <button className="btn btn--secondary w-full" onClick={() => navigate('/roles')}>
+      <button className="btn btn--secondary w-full" onClick={() => navigate('/role')}>
         Retour
       </button>
     </PageLayout>

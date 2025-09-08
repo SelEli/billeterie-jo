@@ -50,10 +50,10 @@ export default function Header() {
           {/* Liens admin */}
           {user?.role === 'ADMIN' && (
             <>
-              <Link to="/users" className="header-jo__link" onClick={closeMenu}>
+              <Link to="/user" className="header-jo__link" onClick={closeMenu}>
                 Utilisateurs
               </Link>
-              <Link to="/roles" className="header-jo__link" onClick={closeMenu}>
+              <Link to="/role" className="header-jo__link" onClick={closeMenu}>
                 Rôles
               </Link>
             </>

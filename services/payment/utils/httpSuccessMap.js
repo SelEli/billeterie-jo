@@ -1,4 +1,5 @@
 // utils/httpSuccessMap.js
+
 const SUCCESS_STATUS = {
   // --- CREATE ---
   CREATE_USER:     { status: 201, wrap: (payload) => payload },
@@ -23,15 +24,15 @@ const SUCCESS_STATUS = {
   READ_OFFER_LIST: { status: 200, wrap: (payload) => payload },
 
   // --- UPDATE ---
-  UPDATE_USER:           { status: 200, wrap: (payload) => payload },
-  UPDATE_PROFILE:        { status: 200, wrap: (payload) => payload },
-  UPDATE_ROLE:           { status: 200, wrap: (payload) => payload },
-  UPDATE_TICKET:         { status: 200, wrap: (payload) => payload },
-  UPDATE_EVENT:          { status: 200, wrap: (payload) => payload },
-  UPDATE_OFFER:          { status: 200, wrap: (payload) => payload },
-  UPDATE_TICKET_STATUS:  { status: 200, wrap: (payload) => payload },
-  VALIDATE_TICKET:       { status: 200, wrap: (payload) => payload },
-  VERIFY_TICKET:         { status: 200, wrap: (payload) => payload },
+  UPDATE_USER:     { status: 200, wrap: (payload) => payload },
+  UPDATE_PROFILE:  { status: 200, wrap: (payload) => payload },
+  UPDATE_ROLE:     { status: 200, wrap: (payload) => payload },
+  UPDATE_TICKET:   { status: 200, wrap: (payload) => payload },
+  UPDATE_EVENT:    { status: 200, wrap: (payload) => payload },
+  UPDATE_OFFER:    { status: 200, wrap: (payload) => payload },
+  UPDATE_TICKET_STATUS: { status: 200, wrap: (payload) => payload },
+  VALIDATE_TICKET: { status: 200, wrap: (payload) => payload },
+  VERIFY_TICKET:   { status: 200, wrap: (payload) => payload }, // ajouté pour contrôle d’accès
 
   // --- DELETE ---
   DELETE:          { status: 204, wrap: () => null },

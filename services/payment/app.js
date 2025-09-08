@@ -5,8 +5,11 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 
-const { initKafka } = require('./utils/kafkaClient');
-const { logger, requestId, formatLogContext } = require('./utils');
+const {
+  logger,
+  requestId,
+  formatLogContext
+} = require('./utils');
 const { error } = require('./utils/response');
 
 const mainRoutes = require('./routes');
@@ -38,6 +41,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+// --- Fin CORS ---
 
 // 📜 Logs HTTP
 app.use(
@@ -52,47 +56,36 @@ app.use(requestId);
 
 // 🪵 Logger compact global
 app.use((req, res, next) => {
-  logger.debug(`[PAYMENT-SERVICE][REQ] ${req.method} ${req.originalUrl} ${formatLogContext(req)}`);
+  logger.debug(`[APP][REQ] ${req.method} ${req.originalUrl} ${formatLogContext(req)}`);
   next();
 });
 
-// 💓 Healthcheck
+// 💓 Healthcheck (avant les autres routes)
 app.get('/health', (req, res) => {
-  logger.info('[PAYMENT-SERVICE][HEALTH] 💓 OK');
+  logger.info('[HEALTH] 💓 OK');
   res.status(200).send('OK');
 });
 
-// 🚏 Montage des routes
+// 🚏 Montage des routes via index
 app.use('/', mainRoutes);
 
 // 🚫 404 — non trouvé
 app.use((req, res) => {
-  logger.warn(`[PAYMENT-SERVICE][404] Route not found: ${req.method} ${req.originalUrl}`);
+  logger.warn(`[APP][404] Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json(error(['Route not found.']));
 });
 
 // 🛑 Gestion globale des erreurs
 app.use((err, req, res, next) => {
-  logger.error('[PAYMENT-SERVICE][ERROR] Unhandled error object:', err);
-  logger.error('[PAYMENT-SERVICE][ERROR] Stack trace:', err && err.stack);
+  logger.error('[APP][ERROR] Unhandled error object:', err);
+  logger.error('[APP][ERROR] Stack trace:', err && err.stack);
   if (req.body && Object.keys(req.body).length) {
-    logger.error('[PAYMENT-SERVICE][ERROR] Request body at error time:', req.body);
+    logger.error('[APP][ERROR] Request body at error time:', req.body);
   }
-  const code = err.statusCode || 500;
-  res.status(code).json(error([err.message || 'Internal server error.']));
+  const code = err.statusCode && Number.isInteger(err.statusCode) ? err.statusCode : 500;
+  res.status(code).json(
+    error([err.message || 'Internal server error.'])
+  );
 });
 
-// 🚀 Lancement serveur + Kafka
-(async () => {
-  try {
-    await initKafka();
-    logger.info('[PAYMENT-SERVICE] ✅ Kafka connecté et prêt');
-    const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => {
-      logger.info(`[PAYMENT-SERVICE] 🚀 Service démarré sur port ${PORT}`);
-    });
-  } catch (err) {
-    logger.error('[PAYMENT-SERVICE] ❌ Erreur init Kafka:', err);
-    process.exit(1);
-  }
-})();
+module.exports = app;

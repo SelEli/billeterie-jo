@@ -1,27 +1,33 @@
+// src/common/components/Detail.jsx
+import { useEffect, useState } from 'react';
 import PageLayout from './PageLayout';
 import Loader from './Loader';
-import { useEffect, useState } from 'react';
 
 export default function Detail({
   id,
   title,
-  fetchFn,
+  fetchFn,             // () => Promise(data)
   FormComponent,
   onSubmit,
   onDelete,
   submitLabel = 'Enregistrer',
   redirectAfterSave,
   redirectAfterDelete,
-  formProps = {}
+  formProps = {},
+  actions,             // fonction (data) => JSX ou JSX direct
+  children             // fonction (data) => JSX ou JSX direct
 }) {
   const [entity, setEntity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEdit, setIsEdit] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    setLoading(true);
     fetchFn(id)
-      .then(res => setEntity(res?.data || res))
-      .finally(() => setLoading(false));
+      .then(res => mounted && setEntity(res?.data || res))
+      .finally(() => mounted && setLoading(false));
+    return () => { mounted = false; };
   }, [id, fetchFn]);
 
   if (loading) {
@@ -34,19 +40,22 @@ export default function Detail({
 
   const handleDelete = async () => {
     if (!window.confirm('Confirmer la suppression ?')) return;
-    await onDelete(id);
+    await onDelete?.(id);
     if (redirectAfterDelete) redirectAfterDelete();
   };
 
   const handleSubmit = async (values) => {
-    await onSubmit(values);
+    await onSubmit?.(values);
     setIsEdit(false);
     if (redirectAfterSave) redirectAfterSave();
   };
 
-  const actions = (
+  const renderMaybeFn = (nodeOrFn) =>
+    typeof nodeOrFn === 'function' ? nodeOrFn(entity, { isEdit, setIsEdit, handleDelete }) : nodeOrFn;
+
+  const defaultActions = (
     <div className="actions-bar">
-      {!isEdit && (
+      {!isEdit && onSubmit && (
         <button className="btn btn--secondary" onClick={() => setIsEdit(true)}>
           Modifier
         </button>
@@ -60,14 +69,26 @@ export default function Detail({
   );
 
   return (
-    <PageLayout title={title} containerSize="lg" gap="4" actions={actions}>
-      <FormComponent
-        initialValues={{ ...entity }}
-        onSubmit={handleSubmit}
-        submitLabel={submitLabel}
-        isEdit={isEdit}
-        {...formProps}
-      />
+    <PageLayout
+      title={title}
+      containerSize="lg"
+      gap="4"
+      actions={actions ? renderMaybeFn(actions) : defaultActions}
+    >
+      {FormComponent && (
+        <FormComponent
+          initialValues={{ ...entity }}
+          onSubmit={handleSubmit}
+          submitLabel={submitLabel}
+          isEdit={isEdit}
+          {...formProps}
+        />
+      )}
+      {children && (
+        <div style={{ marginTop: '1rem' }}>
+          {renderMaybeFn(children)}
+        </div>
+      )}
     </PageLayout>
   );
 }

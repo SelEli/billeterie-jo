@@ -47,7 +47,7 @@ export default function UserDetail() {
     } else {
       if (!window.confirm('Supprimer cet utilisateur ?')) return;
       await deleteUser(id);
-      navigate('/users');
+      navigate('/user');
     }
   };
 

@@ -9,10 +9,8 @@ export default function List({
   actions = [],
   renderCell
 }) {
-  // On récupère hasRole depuis le contexte, mais on protège si absent
   const { hasRole } = useAuth() || {};
 
-  // Si pas de données du tout (null/undefined) → rien
   if (!data) return null;
 
   return (
@@ -29,7 +27,6 @@ export default function List({
         <tbody>
           {data.length > 0 ? (
             data.map(item => {
-              // On garde la logique du wrapper de ligne
               const RowWrapper = ({ children }) =>
                 linkBase ? (
                   <Link to={`${linkBase}/${item.id}`}>{children}</Link>
@@ -41,17 +38,20 @@ export default function List({
                 <tr key={item.id}>
                   {columns.map(col => (
                     <td key={col}>
-                      <RowWrapper>
-                        {renderCell
-                          ? renderCell(col, item[col], item)
-                          : String(item[col] ?? '')}
-                      </RowWrapper>
+                      {col === 'actions'
+                        ? (renderCell ? renderCell(col, item[col], item) : item[col])
+                        : (
+                          <RowWrapper>
+                            {renderCell
+                              ? renderCell(col, item[col], item)
+                              : String(item[col] ?? '')}
+                          </RowWrapper>
+                        )}
                     </td>
                   ))}
                   {actions.length > 0 && (
                     <td className="table-jo__actions">
                       {actions
-                        // On garde le filtrage par rôle, mais on protège si hasRole n'existe pas
                         .filter(
                           a =>
                             !a.roles ||
@@ -65,7 +65,11 @@ export default function List({
                             className={`btn btn--${
                               action.danger ? 'danger' : 'secondary'
                             } btn--sm`}
-                            onClick={() => action.onClick(item.id)}
+                            onClick={(e) => {
+                              e.preventDefault();   // bloque le lien
+                              e.stopPropagation();  // bloque le clic ligne
+                              action.onClick(item.id);
+                            }}
                           >
                             {action.label}
                           </button>
@@ -76,7 +80,6 @@ export default function List({
               );
             })
           ) : (
-            // Ligne unique si tableau vide
             <tr>
               <td
                 colSpan={columns.length + (actions.length > 0 ? 1 : 0)}

@@ -1,4 +1,3 @@
-// seeds/seedAuth.js
 const bcrypt = require('bcrypt');
 const prisma = require('../utils/prismaClient');
 const logger = require('../utils/logger');
@@ -28,6 +27,17 @@ module.exports = async function seedAuth() {
         birthDate: new Date('1985-05-05'),
         role: 'AGENT',
         invisibleKey: 'agent-key',
+        isBlacklisted: false
+      },
+      {
+        // Compte technique Payment AGENT
+        email: 'payment@example.com',
+        hash: passwordHash,
+        firstName: 'Payment',
+        lastName: 'Payment',
+        birthDate: new Date('1982-02-02'),
+        role: 'AGENT',
+        invisibleKey: 'payment-key',
         isBlacklisted: false
       },
       {

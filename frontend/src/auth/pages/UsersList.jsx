@@ -57,7 +57,7 @@ export default function UsersList() {
           <List
             data={users}
             columns={['email', 'role']}
-            linkBase="/users"
+            linkBase="/user"
             // On peut injecter ici des actions si besoin
             // actions={[
             //   { label: 'Modifier', onClick: (id) => navigate(`/users/${id}`), roles: ['ADMIN'] },

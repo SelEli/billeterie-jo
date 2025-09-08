@@ -50,7 +50,7 @@ export default function RolesList() {
       {roles.length === 0 ? (
         <p>Aucun rôle trouvé</p>
       ) : (
-        <List data={roles} columns={['name', 'permissions']} linkBase="/roles" />
+        <List data={roles} columns={['name', 'permissions']} linkBase="/role" />
       )}
     </PageLayout>
   );
