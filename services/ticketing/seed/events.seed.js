@@ -6,16 +6,16 @@ module.exports = async function seedEvents() {
   try {
     const eventsData = [
       {
-        id: 999,
-        label: 'Cérémonie Ouverture',
+        id: 1,
+        label: 'Cérémonie ouverture JO',
         date: new Date('2025-07-26T20:00:00Z'),
         location: 'Stade Olympique',
         category: 'CEREMONIE',
         deletedAt: null
       },
       {
-        id: 1000,
-        label: 'Finale 100m Hommes',
+        id: 2,
+        label: 'Finale 100m',
         date: new Date('2025-08-04T18:00:00Z'),
         location: 'Stade Olympique',
         category: 'ATHLETISME',

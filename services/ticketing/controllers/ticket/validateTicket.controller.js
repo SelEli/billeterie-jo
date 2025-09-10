@@ -1,42 +1,41 @@
-// controllers/ticket/validateTicket.controller.js
 const { createAdapters } = require('../../adapters');
-const { validateTicketService, PAYMENT_SERVICE_USER_ID } = require('../../services/ticket/validateTicket.service');
+const {
+  validateTicketService,
+  PAYMENT_SERVICE_USER_ID
+} = require('../../services/ticket/validateTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 
 async function validateTicketController(req, res) {
   try {
+    // Autorisation : rôle PAYMENT ou AGENT avec l'ID technique Payment
     if (
       !req.user ||
       !(
         req.user.role === 'PAYMENT' ||
-        (req.user.role === 'AGENT' && req.user.userId === Number(PAYMENT_SERVICE_USER_ID))
+        (req.user.role === 'AGENT' &&
+          req.user.userId === Number(PAYMENT_SERVICE_USER_ID))
       )
     ) {
       return sendBusinessError(res, 'FORBIDDEN');
     }
 
     const { ticketId } = req.body;
-    if (!ticketId || isNaN(Number(ticketId))) {
+    const ticketIdNum = Number(ticketId);
+    if (!ticketId || isNaN(ticketIdNum)) {
       return sendBusinessError(res, 'INVALID_TICKET_ID');
     }
 
-    const adapters = createAdapters();
+    logger.info('[VALIDATE CTRL] Validation ticket', {
+      ticketId: ticketIdNum,
+      userId: req.user.userId
+    });
 
-    if ((process.env.USE_EXTERNAL_PAYMENT || '').toLowerCase() === 'true') {
-      logger.info('[VALIDATE CTRL] Délégation au service Payment externe');
-      const out = await adapters.payment.requestTicketValidation(
-        Number(ticketId),
-        req.headers.authorization
-      );
-      return res.status(200).json(out);
-    }
-
-    logger.info('[VALIDATE CTRL] Validation interne');
+    // 1️⃣ Valider le ticket localement
     const updated = await validateTicketService(
-      Number(ticketId),
-      req.user.userId, // <-- corrigé ici
+      ticketIdNum,
+      req.user.userId,
       req.user.role
     );
 
@@ -44,9 +43,29 @@ async function validateTicketController(req, res) {
       return sendBusinessError(res, 'TICKET_NOT_FOUND');
     }
 
+    // 2️⃣ Si paiement externe, notifier Payment que c’est validé
+    if ((process.env.USE_EXTERNAL_PAYMENT || '').toLowerCase() === 'true') {
+      const adapters = createAdapters();
+      try {
+        await adapters.payment.notifyPaymentConfirmed(
+          ticketIdNum,
+          req.headers.authorization
+        );
+        logger.info('[VALIDATE CTRL] Notification envoyée à Payment', {
+          ticketId: ticketIdNum
+        });
+      } catch (err) {
+        logger.warn('[VALIDATE CTRL] Échec notification Payment', {
+          ticketId: ticketIdNum,
+          error: err.message
+        });
+        // On ne bloque pas la réponse au client
+      }
+    }
+
     return sendBusinessSuccess(res, 'VALIDATE_TICKET', updated);
   } catch (err) {
-    logger.error('[VALIDATE CTRL] Error:', err);
+    logger.error('[VALIDATE CTRL] Error', { message: err.message });
     const code =
       err &&
       err.message &&

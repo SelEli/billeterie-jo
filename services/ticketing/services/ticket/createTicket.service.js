@@ -1,97 +1,136 @@
+const crypto = require('crypto');
+const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
-const monitor = require('../../monitor/monitor');
-const { createTicketService } = require('../../services/ticket/createTicket.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { publishKafkaEvent } = require('../../utils/kafkaClient');
+const axios = require('axios');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
-async function createTicketController(req, res) {
-  logger.debug('[TICKET CONTROLLER] Requête création ticket reçue', {
-    user: req.user,
-    body: req.body
-  });
+/**
+ * Création d'un ticket :
+ * - Validation des données
+ * - Vérification de l'utilisateur via Auth (/user/:id pour internes, /auth/profile pour publics)
+ * - Vérification existence event/offer
+ * - Génération secretKey + signature
+ * - Insertion en base
+ */
+async function createTicketService(
+  { price, zone, eventId, status, userId, role, offerId = null },
+  authHeader
+) {
+  logger.debug('[TICKET][CREATE] Payload reçu', { price, zone, userId, role, eventId, status, offerId });
 
-  // Autorisation
-  if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
-    return sendBusinessError(res, 'FORBIDDEN');
-  }
+  const toNumOrNull = (v) =>
+    v === null || v === undefined ? null : (typeof v === 'string' ? Number(v) : v);
 
-  // Champs obligatoires
-  const missing = [];
-  if (req.body.price == null) missing.push('price');
-  if (!req.body.zone) missing.push('zone');
-  if (req.body.eventId == null) missing.push('eventId');
-  if (!req.body.status) missing.push('status');
-  if (missing.length) {
-    logger.warn('[TICKET CONTROLLER] Champs manquants', { missing });
-    return sendBusinessError(res, 'MISSING_REQUIRED_FIELDS');
-  }
+  const eventIdNum = toNumOrNull(eventId);
+  const offerIdNum = toNumOrNull(offerId);
 
   // Validation basique
-  if (typeof req.body.price !== 'number' || req.body.price <= 0) {
-    return sendBusinessError(res, 'INVALID_TICKET_DATA');
+  if (
+    typeof price !== 'number' ||
+    typeof zone !== 'string' ||
+    typeof userId !== 'number' ||
+    typeof status !== 'string'
+  ) {
+    logger.warn('[TICKET][CREATE] Données invalides');
+    const err = new Error('INVALID_TICKET_DATA');
+    err.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
+    throw err;
   }
-  if (!Number.isInteger(Number(req.body.eventId)) || Number(req.body.eventId) <= 0) {
-    return sendBusinessError(res, 'INVALID_EVENT_ID');
+  if (eventIdNum !== null && Number.isNaN(eventIdNum)) {
+    logger.warn('[TICKET][CREATE] eventId invalide');
+    const err = new Error('INVALID_TICKET_ID');
+    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
+    throw err;
+  }
+  if (offerIdNum !== null && Number.isNaN(offerIdNum)) {
+    logger.warn('[TICKET][CREATE] offerId invalide');
+    const err = new Error('INVALID_TICKET_ID');
+    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
+    throw err;
   }
 
-  const timer = monitor.timer('ticket_create').start();
+  // Vérifier l'utilisateur via Auth
+  let found = null;
   try {
-    const payload = {
-      ...req.body,
-      userId: req.user.userId,
-      role: req.user.role,
-      status: 'RESERVED' // forcé à RESERVED à la création
-    };
-
-    logger.debug('[TICKET CONTROLLER] Appel service createTicketService', payload);
-    const ticket = await createTicketService(payload, req.headers.authorization);
-
-    // Publication Kafka vers payment-service (déclenche le paiement)
-    try {
-      await publishKafkaEvent('payment', {
-        type: 'PaymentRequested',
-        ticketId: ticket.id,
-        amount: ticket.price
+    if (['ADMIN', 'AGENT', 'EMPLOYEE'].includes(role)) {
+      const url = `${process.env.USER_URL}/${userId}`;
+      logger.debug(`[TICKET][CREATE] Vérif utilisateur interne via ${url}`);
+      const res = await axios.get(url, {
+        headers: { Authorization: authHeader }
       });
-      logger.debug(`[TICKET CONTROLLER] PaymentRequested publié pour ticket ${ticket.id}`);
-    } catch (err) {
-      logger.warn(`[TICKET CONTROLLER] Kafka publish vers payment échoué: ${err.message}`);
-    }
-
-    // Publication Kafka interne (si besoin de conserver TicketCreated)
-    try {
-      await publishKafkaEvent('ticketing', {
-        type: 'TicketCreated',
-        ticketId: ticket.id,
-        userId: ticket.userId,
-        eventId: ticket.eventId,
-        offerId: ticket.offerId,
-        price: ticket.price,
-        zone: ticket.zone,
-        status: ticket.status
+      logger.debug('[TICKET][CREATE] Réponse Auth interne', res.data);
+      if (res.data?.data) found = res.data.data;
+    } else {
+      const url = `${process.env.AUTH_URL}/profile`;
+      logger.debug(`[TICKET][CREATE] Vérif utilisateur public via ${url}`);
+      const res = await axios.get(url, {
+        headers: { Authorization: authHeader }
       });
-    } catch (err) {
-      logger.warn(`[TICKET CONTROLLER] Kafka publish skipped: ${err.message}`);
+      logger.debug('[TICKET][CREATE] Réponse Auth public', res.data);
+      if (res.data?.data) found = res.data.data;
     }
-
-    timer.stop();
-    logger.info('[TICKET CONTROLLER] Ticket créé avec succès', { ticketId: ticket.id });
-
-    const { secretKey, ...safeTicket } = ticket;
-    return sendBusinessSuccess(res, 'CREATE_TICKET', safeTicket, {
-      message: 'Ticket created successfully'
-    });
-  } catch (error) {
-    timer.stop();
-    logger.error('[TICKET CONTROLLER] Erreur création ticket', { error: error.message });
-    const code =
-      error.message && error.message in ERROR_STATUS
-        ? error.message
-        : 'INTERNAL_SERVER_ERROR';
-    return sendBusinessError(res, code);
+  } catch (err) {
+    logger.warn(`[TICKET SERVICE] User check failed: ${err.message}`);
   }
+  if (!found) {
+    logger.warn('[TICKET][CREATE] Utilisateur introuvable');
+    const e = new Error('USER_NOT_FOUND');
+    e.statusCode = ERROR_STATUS.USER_NOT_FOUND;
+    throw e;
+  }
+
+  // Vérifier existence event
+  logger.debug(`[TICKET][CREATE] Vérif event ${eventIdNum}`);
+  const event = await prisma.event.findUnique({ where: { id: eventIdNum } });
+  if (!event) {
+    logger.warn(`[TICKET][CREATE] Event ${eventIdNum} introuvable`);
+    const err = new Error('EVENT_NOT_FOUND');
+    err.statusCode = ERROR_STATUS.EVENT_NOT_FOUND;
+    throw err;
+  }
+
+  // Vérifier existence offer si fourni
+  if (offerIdNum !== null) {
+    logger.debug(`[TICKET][CREATE] Vérif offer ${offerIdNum}`);
+    const offer = await prisma.offer.findUnique({ where: { id: offerIdNum } });
+    if (!offer) {
+      logger.warn(`[TICKET][CREATE] Offer ${offerIdNum} introuvable`);
+      const err = new Error('OFFER_NOT_FOUND');
+      err.statusCode = ERROR_STATUS.OFFER_NOT_FOUND;
+      throw err;
+    }
+  }
+
+  // Génération des clés
+  const secretKey = crypto.randomBytes(32).toString('hex');
+  const signature = crypto
+    .createHmac('sha256', secretKey)
+    .update(secretKey)
+    .digest('hex');
+
+  const data = {
+    price,
+    zone,
+    userId,
+    status,
+    eventId: eventIdNum,
+    offerId: offerIdNum,
+    secretKey,
+    signature
+  };
+
+  logger.debug('[TICKET][CREATE] Insertion ticket', data);
+  const ticket = await prisma.ticket.create({ data });
+
+  if (!ticket) {
+    logger.error('[TICKET][CREATE] Erreur interne lors de la création');
+    const err = new Error('INTERNAL_SERVER_ERROR');
+    err.statusCode = ERROR_STATUS.INTERNAL_SERVER_ERROR;
+    throw err;
+  }
+
+  logger.info(`[TICKET] Created: ${ticket.id}`);
+  return ticket;
 }
 
-module.exports = { createTicketController };
+module.exports = { createTicketService };
