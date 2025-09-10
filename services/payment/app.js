@@ -5,14 +5,11 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 
-const {
-  logger,
-  requestId,
-  formatLogContext
-} = require('./utils');
+const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
 
-const mainRoutes = require('./routes');
+// On importe directement le routeur Payment
+const paymentRoutes = require('./routes/payment.routes');
 
 const app = express();
 
@@ -40,8 +37,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-// --- Fin CORS ---
 
 // 📜 Logs HTTP
 app.use(
@@ -56,36 +51,42 @@ app.use(requestId);
 
 // 🪵 Logger compact global
 app.use((req, res, next) => {
-  logger.debug(`[APP][REQ] ${req.method} ${req.originalUrl} ${formatLogContext(req)}`);
+  logger.debug(`[PAYMENT-SERVICE][REQ] ${req.method} ${req.originalUrl} ${formatLogContext(req)}`);
   next();
 });
 
-// 💓 Healthcheck (avant les autres routes)
+// 🧹 Normalisation des URL pour éviter les problèmes de double slash
+app.use((req, res, next) => {
+  if (req.url.includes('//')) {
+    req.url = req.url.replace(/\/{2,}/g, '/');
+  }
+  next();
+});
+
+// 💓 Healthcheck
 app.get('/health', (req, res) => {
-  logger.info('[HEALTH] 💓 OK');
+  logger.info('[PAYMENT-SERVICE][HEALTH] 💓 OK');
   res.status(200).send('OK');
 });
 
-// 🚏 Montage des routes via index
-app.use('/', mainRoutes);
+// 🚏 Montage direct des routes Payment
+app.use('/payment', paymentRoutes);
 
 // 🚫 404 — non trouvé
 app.use((req, res) => {
-  logger.warn(`[APP][404] Route not found: ${req.method} ${req.originalUrl}`);
+  logger.warn(`[PAYMENT-SERVICE][404] Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json(error(['Route not found.']));
 });
 
 // 🛑 Gestion globale des erreurs
 app.use((err, req, res, next) => {
-  logger.error('[APP][ERROR] Unhandled error object:', err);
-  logger.error('[APP][ERROR] Stack trace:', err && err.stack);
+  logger.error('[PAYMENT-SERVICE][ERROR] Unhandled error object:', err);
+  logger.error('[PAYMENT-SERVICE][ERROR] Stack trace:', err && err.stack);
   if (req.body && Object.keys(req.body).length) {
-    logger.error('[APP][ERROR] Request body at error time:', req.body);
+    logger.error('[PAYMENT-SERVICE][ERROR] Request body at error time:', req.body);
   }
-  const code = err.statusCode && Number.isInteger(err.statusCode) ? err.statusCode : 500;
-  res.status(code).json(
-    error([err.message || 'Internal server error.'])
-  );
+  const code = err.statusCode || 500;
+  res.status(code).json(error([err.message || 'Internal server error.']));
 });
 
 module.exports = app;

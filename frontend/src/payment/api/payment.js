@@ -1,14 +1,33 @@
-// src/payment/api/payment.js
 import { apiFetch } from '../../common/utils/fetcher';
 
-// Initier un paiement (mock)
-export const initiatePayment = (ticketId) =>
-  apiFetch('/payment/initiate', { method: 'POST', body: { ticketId } });
+/**
+ * Démarrer un paiement (mock ou live)
+ * @param {number|string} ticketId - ID du ticket à payer
+ */
+export const startPayment = (ticketId) => {
+  const numericId = Number(ticketId);
+  if (Number.isNaN(numericId)) {
+    throw new Error(`Invalid ticketId: ${ticketId}`);
+  }
 
-// Confirmer un paiement et valider le ticket
-export const confirmPayment = (ticketId) =>
-  apiFetch('/ticket/validate', { method: 'POST', body: { ticketId } });
+  return apiFetch('/payment/start', {
+    method: 'POST',
+    body: { ticketId: numericId }
+  });
+};
 
-// Annuler un paiement
-export const cancelPayment = (ticketId) =>
-  apiFetch('/payment/cancel', { method: 'POST', body: { ticketId } });
+/**
+ * Confirmer un paiement et valider le ticket côté back
+ * @param {number|string} ticketId - ID du ticket à confirmer
+ */
+export const confirmPayment = (ticketId) => {
+  const numericId = Number(ticketId);
+  if (Number.isNaN(numericId)) {
+    throw new Error(`Invalid ticketId: ${ticketId}`);
+  }
+
+  return apiFetch('/payment/confirm', {
+    method: 'POST',
+    body: { ticketId: numericId }
+  });
+};

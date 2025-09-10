@@ -2,19 +2,23 @@ require('dotenv').config();
 const logger = require('./utils/logger');
 const { initKafka } = require('./utils/kafkaClient');
 const { initRedis } = require('./utils/redisClient');
-const { startUserConsumer } = require('./utils/kafkaConsumer');
+const { startConsumer } = require('./utils/kafkaConsumer'); // écoute user + ticket
 
 (async () => {
   try {
+    // Redis
     await initRedis();
     logger.info('✅ Redis client initialized');
 
+    // Kafka
     await initKafka();
     logger.info('✅ Kafka producer initialized');
 
-    await startUserConsumer();
-    logger.info('✅ Kafka user consumer started');
+    // Consumers Kafka
+    await startConsumer();
+    logger.info('✅ Kafka consumers (user + ticket) started');
 
+    // HTTP API
     const app = require('./app');
     const PORT = process.env.PORT || 3002;
     app.listen(PORT, () => {

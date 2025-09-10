@@ -32,7 +32,7 @@ export default function TicketCreate() {
     }))(values);
 
     const newTicket = await createTicket(allowed);
-    navigate(`/payment/start?ticketId=${newTicket.id}`);
+    navigate(`/pay/start?ticketId=${newTicket.id}`);
   };
 
   return (

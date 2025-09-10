@@ -11,7 +11,18 @@ const PaymentSchema = z.object({
   amount: z.number().positive().optional()
 });
 
-router.post('/start', validateRequest(PaymentSchema), startPaymentController);
-router.post('/confirm', validateRequest(PaymentSchema), confirmPaymentController);
+// START
+router.post(
+  '/start',
+  validateRequest(PaymentSchema),
+  startPaymentController
+);
+
+// CONFIRM
+router.post(
+  '/confirm',
+  validateRequest(PaymentSchema),
+  confirmPaymentController
+);
 
 module.exports = router;

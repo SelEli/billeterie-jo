@@ -66,7 +66,7 @@ export default function TicketDetail() {
                 </span>
                 <button
                   className="btn btn--payment"
-                  onClick={() => navigate(`/payment/start?ticketId=${ticket.id}`)}
+                  onClick={() => navigate(`/pay/start?ticketId=${ticket.id}`)}
                 >
                   Procéder au paiement
                 </button>

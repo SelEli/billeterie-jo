@@ -1,16 +1,41 @@
 const { confirmPaymentService } = require('../services/confirmPayment.service');
-const { sendBusinessSuccess, sendBusinessError } = require('../utils/sendSuccess');
+const { sendBusinessError } = require('../utils/sendError');
+const { sendBusinessSuccess } = require('../utils/sendSuccess');
+const logger = require('../utils/logger');
 
 async function confirmPaymentController(req, res) {
-  const { ticketId, amount } = req.body;
+  const { ticketId } = req.body; // amount ignoré
+
+  logger.info('[CONFIRM PAYMENT CTRL] Requête reçue', {
+    body: req.body,
+    user: req.user || null
+  });
+
   try {
-    const result = await confirmPaymentService(
+    const isMock = (process.env.USE_MOCK_PAYMENT || '').toLowerCase() === 'true';
+
+    logger.debug('[CONFIRM PAYMENT CTRL] Appel du service confirmPaymentService', {
       ticketId,
-      amount,
-      (process.env.USE_MOCK_PAYMENT || '').toLowerCase() === 'true'
-    );
+      isMock
+    });
+
+    const result = await confirmPaymentService(ticketId, isMock);
+
+    logger.info('[CONFIRM PAYMENT CTRL] Paiement confirmé avec succès', {
+      ticketId: result.ticketId,
+      amount: result.amount,
+      status: result.status
+    });
+
     return sendBusinessSuccess(res, 'CONFIRM_PAYMENT', result);
+
   } catch (err) {
+    logger.error('[CONFIRM PAYMENT CTRL] Erreur lors de la confirmation du paiement', {
+      message: err.message,
+      stack: err.stack,
+      body: req.body
+    });
+
     return sendBusinessError(res, err.message || 'INTERNAL_SERVER_ERROR');
   }
 }

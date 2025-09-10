@@ -1,98 +1,35 @@
 require('dotenv').config();
-
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const morgan = require('morgan');
-
+const logger = require('./utils/logger');
 const { initKafka } = require('./utils/kafkaClient');
-const { logger, requestId, formatLogContext } = require('./utils');
-const { error } = require('./utils/response');
+const { initRedis } = require('./utils/redisClient');
+const { startConsumer } = require('./utils/kafkaConsumer'); // écoute payment + verification
+const app = require('./app');
 
-const mainRoutes = require('./routes');
-
-const app = express();
-
-// 🌍 Middlewares globaux
-app.use(helmet());
-app.use(express.json());
-
-// --- CORS dynamique ---
-const allowedOrigins = (process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.length === 0) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
-// 📜 Logs HTTP
-app.use(
-  morgan(
-    process.env.MORGAN_FORMAT ||
-      (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')
-  )
-);
-
-// 🆔 ID unique pour chaque requête
-app.use(requestId);
-
-// 🪵 Logger compact global
-app.use((req, res, next) => {
-  logger.debug(`[PAYMENT-SERVICE][REQ] ${req.method} ${req.originalUrl} ${formatLogContext(req)}`);
-  next();
-});
-
-// 💓 Healthcheck
-app.get('/health', (req, res) => {
-  logger.info('[PAYMENT-SERVICE][HEALTH] 💓 OK');
-  res.status(200).send('OK');
-});
-
-// 🚏 Montage des routes
-app.use('/', mainRoutes);
-
-// 🚫 404 — non trouvé
-app.use((req, res) => {
-  logger.warn(`[PAYMENT-SERVICE][404] Route not found: ${req.method} ${req.originalUrl}`);
-  res.status(404).json(error(['Route not found.']));
-});
-
-// 🛑 Gestion globale des erreurs
-app.use((err, req, res, next) => {
-  logger.error('[PAYMENT-SERVICE][ERROR] Unhandled error object:', err);
-  logger.error('[PAYMENT-SERVICE][ERROR] Stack trace:', err && err.stack);
-  if (req.body && Object.keys(req.body).length) {
-    logger.error('[PAYMENT-SERVICE][ERROR] Request body at error time:', req.body);
-  }
-  const code = err.statusCode || 500;
-  res.status(code).json(error([err.message || 'Internal server error.']));
-});
-
-// 🚀 Lancement serveur + Kafka
 (async () => {
   try {
-    await initKafka();
-    logger.info('[PAYMENT-SERVICE] ✅ Kafka connecté et prêt');
-    const PORT = process.env.PORT || 4000;
+    // Redis (si nécessaire pour payment-service)
+    await initRedis();
+    logger.info('[PAYMENT-SERVICE] ✅ Redis client initialized');
+
+    // Kafka
+    await initKafka();              
+    logger.info('[PAYMENT-SERVICE] ✅ Kafka producer initialized');
+
+    // Consumers Kafka
+    await startConsumer();   
+    logger.info('[PAYMENT-SERVICE] ✅ Kafka consumers (payment + verification) started');
+
+    // HTTP API
+    const PORT = process.env.PORT || 3003;
     app.listen(PORT, () => {
       logger.info(`[PAYMENT-SERVICE] 🚀 Service démarré sur port ${PORT}`);
     });
+
   } catch (err) {
-    logger.error('[PAYMENT-SERVICE] ❌ Erreur init Kafka:', err);
+    logger.error('[PAYMENT-SERVICE] ❌ Erreur init services', {
+      message: err.message,
+      stack: err.stack
+    });
     process.exit(1);
   }
 })();

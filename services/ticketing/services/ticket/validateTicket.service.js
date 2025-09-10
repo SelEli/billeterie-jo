@@ -1,4 +1,3 @@
-// services/ticket/validateTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
@@ -47,7 +46,7 @@ async function validateTicketService(ticketId, callerUserId, callerRole) {
   logger.info(`[TICKET SERVICE] Ticket ${numericId} validated`);
 
   try {
-    await publishKafkaEvent('ticketing', {
+    await publishKafkaEvent('ticket', {
       type: 'TicketValidated',
       ticketId: updated.id,
       userId: updated.userId,

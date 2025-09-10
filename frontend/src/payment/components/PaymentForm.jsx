@@ -6,7 +6,7 @@ export default function PaymentForm({ onPay, onCancel, loading }) {
   const handleSubmitMock = (e) => {
     e.preventDefault();
     setShowModal(false);
-    onPay(); // déclenche confirmPayment côté front
+    onPay(); // démarre le paiement, la confirmation se fera ensuite
   };
 
   return (

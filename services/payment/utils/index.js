@@ -1,6 +1,6 @@
 // utils/index.js
 
-// 🔐 Keys management (ex-clefs.js)
+// 🔐 Keys management
 const keys = require('./keys');
 
 // 🔑 JWT utilities
@@ -12,9 +12,6 @@ const { initKafka, publishKafkaEvent, kafka } = require('./kafkaClient');
 // 🪵 Logger
 const logger = require('./logger');
 
-// 🗄 Prisma
-const prisma = require('./prismaClient');
-
 // ⚡ Redis
 const { initRedis, getRedis } = require('./redisClient');
 
@@ -23,6 +20,9 @@ const requestId = require('./requestId');
 
 // 📦 Uniform JSON responses
 const { success, error } = require('./response');
+
+// 💾 Payment cache
+const paymentCache = require('./paymentCache');
 
 module.exports = {
   // Keys
@@ -42,9 +42,6 @@ module.exports = {
   logger,
   formatLogContext: logger.formatLogContext,
 
-  // Prisma
-  prisma,
-
   // Redis
   initRedis,
   getRedis,
@@ -54,5 +51,8 @@ module.exports = {
 
   // JSON responses
   success,
-  error
+  error,
+
+  // Payment cache
+  ...paymentCache
 };

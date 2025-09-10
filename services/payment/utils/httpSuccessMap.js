@@ -34,6 +34,10 @@ const SUCCESS_STATUS = {
   VALIDATE_TICKET: { status: 200, wrap: (payload) => payload },
   VERIFY_TICKET:   { status: 200, wrap: (payload) => payload }, // ajouté pour contrôle d’accès
 
+  // --- PAYMENT ---
+  START_PAYMENT:   { status: 200, wrap: (payload) => payload }, // ajouté pour démarrage paiement
+  CONFIRM_PAYMENT: { status: 200, wrap: (payload) => payload }, // ajouté pour confirmation paiement
+
   // --- DELETE ---
   DELETE:          { status: 204, wrap: () => null },
   DELETE_USER:     { status: 204, wrap: () => null },

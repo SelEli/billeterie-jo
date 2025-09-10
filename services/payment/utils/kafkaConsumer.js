@@ -1,42 +1,44 @@
-const { getKafka } = require('./kafkaClient');
+const { startKafkaConsumer } = require('./kafkaClient');
 const logger = require('./logger');
-const { confirmPaymentService } = require('../services/confirmPayment.service');
+const { createAdapters } = require('../adapters');
 
-/**
- * Démarre le consumer Kafka pour traiter les demandes de paiement
- */
-async function startPaymentConsumer() {
-  const consumer = getKafka().consumer({ groupId: 'payment-service-group' });
+const { kafka: kafkaAdapter } = createAdapters();
 
-  await consumer.connect();
-  await consumer.subscribe({ topic: 'payment', fromBeginning: true });
-
-  logger.info('[Kafka][PaymentConsumer] Abonné au topic "payment"');
-
-  await consumer.run({
-    eachMessage: async ({ message }) => {
-      try {
-        const event = JSON.parse(message.value.toString());
-        logger.debug(`[Kafka][PaymentConsumer] Event reçu: ${JSON.stringify(event)}`);
-
-        switch (event.type) {
-          case 'PaymentRequested':
-            logger.info(`[Kafka][PaymentConsumer] Traitement PaymentRequested pour ticket ${event.ticketId}`);
-            await confirmPaymentService(
-              event.ticketId,
-              event.amount,
-              (process.env.USE_MOCK_PAYMENT || '').toLowerCase() === 'true'
-            );
-            break;
-
-          default:
-            logger.warn(`[Kafka][PaymentConsumer] Type d'événement inconnu: ${event.type}`);
-        }
-      } catch (err) {
-        logger.error(`[Kafka][PaymentConsumer] Erreur traitement message: ${err.message}`);
+async function startConsumer() {
+  await startKafkaConsumer(
+    'payment-service-group', // groupId unique pour ce service
+    ['payment'],             // écoute uniquement le topic payment
+    async (topic, event) => {
+      if (topic === 'payment') {
+        await handlePaymentRequest(event);
       }
     }
-  });
+  );
 }
 
-module.exports = { startPaymentConsumer };
+async function handlePaymentRequest(event) {
+  try {
+    if (event.type === 'PaymentRequested') {
+      logger.info(`[Payment] Demande reçue pour ticket ${event.ticketId}, montant ${event.amount}`);
+
+      // 🔹 Ici, ta logique réelle de paiement
+      // Exemple : appel API banque, vérification solde, etc.
+      const ok = true; // ou false selon le résultat
+
+      // 🔹 Publication du résultat sur le topic "ticket"
+      await kafkaAdapter.publishTicketEvent('ticket', {
+        type: ok ? 'PaymentSucceeded' : 'PaymentFailed',
+        ticketId: event.ticketId,
+        amount: event.amount
+      });
+
+      logger.info(`[Payment] Ticket ${event.ticketId} → ${ok ? 'PaymentSucceeded' : 'PaymentFailed'}`);
+    } else {
+      logger.warn(`[Payment] Type d'événement inconnu: ${event.type}`);
+    }
+  } catch (err) {
+    logger.error(`[Payment] Erreur traitement: ${err.message}`);
+  }
+}
+
+module.exports = { startConsumer };

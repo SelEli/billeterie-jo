@@ -60,7 +60,7 @@ export default function TicketsList() {
                       onClick={(e) => {
                         e.preventDefault();   // bloque le lien
                         e.stopPropagation();  // bloque le clic ligne
-                        navigate(`/payment/start?ticketId=${row.id}`);
+                        navigate(`/pay/start?ticketId=${row.id}`);
                       }}
                     >
                       Payer

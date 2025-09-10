@@ -1,7 +1,5 @@
-// controllers/ticket/verifyTicket.controller.js
 const axios = require('axios');
-const { createAdapters } = require('../../adapters');
-const { verifyTicketService } = require('../../services/ticket/verifyTicket.service');
+const { requestVerification } = require('../../utils/kafkaConsumer'); // 🔹 pour envoi Kafka
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
@@ -44,22 +42,12 @@ async function verifyTicketController(req, res) {
       return sendBusinessError(res, 'FORBIDDEN');
     }
 
-    logger.info('[VERIFY CTRL] Vérification interne');
-    const updated = await verifyTicketService(
-      Number(ticketId),
-      userId,
-      role, // rôle issu d’Auth ou du cache
-      req.headers.authorization
-    );
+    // 🔹 Envoi de la demande de vérification via Kafka
+    logger.info('[VERIFY CTRL] Demande de vérification envoyée via Kafka');
+    await requestVerification(Number(ticketId));
 
-    if (!updated) {
-      return sendBusinessError(res, 'TICKET_NOT_FOUND');
-    }
-
-    const adapters = createAdapters();
-    adapters.verification.notifyTicketVerified(updated).catch(() => {});
-
-    return sendBusinessSuccess(res, 'VERIFY_TICKET', updated);
+    // 🔹 Réponse immédiate au client
+    return sendBusinessSuccess(res, 'VERIFY_TICKET_REQUESTED', { ticketId });
   } catch (err) {
     logger.error('[VERIFY CTRL] Error:', err);
     const code = err && err.message && err.message in require('../../utils/httpErrorMap').ERROR_STATUS

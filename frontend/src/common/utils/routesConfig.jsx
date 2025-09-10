@@ -71,7 +71,7 @@ export const routesConfig = [
   { path: '/ticket/force-validate', element: <TicketForceValidate />, private: true, roles: ['ADMIN'] },
 
   // Payment
-  { path: '/payment/start', element: <PaymentStart />, private: true },
-  { path: '/payment/confirm', element: <PaymentConfirm />, private: true },
-  { path: '/payment/failed', element: <PaymentFailed />, private: true }
+  { path: '/pay/start', element: <PaymentStart />, private: true },
+  { path: '/pay/confirm', element: <PaymentConfirm />, private: true },
+  { path: '/pay/failed', element: <PaymentFailed />, private: true }
 ];

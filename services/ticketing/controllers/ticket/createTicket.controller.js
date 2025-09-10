@@ -48,9 +48,21 @@ async function createTicketController(req, res) {
     logger.debug('[TICKET CONTROLLER] Appel service createTicketService', payload);
     const ticket = await createTicketService(payload, req.headers.authorization);
 
-    // Publication Kafka (non bloquante)
+    // Publication Kafka vers payment-service (déclenche le paiement)
     try {
-      await publishKafkaEvent('ticketing', {
+      await publishKafkaEvent('payment', {
+        type: 'PaymentRequested',
+        ticketId: ticket.id,
+        amount: ticket.price
+      });
+      logger.debug(`[TICKET CONTROLLER] PaymentRequested publié pour ticket ${ticket.id}`);
+    } catch (err) {
+      logger.warn(`[TICKET CONTROLLER] Kafka publish vers payment échoué: ${err.message}`);
+    }
+
+    // Publication Kafka interne sur "ticket" (au lieu de "ticketing")
+    try {
+      await publishKafkaEvent('ticket', {
         type: 'TicketCreated',
         ticketId: ticket.id,
         userId: ticket.userId,

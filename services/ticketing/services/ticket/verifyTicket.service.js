@@ -1,4 +1,3 @@
-// services/ticket/verifyTicket.service.js
 const axios = require('axios');
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
@@ -61,7 +60,7 @@ async function verifyTicketService(ticketId, userId, role, authHeader) {
   logger.info(`[TICKET SERVICE][VERIFY] Ticket ${numericId} marked as USED`);
 
   try {
-    await publishKafkaEvent('ticketing', {
+    await publishKafkaEvent('ticket', {
       type: 'TicketVerified',
       ticketId: updated.id,
       userId: updated.userId,

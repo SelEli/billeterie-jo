@@ -25,6 +25,10 @@ const ERROR_STATUS = {
   TICKET_ALREADY_USED:      400, // ajouté pour contrôle d’accès
   TICKET_NOT_VALID:         400, // ajouté si pas encore VALID
 
+  // --- Paiement ---
+  START_PAYMENT_FAILED:     400, // ajouté pour échec démarrage paiement
+  CONFIRM_PAYMENT_FAILED:   400, // ajouté pour échec confirmation paiement
+
   // --- Authentification / autorisation ---
   INVALID_PASSWORD:         401,
   UNAUTHORIZED:             401,
