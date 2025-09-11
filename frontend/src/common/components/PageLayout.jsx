@@ -12,10 +12,11 @@ export default function PageLayout({
   containerSize, // 'sm' | 'md' | 'lg'
   gap = '4',
 }) {
+  // Largeurs plus généreuses et cohérentes
   const maxWidth =
-    containerSize === 'sm' ? 'max-w-sm' :
-    containerSize === 'lg' ? 'max-w-lg' :
-    containerSize === 'md' ? 'max-w-md' :
+    containerSize === 'sm' ? 'max-w-xl' :   // ~36rem / 576px
+    containerSize === 'md' ? 'max-w-4xl' :  // ~56rem / 896px
+    containerSize === 'lg' ? 'max-w-7xl' :  // ~80rem / 1280px
     '';
 
   return (
@@ -27,7 +28,9 @@ export default function PageLayout({
           'flex-1',
           hideHeader ? '' : 'pt-20',
           'pb-12',
-          fullWidth ? '' : 'px-4 max-w-6xl mx-auto w-full',
+          fullWidth
+            ? 'px-4 w-full' // pleine largeur avec marges responsives
+            : 'px-4 max-w-7xl mx-auto w-full', // largeur par défaut plus large
         ].join(' ')}
       >
         {title && (

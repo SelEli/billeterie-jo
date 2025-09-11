@@ -1,4 +1,3 @@
-// src/ticketing/pages/TicketsList.jsx
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import List from '../../common/components/List';
@@ -12,11 +11,15 @@ export default function TicketsList() {
   const { user, loading, hasRole } = useAuth();
 
   const fetchFn = async (params) => {
-    if (!user) return [];
-    if (hasRole && hasRole('ADMIN')) {
-      return listTickets(params);
+    if (!user) {
+      return { data: [], meta: { pagination: { total: 0 } } };
     }
-    return listTickets({ ...params, userId: user.id });
+    const finalParams = hasRole && hasRole('ADMIN')
+      ? params
+      : { ...params, userId: user.id };
+
+    // On renvoie la réponse brute de l'API (data + meta)
+    return listTickets(finalParams);
   };
 
   if (loading) {
@@ -49,7 +52,6 @@ export default function TicketsList() {
             linkBase="/ticket"
             renderCell={(col, value, row) => {
               if (col === 'status') {
-                // Affiche exactement le statut renvoyé par l'API
                 return <TicketStatusBadge status={(value || '').toUpperCase()} />;
               }
               if (col === 'actions') {

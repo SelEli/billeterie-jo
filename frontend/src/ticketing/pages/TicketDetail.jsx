@@ -1,20 +1,16 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import Detail from '../../common/components/Detail';
 import { getTicket, deleteTicket } from '../api/ticket';
-import { useAuth } from '../../common/context/AuthContext';
-import TicketStatusBadge from '../components/TicketStatusBadge';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
-import ConfirmModal from '../../common/components/ConfirmModal';
 
 export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, hasRole } = useAuth() || {};
-  const safeHasRole = typeof hasRole === 'function' ? hasRole : () => false;
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   const handleDelete = async () => {
+    if (!window.confirm('Confirmer la suppression ?')) return;
     await deleteTicket(id);
     navigate('/ticket');
   };
@@ -23,102 +19,144 @@ export default function TicketDetail() {
     <Detail
       id={id}
       title={`Ticket #${id}`}
-      // 🔹 Forcer un fetch direct depuis l'API pour avoir le statut à jour
       fetchFn={(ticketId) =>
         getTicket(ticketId, { noCache: true }).then(res => res.data || res)
       }
-      formProps={{ readOnly: true }}
-      actions={(ticket) => {
-        const isOwner = ticket?.userId === user?.id;
-        const canAdmin = safeHasRole('ADMIN');
-        return (
-          <>
-            {(canAdmin || isOwner) && (
-              <button
-                className="btn btn--danger"
-                onClick={() => setShowDeleteModal(true)}
-              >
-                Supprimer
-              </button>
-            )}
-            {ticket?.status?.toUpperCase() === 'VALID' && (
-              <button
-                className="btn btn--print"
-                onClick={() => window.print()}
-              >
-                🖨️ Imprimer
-              </button>
-            )}
-          </>
-        );
-      }}
     >
       {(ticket) => {
         const status = (ticket?.status || '').toUpperCase();
-        const isReserved = status === 'RESERVED';
         const isValid = status === 'VALID';
+        const isReserved = status === 'RESERVED';
+        const offer = ticket.offer;
+        const event = ticket.event;
+        const user = ticket.user || {};
 
         return (
-          <div className="ticket-card print-area">
-            <div className="ticket-card__header">
-              <TicketStatusBadge status={ticket.status} />
-              <span className="ticket-card__status-label">
-                {ticket.statusLabel || ''}
-              </span>
+          <div className="ticket-detail-container">
+            <div className="ticket-actions-top">
+              <button
+                className="btn btn--secondary"
+                onClick={() => navigate('/ticket')}
+              >
+                ← Retour aux tickets
+              </button>
+              <div className="ticket-actions-right">
+                <button className="btn btn--danger" onClick={handleDelete}>
+                  Supprimer
+                </button>
+                {isValid && (
+                  <button className="btn btn--print" onClick={() => window.print()}>
+                    🖨️ Imprimer
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="ticket-card__body">
-              <div className="ticket-info">
-                <div><strong>Événement :</strong> {ticket.event?.name}</div>
-                <div><strong>Type :</strong> {ticket.event?.type}</div>
-                <div><strong>Cérémonie :</strong> {ticket.event?.ceremonyName}</div>
-                {ticket.offer && (
-                  <div><strong>Offre :</strong> {ticket.offer?.name}</div>
-                )}
-                <div><strong>Zone :</strong> {ticket.zone}</div>
-                <div><strong>Prix :</strong> {ticket.price} €</div>
-                <div><strong>Date :</strong> {ticket.event?.date}</div>
+            <div className="ticket-card print-area">
+              <div className="ticket-banner">
+                🎟️ Billet Officiel – Paris 2025
               </div>
 
-              {isReserved && (
-                <div className="alert-payment">
-                  ⚠️ Ce ticket est réservé et <strong>le paiement n’a pas encore été effectué</strong>.
+              <div className="ticket-content">
+                <h2 className="ticket-title">
+                  Ticket #{ticket.id}
+                  {isValid && <span className="ticket-valid">✔ Validé</span>}
+                </h2>
+
+                {/* Infos officielles */}
+                <div className="ticket-info-grid">
+                  <p><strong>Nom :</strong> {user.lastName || '—'}</p>
+                  <p><strong>Prénom :</strong> {user.firstName || '—'}</p>
+                  <p><strong>Date de naissance :</strong> {user.birthDate ? new Date(user.birthDate).toLocaleDateString() : '—'}</p>
+                  <p><strong>Statut :</strong> {ticket.statusLabel || ticket.status}</p>
+                  <p><strong>Zone :</strong> {ticket.zone}</p>
+                  <p><strong>Prix :</strong> {Number(ticket.price).toFixed(2)} €</p>
+                </div>
+
+                {isReserved && (
+                  <div className="ticket-warning">
+                    ⚠️ Ce ticket est réservé mais <strong>le paiement n’a pas encore été effectué</strong>.  
+                    Il ne sera valide qu’après règlement.
+                    <div className="ticket-warning-btn">
+                      <button
+                        className="btn btn--payment"
+                        onClick={() => navigate(`/pay/start?ticketId=${ticket.id}`)}
+                      >
+                        💳 Procéder au paiement
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {isValid && (
+                  <div className="ticket-qr">
+                    <QRCodeSVG
+                      value={JSON.stringify({
+                        ticketId: ticket.id,
+                        eventId: ticket.eventId,
+                        userId: ticket.userId,
+                        zone: ticket.zone,
+                        price: ticket.price,
+                        issuedAt: ticket.updatedAt
+                      })}
+                      size={160}
+                    />
+                    <p>Présentez ce QR code à l’entrée</p>
+                  </div>
+                )}
+
+                {/* Bouton pour afficher plus */}
+                <div style={{ marginTop: '1rem' }}>
                   <button
-                    className="btn btn--payment"
-                    onClick={() => navigate(`/pay/start?ticketId=${ticket.id}`)}
+                    className="btn btn--secondary"
+                    onClick={() => setShowMore(v => !v)}
                   >
-                    Procéder au paiement
+                    {showMore ? 'Masquer les détails' : 'Afficher plus de détails'}
                   </button>
                 </div>
-              )}
 
-              {isValid && (
-                <div className="ticket-card__qr">
-                  <QRCodeSVG
-                    value={JSON.stringify({
-                      ticketId: ticket.id,
-                      eventId: ticket.eventId,
-                      userId: ticket.userId,
-                      zone: ticket.zone,
-                      price: ticket.price,
-                      issuedAt: ticket.updatedAt,
-                      signature: ticket.signature
-                    })}
-                    size={160}
-                  />
-                  <p>Présentez ce QR code à l’entrée</p>
-                </div>
-              )}
+                {showMore && (
+                  <>
+                    {/* Infos techniques */}
+                    <div className="ticket-info-grid" style={{ marginTop: '1rem' }}>
+                      <p><strong>Créé le :</strong> {new Date(ticket.createdAt).toLocaleString()}</p>
+                      <p><strong>Mis à jour le :</strong> {new Date(ticket.updatedAt).toLocaleString()}</p>
+                      <p><strong>ID Utilisateur :</strong> {ticket.userId}</p>
+                      <p><strong>ID Événement :</strong> {ticket.eventId}</p>
+                      <p><strong>ID Offre :</strong> {ticket.offerId}</p>
+                    </div>
+
+                    {/* Event */}
+                    {event && (
+                      <>
+                        <h3 className="ticket-section-title">📅 Événement</h3>
+                        <div className="ticket-info-grid">
+                          <p><strong>ID :</strong> {event.id}</p>
+                          <p><strong>Nom :</strong> {event.label}</p>
+                          <p><strong>Catégorie :</strong> {event.category}</p>
+                          <p><strong>Lieu :</strong> {event.location}</p>
+                          <p><strong>Date :</strong> {new Date(event.date).toLocaleDateString()}</p>
+                          <p><strong>Heure :</strong> {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Offer */}
+                    {offer && (
+                      <>
+                        <h3 className="ticket-section-title">💸 Offre</h3>
+                        <div className="ticket-info-grid">
+                          <p><strong>ID :</strong> {offer.id}</p>
+                          <p><strong>Nom :</strong> {offer.label}</p>
+                          <p><strong>Réduction :</strong> {Math.round(offer.discount * 100)}%</p>
+                          <p><strong>Active :</strong> {offer.active ? 'Oui' : 'Non'}</p>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-
-            {showDeleteModal && (
-              <ConfirmModal
-                title="Confirmer la suppression"
-                message="Voulez-vous vraiment supprimer ce ticket ? Cette action est irréversible."
-                onConfirm={handleDelete}
-                onCancel={() => setShowDeleteModal(false)}
-              />
-            )}
           </div>
         );
       }}

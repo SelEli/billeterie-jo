@@ -10,7 +10,7 @@ export default function AuthLogin() {
 
   const handleLogin = async (values) => {
     await login(values);
-    navigate('/profile');
+    navigate('/');
   };
 
   return (

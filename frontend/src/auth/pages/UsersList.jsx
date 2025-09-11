@@ -30,6 +30,11 @@ export default function UsersList() {
     setShowForm(false);
   };
 
+  const fetchFn = async (params) => {
+    // On renvoie la réponse brute pour garder data + meta
+    return listUsers(params);
+  };
+
   return (
     <PageLayout title="Utilisateurs">
       <div className="actions-bar">
@@ -52,17 +57,12 @@ export default function UsersList() {
       )}
 
       <Pagination
-        fetchFn={listUsers}
+        fetchFn={fetchFn}
         render={(users) => (
           <List
             data={users}
             columns={['email', 'role']}
             linkBase="/user"
-            // On peut injecter ici des actions si besoin
-            // actions={[
-            //   { label: 'Modifier', onClick: (id) => navigate(`/users/${id}`), roles: ['ADMIN'] },
-            //   { label: 'Supprimer', onClick: deleteUser, danger: true, roles: ['ADMIN'] }
-            // ]}
           />
         )}
       />

@@ -4,7 +4,7 @@ import Loader from './Loader';
 
 export default function Pagination({
   fetchFn,
-  render, // fonction qui reçoit les données et retourne le JSX
+  render,
   initialPagination = { page: 1, limit: 10, total: 0 }
 }) {
   const [pagination, setPagination] = useState(initialPagination);
@@ -13,6 +13,7 @@ export default function Pagination({
   const loadPage = (page) => {
     fetchFn({ page, limit: pagination.limit }).then(res => {
       const root = res?.data ?? res;
+
       const items =
         root?.users ||
         root?.roles ||
@@ -21,9 +22,13 @@ export default function Pagination({
 
       const totalFromApi =
         root?.pagination?.total ??
+        root?.meta?.pagination?.total ??
         root?.total ??
         root?.count ??
-        items.length;
+        // Fallback "force" : si on a pile la limite, on suppose qu'il y a plus
+        (items.length >= pagination.limit
+          ? (pagination.page + 1) * pagination.limit
+          : items.length);
 
       setData(items);
       setPagination({
