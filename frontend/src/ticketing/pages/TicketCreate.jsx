@@ -3,17 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import { createTicket } from '../api/ticket';
 import { useAuth } from '../../common/context/AuthContext';
-
-// Mock temporaire
-const mockEvents = [
-  { id: 1, label: 'Cérémonie ouverture JO', basePrice: 100 },
-  { id: 2, label: 'Finale 100m', basePrice: 150 }
-];
-const mockOffers = [
-  { id: 1, label: 'Simple', discount: 0 },
-  { id: 2, label: 'Duo', discount: 10 },
-  { id: 3, label: 'Famille', discount: 20 }
-];
+import { mockEvents, mockOffers } from '../constants/mocks';
 
 export default function TicketCreate() {
   const { user } = useAuth();

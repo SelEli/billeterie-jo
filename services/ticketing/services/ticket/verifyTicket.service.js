@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const axios = require('axios');
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
@@ -5,59 +6,77 @@ const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 /**
- * Vérifie un ticket et le marque comme USED (ou autre statut final)
- * - Vérification de l'utilisateur via Auth (/user/:id pour internes, /auth/profile pour publics)
+ * Vérifie un ticket scanné et le marque comme USED
+ * - Compare la signature du QR code avec celle recalculée côté serveur
+ * - Marque le ticket comme USED si tout est OK
  */
-async function verifyTicketService(ticketId, userId, role, authHeader) {
-  // Vérif Auth
-  let found = null;
-  try {
-    if (['ADMIN', 'AGENT', 'EMPLOYEE'].includes(role)) {
-      const res = await axios.get(`${process.env.USER_URL}/${userId}`, {
-        headers: { Authorization: authHeader }
-      });
-      if (res.data?.data) found = res.data.data;
-    } else {
-      const res = await axios.get(`${process.env.AUTH_URL}/profile`, {
-        headers: { Authorization: authHeader }
-      });
-      if (res.data?.data) found = res.data.data;
-    }
-  } catch (err) {
-    logger.warn(`[VERIFY SERVICE] Auth check failed: ${err.message}`);
-  }
-  if (!found) {
-    const e = new Error('USER_NOT_FOUND');
-    e.statusCode = ERROR_STATUS.USER_NOT_FOUND;
-    throw e;
-  }
+async function verifyTicketService(qrPayload, authHeader) {
+  const {
+    ticketId,
+    eventId,
+    userId,
+    zone,
+    price,
+    issuedAt,
+    signature
+  } = qrPayload;
 
-  // Vérif ticket
-  const numericId = typeof ticketId === 'string' ? Number(ticketId) : ticketId;
-  const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
+  // Charger le ticket depuis la base
+  const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
   if (!ticket) {
     const err = new Error('TICKET_NOT_FOUND');
     err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
     throw err;
   }
 
+  // Vérifier statut
   if (['USED', 'EXPIRED'].includes(ticket.status)) {
-    logger.info(`[TICKET SERVICE][VERIFY] Ticket ${numericId} already ${ticket.status}`);
+    logger.info(`[TICKET SERVICE][VERIFY] Ticket ${ticketId} already ${ticket.status}`);
     return ticket;
   }
-
   if (ticket.status !== 'VALID') {
     const err = new Error('TICKET_NOT_VALID');
     err.statusCode = ERROR_STATUS.TICKET_NOT_VALID;
     throw err;
   }
 
+  // Récupérer invisibleKey depuis Auth pour l'utilisateur du ticket
+  let invisibleKey;
+  try {
+    const res = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
+      headers: { Authorization: authHeader }
+    });
+    invisibleKey = res.data?.data?.invisibleKey;
+  } catch (err) {
+    logger.warn(`[VERIFY SERVICE] Impossible de récupérer invisibleKey: ${err.message}`);
+  }
+  if (!invisibleKey) {
+    const e = new Error('USER_KEY_NOT_FOUND');
+    e.statusCode = ERROR_STATUS.USER_KEY_NOT_FOUND;
+    throw e;
+  }
+
+  // Recalculer la signature attendue
+  const payloadToSign = `${ticket.secretKey}:${invisibleKey}:${ticket.id}:${ticket.eventId}:${ticket.userId}:${ticket.zone}:${ticket.price}:${ticket.updatedAt.toISOString()}`;
+  const expectedSignature = crypto
+    .createHmac('sha256', invisibleKey)
+    .update(payloadToSign)
+    .digest('hex');
+
+  // Comparer avec la signature du QR code
+  if (signature !== expectedSignature) {
+    const err = new Error('INVALID_SIGNATURE');
+    err.statusCode = ERROR_STATUS.INVALID_SIGNATURE;
+    throw err;
+  }
+
+  // Tout est OK → marquer comme USED
   const updated = await prisma.ticket.update({
-    where: { id: numericId },
+    where: { id: ticketId },
     data: { status: 'USED' }
   });
 
-  logger.info(`[TICKET SERVICE][VERIFY] Ticket ${numericId} marked as USED`);
+  logger.info(`[TICKET SERVICE][VERIFY] Ticket ${ticketId} marked as USED`);
 
   try {
     await publishKafkaEvent('ticket', {
@@ -68,7 +87,7 @@ async function verifyTicketService(ticketId, userId, role, authHeader) {
       offerId: updated.offerId,
       status: updated.status
     });
-    logger.debug(`[TICKET SERVICE][VERIFY] Kafka event TicketVerified published for ticket ${numericId}`);
+    logger.debug(`[TICKET SERVICE][VERIFY] Kafka event TicketVerified published for ticket ${ticketId}`);
   } catch (err) {
     logger.warn(`[TICKET SERVICE][VERIFY] Kafka publish failed: ${err.message}`);
   }

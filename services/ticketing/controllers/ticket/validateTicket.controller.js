@@ -1,3 +1,4 @@
+// controllers/ticket/validateTicket.controller.js
 const { createAdapters } = require('../../adapters');
 const {
   validateTicketService,
@@ -32,11 +33,12 @@ async function validateTicketController(req, res) {
       userId: req.user.userId
     });
 
-    // 1️⃣ Valider le ticket localement
+    // 1️⃣ Valider le ticket localement (avec signature)
     const updated = await validateTicketService(
       ticketIdNum,
       req.user.userId,
-      req.user.role
+      req.user.role,
+      req.headers.authorization // 🔹 ajouté pour Auth
     );
 
     if (!updated) {

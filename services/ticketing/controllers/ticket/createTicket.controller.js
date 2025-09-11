@@ -1,3 +1,4 @@
+// controllers/ticket/createTicket.controller.js
 const logger = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { createTicketService } = require('../../services/ticket/createTicket.service');
@@ -60,7 +61,7 @@ async function createTicketController(req, res) {
       logger.warn(`[TICKET CONTROLLER] Kafka publish vers payment échoué: ${err.message}`);
     }
 
-    // Publication Kafka interne sur "ticket" (au lieu de "ticketing")
+    // Publication Kafka interne sur "ticket"
     try {
       await publishKafkaEvent('ticket', {
         type: 'TicketCreated',

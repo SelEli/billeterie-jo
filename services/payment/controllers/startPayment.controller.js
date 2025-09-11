@@ -28,7 +28,6 @@ async function startPaymentController(req, res) {
     });
 
     return sendBusinessSuccess(res, 'START_PAYMENT', result);
-
   } catch (err) {
     logger.error('[START PAYMENT CTRL] Erreur lors du démarrage du paiement', {
       message: err.message,

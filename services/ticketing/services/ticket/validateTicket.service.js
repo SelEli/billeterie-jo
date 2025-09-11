@@ -1,19 +1,15 @@
+const crypto = require('crypto');
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
+const axios = require('axios');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
-// ID du compte technique Payment (configurable via .env)
 const PAYMENT_SERVICE_USER_ID = Number(process.env.PAYMENT_SERVICE_USER_ID || 0);
 
-/**
- * Passe un ticket de RESERVED à VALID et publie un event Kafka
- * @param {number|string} ticketId - ID du ticket à valider
- * @param {number} callerUserId - ID de l'appelant (extrait du JWT)
- * @param {string} callerRole - Rôle de l'appelant (extrait du JWT)
- */
-async function validateTicketService(ticketId, callerUserId, callerRole) {
-  // Autoriser si rôle PAYMENT, ou si c'est le compte technique Payment (id défini en env, rôle AGENT)
+async function validateTicketService(ticketId, callerUserId, callerRole, authHeader) {
+  // Autorisation
   if (
     !(callerRole === 'PAYMENT' ||
       (callerRole === 'AGENT' && callerUserId === PAYMENT_SERVICE_USER_ID))
@@ -25,6 +21,7 @@ async function validateTicketService(ticketId, callerUserId, callerRole) {
 
   const numericId = typeof ticketId === 'string' ? Number(ticketId) : ticketId;
 
+  // Lecture ticket
   const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
   if (!ticket) {
     const err = new Error('TICKET_NOT_FOUND');
@@ -38,13 +35,41 @@ async function validateTicketService(ticketId, callerUserId, callerRole) {
     throw err;
   }
 
+  // Récupération invisibleKey depuis Auth
+  let invisibleKey;
+  try {
+    const res = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
+      headers: { Authorization: authHeader }
+    });
+    invisibleKey = res.data?.data?.invisibleKey;
+  } catch (err) {
+    logger.warn(`[TICKET SERVICE] Impossible de récupérer invisibleKey: ${err.message}`);
+  }
+  if (!invisibleKey) {
+    const err = new Error('USER_KEY_NOT_FOUND');
+    err.statusCode = ERROR_STATUS.USER_KEY_NOT_FOUND;
+    throw err;
+  }
+
+  // Calcul de la signature
+  const payloadToSign = `${ticket.secretKey}:${invisibleKey}:${ticket.id}:${ticket.eventId}:${ticket.userId}:${ticket.zone}:${ticket.price}:${ticket.updatedAt.toISOString()}`;
+  const signature = crypto
+    .createHmac('sha256', invisibleKey)
+    .update(payloadToSign)
+    .digest('hex');
+
+  // Passage en VALID + enregistrement signature
   const updated = await prisma.ticket.update({
     where: { id: numericId },
-    data: { status: 'VALID' }
+    data: { status: 'VALID', signature }
   });
 
-  logger.info(`[TICKET SERVICE] Ticket ${numericId} validated`);
+  // Invalidation cache
+  await invalidateCachedTicket(numericId);
 
+  logger.info(`[TICKET SERVICE] Ticket ${numericId} validated & signed`);
+
+  // Publication Kafka
   try {
     await publishKafkaEvent('ticket', {
       type: 'TicketValidated',

@@ -67,7 +67,7 @@ model Ticket {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   secretKey String       @unique
-  signature String       @unique
+  signature String?      @unique
 
   // Référence utilisateur (pas de relation Prisma vers User)
   userId    Int

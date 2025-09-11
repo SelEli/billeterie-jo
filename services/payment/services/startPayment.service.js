@@ -22,13 +22,15 @@ async function startPaymentService(ticketId, _amountFromFront, isMock = false) {
     { expiresIn: '5m' }
   );
 
-  // 📡 Récupération du prix réel depuis ticket-service
+  // 📡 Récupération du prix et statut depuis ticket-service
   const ticketResp = await axios.get(
     `${process.env.TICKET_URL}/${numericId}`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
 
   const amount = ticketResp.data?.data?.price;
+  const status = ticketResp.data?.data?.status;
+
   if (typeof amount !== 'number') {
     logger.error('[PAYMENT SERVICE] Réponse ticket-service invalide', ticketResp.data);
     throw new Error('INVALID_TICKET_PRICE');
@@ -50,7 +52,7 @@ async function startPaymentService(ticketId, _amountFromFront, isMock = false) {
     mode: isMock ? 'mock' : 'live'
   });
 
-  return { ticketId: numericId, amount, status: 'PENDING' };
+  return { ticketId: numericId, amount, status };
 }
 
 module.exports = { startPaymentService };

@@ -9,7 +9,7 @@ export default function PaymentConfirm() {
   const ticketId = query.get('ticketId');
   const [loading, setLoading] = useState(false);
 
-  // Redirection si pas de ticketId
+  // Redirection si pas de ticketId valide
   useEffect(() => {
     if (!ticketId || Number.isNaN(Number(ticketId))) {
       navigate('/ticket');
@@ -27,8 +27,12 @@ export default function PaymentConfirm() {
         console.log('📤 Appel de /payment/confirm pour valider le ticket…');
         const res = await confirmPayment(numericId);
 
+        // Si pas VALID tout de suite, on attend un court instant avant de juger
         if (res?.data?.status !== 'VALID') {
-          console.error('❌ Ticket non validé côté back', res);
+          await new Promise(r => setTimeout(r, 1000)); // attendre 1 seconde
+        }
+
+        if (res?.data?.status !== 'VALID') {
           navigate(`/pay/failed?ticketId=${numericId}`);
         }
       } catch (err) {

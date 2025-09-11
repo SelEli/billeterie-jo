@@ -1,12 +1,9 @@
-// services/ticket/updateTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
-/**
- * Mise à jour d'un ticket et publication d'un event Kafka
- */
 async function updateTicketService(id, data) {
   const numericId = typeof id === 'string' ? Number(id) : id;
 
@@ -29,6 +26,9 @@ async function updateTicketService(id, data) {
   }
 
   logger.info(`[TICKET] Updated: ${ticket.id}`);
+
+  // Invalidation cache
+  await invalidateCachedTicket(numericId);
 
   try {
     await publishKafkaEvent('ticket', {

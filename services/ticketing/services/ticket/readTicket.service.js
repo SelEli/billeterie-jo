@@ -1,4 +1,3 @@
-// services/ticket/readTicket.service.js
 const prisma = require('../../utils/prismaClient');
 const { timer } = require('../../monitor/monitor');
 const logger = require('../../utils/logger');
@@ -6,9 +5,6 @@ const { cacheTicket, getCachedTicket } = require('../../cache/ticket.cache');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const axios = require('axios');
 
-/**
- * Lecture d'un ticket par ID, avec cache et vérification optionnelle de l'utilisateur via Auth
- */
 async function readTicketService(id, authHeader) {
   const t = timer('readTicketService').start();
 

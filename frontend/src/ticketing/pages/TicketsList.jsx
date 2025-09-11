@@ -49,7 +49,9 @@ export default function TicketsList() {
             linkBase="/ticket"
             renderCell={(col, value, row) => {
               if (col === 'status') {
-                return <TicketStatusBadge status={value} />;
+                // On ne montre "VALID" que si la BDD l'a confirmé
+                const safeStatus = value === 'VALID' ? 'VALID' : value;
+                return <TicketStatusBadge status={safeStatus} />;
               }
               if (col === 'actions') {
                 if (row.status === 'RESERVED') {

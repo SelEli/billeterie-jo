@@ -7,23 +7,33 @@ module.exports = async function seedTickets() {
     const ticketsData = [
       {
         userId: 1,
-        eventId: 999,
-        offerId: 101,
+        eventId: 1,       // Event existant (ex: Cérémonie ouverture JO)
+        offerId: 1,       // Offer existante liée à eventId: 1
         zone: 'A',
         price: 70.0,
         status: 'RESERVED',
         secretKey: 'seed-secret-A',
-        signature: 'seed-signature-A'
+        signature: null   // pas de signature tant que pas VALID
       },
       {
         userId: 2,
-        eventId: 1000,
-        offerId: null,
+        eventId: 2,       // Event existant (ex: Finale 100m)
+        offerId: null,    // Pas d'offre
         zone: 'B',
         price: 120.0,
-        status: 'VALID',
+        status: 'VALID',  // déjà validé → signature présente
         secretKey: 'seed-secret-B',
         signature: 'seed-signature-B'
+      },
+      {
+        userId: 3,
+        eventId: 1,
+        offerId: 2,       // Offer existante liée à eventId: 1
+        zone: 'C',
+        price: 50.0,
+        status: 'RESERVED',
+        secretKey: 'seed-secret-C',
+        signature: null
       }
     ];
 

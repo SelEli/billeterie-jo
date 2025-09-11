@@ -2,10 +2,8 @@ const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
-/**
- * Suppression d'un ticket et publication d'un event Kafka
- */
 async function deleteTicketService(id) {
   const numericId = typeof id === 'string' ? Number(id) : id;
 
@@ -26,7 +24,9 @@ async function deleteTicketService(id) {
 
   logger.info(`[TICKET] Deleted: ${deleted.id}`);
 
-  // Kafka non bloquant
+  // Invalidation cache
+  await invalidateCachedTicket(numericId);
+
   try {
     await publishKafkaEvent('ticket', {
       type: 'TicketDeleted',
