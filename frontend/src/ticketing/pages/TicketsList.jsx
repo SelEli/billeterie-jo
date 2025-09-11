@@ -49,19 +49,18 @@ export default function TicketsList() {
             linkBase="/ticket"
             renderCell={(col, value, row) => {
               if (col === 'status') {
-                // On ne montre "VALID" que si la BDD l'a confirmé
-                const safeStatus = value === 'VALID' ? 'VALID' : value;
-                return <TicketStatusBadge status={safeStatus} />;
+                // Affiche exactement le statut renvoyé par l'API
+                return <TicketStatusBadge status={(value || '').toUpperCase()} />;
               }
               if (col === 'actions') {
-                if (row.status === 'RESERVED') {
+                if ((row.status || '').toUpperCase() === 'RESERVED') {
                   return (
                     <button
                       type="button"
                       className="btn btn--primary btn--sm"
                       onClick={(e) => {
-                        e.preventDefault();   // bloque le lien
-                        e.stopPropagation();  // bloque le clic ligne
+                        e.preventDefault();
+                        e.stopPropagation();
                         navigate(`/pay/start?ticketId=${row.id}`);
                       }}
                     >

@@ -24,7 +24,6 @@ async function deleteTicketService(id) {
 
   logger.info(`[TICKET] Deleted: ${deleted.id}`);
 
-  // Invalidation cache
   await invalidateCachedTicket(numericId);
 
   try {

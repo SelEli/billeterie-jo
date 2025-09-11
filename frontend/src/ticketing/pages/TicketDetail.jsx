@@ -23,7 +23,10 @@ export default function TicketDetail() {
     <Detail
       id={id}
       title={`Ticket #${id}`}
-      fetchFn={(id) => getTicket(id).then(res => res.data || res)}
+      // 🔹 Forcer un fetch direct depuis l'API pour avoir le statut à jour
+      fetchFn={(ticketId) =>
+        getTicket(ticketId, { noCache: true }).then(res => res.data || res)
+      }
       formProps={{ readOnly: true }}
       actions={(ticket) => {
         const isOwner = ticket?.userId === user?.id;

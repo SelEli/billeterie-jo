@@ -5,7 +5,14 @@ const { cacheTicket, getCachedTicket } = require('../../cache/ticket.cache');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const axios = require('axios');
 
-async function readTicketService(id, authHeader) {
+/**
+ * Lecture d'un ticket par ID, avec cache Redis.
+ * @param {number|string} id - ID du ticket
+ * @param {string} authHeader - Authorization header pour vérifier l'utilisateur
+ * @param {object} [options] - Options
+ * @param {boolean} [options.noCache=false] - Si true, ignore le cache et lit directement la BDD
+ */
+async function readTicketService(id, authHeader, { noCache = false } = {}) {
   const t = timer('readTicketService').start();
 
   const numericId = parseInt(id, 10);
@@ -16,12 +23,14 @@ async function readTicketService(id, authHeader) {
   }
 
   try {
-    // 1. Lecture cache
-    const cached = await getCachedTicket(numericId);
-    if (cached) {
-      logger.info(`[cache] Ticket ${numericId} trouvé en cache`);
-      t.success();
-      return cached;
+    // 1. Lecture cache (sauf si noCache)
+    if (!noCache) {
+      const cached = await getCachedTicket(numericId);
+      if (cached) {
+        logger.info(`[cache] Ticket ${numericId} trouvé en cache`);
+        t.success();
+        return cached;
+      }
     }
 
     // 2. Lecture DB

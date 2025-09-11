@@ -3,15 +3,8 @@ const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const axios = require('axios');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
-/**
- * Création d'un ticket :
- * - Validation des données
- * - Vérification de l'utilisateur via Auth (/user/:id pour internes, /auth/profile pour publics)
- * - Vérification existence event/offer
- * - Génération secretKey (signature calculée plus tard, uniquement si VALID)
- * - Insertion en base
- */
 async function createTicketService(
   { price, zone, eventId, status, userId, role, offerId = null },
   authHeader
@@ -24,7 +17,6 @@ async function createTicketService(
   const eventIdNum = toNumOrNull(eventId);
   const offerIdNum = toNumOrNull(offerId);
 
-  // Validation basique
   if (
     typeof price !== 'number' ||
     typeof zone !== 'string' ||
@@ -47,7 +39,6 @@ async function createTicketService(
     throw err;
   }
 
-  // Vérifier l'utilisateur via Auth
   let found = null;
   try {
     if (['ADMIN', 'AGENT', 'EMPLOYEE'].includes(role)) {
@@ -70,7 +61,6 @@ async function createTicketService(
     throw e;
   }
 
-  // Vérifier existence event
   const event = await prisma.event.findUnique({ where: { id: eventIdNum } });
   if (!event) {
     const err = new Error('EVENT_NOT_FOUND');
@@ -78,7 +68,6 @@ async function createTicketService(
     throw err;
   }
 
-  // Vérifier existence offer si fourni
   if (offerIdNum !== null) {
     const offer = await prisma.offer.findUnique({ where: { id: offerIdNum } });
     if (!offer) {
@@ -88,7 +77,6 @@ async function createTicketService(
     }
   }
 
-  // Génération de la clé secrète du ticket
   const secretKey = crypto.randomBytes(32).toString('hex');
 
   logger.debug('[TICKET][CREATE] Insertion ticket', {
@@ -101,7 +89,6 @@ async function createTicketService(
     secretKey
   });
 
-  // Création sans signature
   const ticket = await prisma.ticket.create({
     data: {
       price,
@@ -119,6 +106,9 @@ async function createTicketService(
     err.statusCode = ERROR_STATUS.INTERNAL_SERVER_ERROR;
     throw err;
   }
+
+  // Invalidation cache (au cas où un cache de liste ou de détail existe déjà)
+  await invalidateCachedTicket(ticket.id);
 
   logger.info(`[TICKET] Created: ${ticket.id}`);
   return ticket;

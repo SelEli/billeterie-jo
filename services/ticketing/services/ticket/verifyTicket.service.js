@@ -4,6 +4,7 @@ const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
 /**
  * Vérifie un ticket scanné et le marque comme USED
@@ -75,6 +76,9 @@ async function verifyTicketService(qrPayload, authHeader) {
     where: { id: ticketId },
     data: { status: 'USED' }
   });
+
+  // Invalidation cache
+  await invalidateCachedTicket(ticketId);
 
   logger.info(`[TICKET SERVICE][VERIFY] Ticket ${ticketId} marked as USED`);
 
