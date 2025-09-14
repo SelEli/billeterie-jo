@@ -20,10 +20,10 @@ const { startConsumer } = require('./utils/kafkaConsumer'); // écoute user + ti
 
     // HTTP API
     const app = require('./app');
-    const PORT = process.env.PORT || 3002;
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info(`✅ Ticketing service listening on port ${PORT}`);
     });
+
 
   } catch (err) {
     logger.error('❌ Échec lors de l’initialisation des services', {

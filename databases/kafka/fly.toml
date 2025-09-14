@@ -1,23 +1,44 @@
 app = "bjo-kafka"
-primary_region = "cdg"
+primary_region = "fra"
+
+[build]
+  image = "confluentinc/confluent-local:7.4.1"
 
 [env]
-  KAFKA_BROKER_ID = "1"
-  KAFKA_CFG_LISTENERS = "PLAINTEXT://:9092"
-  KAFKA_CFG_ADVERTISED_LISTENERS = "PLAINTEXT://bjo-kafka.internal:9092"
-  KAFKA_CFG_ZOOKEEPER_CONNECT = "bjo-zookeeper.internal:2181"
-  ALLOW_PLAINTEXT_LISTENER = "yes"
+  # Mode KRaft (sans Zookeeper)
+  KAFKA_NODE_ID = "1"
+  KAFKA_PROCESS_ROLES = "broker,controller"
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP = "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+  KAFKA_CONTROLLER_LISTENER_NAMES = "CONTROLLER"
+  KAFKA_LISTENERS = "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+  KAFKA_ADVERTISED_LISTENERS = "PLAINTEXT://bjo-kafka.internal:9092,CONTROLLER://bjo-kafka.internal:9093"
+  KAFKA_CONTROLLER_QUORUM_VOTERS = "1@bjo-kafka.internal:9093"
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR = "1"
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR = "1"
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR = "1"
+  # Limiter la mémoire JVM pour éviter le crash sur VM 1 Go
+  KAFKA_HEAP_OPTS = "-Xmx512M -Xms512M"
 
 [[mounts]]
-  source = "data"
+  source = "kafka_data"
   destination = "/var/lib/kafka/data"
 
+# Service broker (clients Kafka parlent au port 9092)
 [[services]]
-  internal_port = 9092
   protocol = "tcp"
+  internal_port = 9092
   processes = ["app"]
-  auto_stop_machines = false
+  auto_stop_machines = "off"
   min_machines_running = 1
+
+  [[services.ports]]
+    port = 9092
+
+# Service controller (pour quorum KRaft)
+[[services]]
+  protocol = "tcp"
+  internal_port = 9093
+  processes = ["app"]
 
 [[vm]]
   memory = "1gb"

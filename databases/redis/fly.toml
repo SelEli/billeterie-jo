@@ -1,12 +1,38 @@
-app = "bjo-redis"
+app = "bjo-kafka"
 primary_region = "fra"
 
+[build]
+  image = "bitnami/kafka:3.6"
+
+[env]
+  # Connexion à ton Zookeeper Fly.io
+  KAFKA_CFG_ZOOKEEPER_CONNECT = "bjo-zookeeper.internal:2181"
+
+  # Listeners internes/externes
+  KAFKA_CFG_LISTENERS = "PLAINTEXT://:9092"
+  KAFKA_CFG_ADVERTISED_LISTENERS = "PLAINTEXT://bjo-kafka.internal:9092"
+
+  # ID du broker
+  KAFKA_BROKER_ID = "1"
+
+  # Réplication minimale
+  KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR = "1"
+  KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR = "1"
+  KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR = "1"
+
+[[mounts]]
+  source = "kafka_data"
+  destination = "/bitnami/kafka"
+
 [[services]]
-  internal_port = 6379
   protocol = "tcp"
+  internal_port = 9092
   processes = ["app"]
-  auto_stop_machines = false
-  min_machines_running = 1
+  auto_stop_machines = "off"     # toujours allumé
+  min_machines_running = 1       # au moins 1 machine active
+
+  [[services.ports]]
+    port = 9092
 
 [[vm]]
   memory = "1gb"

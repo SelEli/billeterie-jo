@@ -1,0 +1,29 @@
+app = "bjo-zookeeper"
+primary_region = "fra"
+
+[build]
+  image = "zookeeper:3.9"
+
+[env]
+  ZOO_STANDALONE_ENABLED = "true"
+  ZOO_ADMINSERVER_ENABLED = "false"
+  ZOO_4LW_COMMANDS_WHITELIST = "ruok,stat,conf"
+
+[[mounts]]
+  source = "zk_data"
+  destination = "/data"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 2181
+  processes = ["app"]
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 2181
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
