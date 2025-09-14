@@ -1,3 +1,4 @@
+
 networks:
   bjo-network:
     driver: bridge
@@ -9,7 +10,7 @@ volumes:
 services:
   # === Bases de données ===
   auth-db:
-    image: seleli/postgres-custom:latest   # ou postgres:15 si non modifié
+    image: postgres:15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -22,7 +23,7 @@ services:
       - bjo-network
 
   ticketing-db:
-    image: seleli/postgres-custom:latest   # ou postgres:15 si non modifié
+    image: postgres:15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -36,7 +37,7 @@ services:
 
   # === Redis ===
   redis:
-    image: seleli/redis-custom:latest      # ou redis:7 si non modifié
+    image: redis:7
     ports:
       - "6379:6379"
     networks:
@@ -44,7 +45,7 @@ services:
 
   # === Kafka & Zookeeper ===
   zookeeper:
-    image: seleli/zookeeper-custom:latest  # ou bitnami/zookeeper:3.9 si non modifié
+    image: bitnami/zookeeper:3.9
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
     ports:
@@ -53,7 +54,7 @@ services:
       - bjo-network
 
   kafka:
-    image: seleli/kafka-custom:latest      # ou bitnami/kafka:3.6 si non modifié
+    image: bitnami/kafka:3.6
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
@@ -68,7 +69,9 @@ services:
 
   # === Micro-services ===
   auth:
-    image: seleli/billeterie-jo-auth:latest
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
     env_file:
@@ -77,11 +80,17 @@ services:
       - auth-db
       - redis
       - kafka
+    volumes:
+      - ./services/auth:/app
+      - /app/node_modules
+    command: npm run start
     networks:
       - bjo-network
 
   ticketing:
-    image: seleli/billeterie-jo-ticketing:latest
+    build:
+      context: ./services/ticketing
+      dockerfile: Dockerfile
     ports:
       - "3002:3002"
     env_file:
@@ -90,11 +99,17 @@ services:
       - ticketing-db
       - redis
       - kafka
+    volumes:
+      - ./services/ticketing:/app
+      - /app/node_modules
+    command: npm run start
     networks:
       - bjo-network
 
   payment:
-    image: seleli/billeterie-jo-payment:latest
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
     ports:
       - "3003:3003"
     env_file:
@@ -102,22 +117,51 @@ services:
     depends_on:
       - redis
       - kafka
+    volumes:
+      - ./services/payment:/app
+      - /app/node_modules
+    command: npm run start
     networks:
       - bjo-network
 
+#  verification:
+#    build:
+#      context: ./services/verification
+#      dockerfile: Dockerfile
+#    ports:
+#      - "3004:3004"
+#    env_file:
+#      - ./services/verification/.env.production
+#    depends_on:
+#      - redis
+#      - kafka
+#    volumes:
+#      - ./services/verification:/app
+#      - /app/node_modules
+#    command: npm run start
+#    networks:
+#      - bjo-network
+
   # === Frontend ===
   frontend:
-    image: seleli/billeterie-jo-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     env_file:
       - ./frontend/.env.production
     ports:
       - "5173:80"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     networks:
       - bjo-network
 
   # === Gateway (NGINX reverse proxy) ===
   gateway:
-    image: seleli/billeterie-jo-gateway:latest
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
     ports:
       - "3000:80"
     env_file:
@@ -127,5 +171,7 @@ services:
       - ticketing
       - payment
       - frontend
+    volumes:
+      - ./services/gateway:/app
     networks:
       - bjo-network
