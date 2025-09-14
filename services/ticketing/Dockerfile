@@ -1,46 +1,33 @@
-# ─────────────────────────────────────────────────────────────
-# Base image : Node 18 slim (Debian Bookworm)
 FROM node:18-slim
 
-# Variables d'environnement
 ENV TZ=Europe/Paris \
+    NODE_ENV=development \
     PATH=/app/node_modules/.bin:$PATH
 
-# Installer dépendances système (ajout de curl ici)
-RUN apt-get update && \
-    apt-get install -y \
-      curl \
-      openssl \
-      libssl-dev \
-      ca-certificates \
-      python3 \
-      make \
-      g++ && \
-    rm -rf /var/lib/apt/lists/*
+# Dépendances système pour bcrypt, Prisma et netcat (attente DB)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ openssl libssl-dev ca-certificates netcat-traditional \
+ && rm -rf /var/lib/apt/lists/*
 
-# Dossier de travail
 WORKDIR /app
 
-# Copier uniquement les fichiers de dépendances en premier
-COPY services/ticketing/package*.json ./services/ticketing/
+# Copier package.json + prisma/ AVANT le reste pour profiter du cache
+COPY package*.json ./
+COPY prisma ./prisma
 
-# Installer les dépendances NPM avec cache Docker
-RUN cd services/ticketing && npm ci --legacy-peer-deps && npm rebuild bcrypt --force
+# Installer toutes les dépendances, recompiler bcrypt et générer Prisma
+RUN npm ci --legacy-peer-deps --include=dev \
+ && npm rebuild bcrypt --build-from-source \
+ && npx prisma generate
 
-# Copier tout le reste du code
-COPY services/ticketing ./services/ticketing
-COPY shared ./shared
-RUN rm -rf services/ticketing/node_modules
+# Copier le reste du code
+COPY . .
 
-# Générer le client Prisma
-RUN cd services/ticketing && npx prisma generate
-
-# Exposer le port
 EXPOSE 3002
+WORKDIR /app
 
-# Dossier de travail final = service Ticketing
-WORKDIR /app/services/ticketing
-
-# Commande par défaut
-CMD ["npm", "run", "dev"]
-# ─────────────────────────────────────────────────────────────
+# Attente DB → push schéma → seed → dev
+CMD sh -c "until nc -z ticketing-db 5432; do echo '⏳ Attente DB ticketing...'; sleep 2; done && \
+           npx prisma db push && \
+           if [ \"$SEED_ON_START\" = \"true\" ]; then npm run seed || true; fi && \
+           npm run dev"

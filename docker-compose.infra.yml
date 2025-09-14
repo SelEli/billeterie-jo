@@ -1,251 +1,7 @@
-services:
-  kafka:
-    image: confluentinc/cp-kafka:7.4.0
-    container_name: kafka
-    environment:
-      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
-      KAFKA_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    ports:
-      - "9092:9092"
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:9092 --list >/dev/null 2>&1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 5s
-
-  auth-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: auth
-    volumes:
-      - auth-db-data:/var/lib/postgresql/data
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-  ticketing-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ticketing
-    volumes:
-      - ticketing-db-data:/var/lib/postgresql/data
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-  payment-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: payment
-    volumes:
-      - payment-db-data:/var/lib/postgresql/data
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-  verification-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: verification
-    volumes:
-      - verification-db-data:/var/lib/postgresql/data
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-  gateway:
-    build:
-      context: ./services/gateway
-      dockerfile: Dockerfile
-    env_file: ./services/gateway/.env.production
-    ports:
-      - "3000:80"   # 3000 hôte → 80 interne Nginx
-    networks: [jo-net]
-    restart: unless-stopped
-    depends_on:
-      frontend:
-        condition: service_healthy
-      auth-db:
-        condition: service_healthy
-      auth:
-        condition: service_healthy
-      ticketing-db:
-        condition: service_healthy
-      ticketing:
-        condition: service_healthy
-      payment-db:
-        condition: service_healthy
-      payment:
-        condition: service_healthy
-      verification-db:
-        condition: service_healthy
-      verification:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-
-
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    env_file: ./frontend/.env.production
-    ports:
-      - "8080:80"
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:80/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-
-  auth:
-    build:
-      context: .
-      dockerfile: services/auth/Dockerfile
-    env_file: ./services/auth/.env.production
-    ports:
-      - "3001:3001"
-    depends_on:
-      auth-db:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:3001/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-
-  ticketing:
-    build:
-      context: .
-      dockerfile: services/ticketing/Dockerfile
-    env_file: ./services/ticketing/.env.production
-    ports:
-      - "3002:3002"
-    depends_on:
-      ticketing-db:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:3002/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-
-  payment:
-    build:
-      context: .
-      dockerfile: services/payment/Dockerfile
-    env_file: ./services/payment/.env.production
-    ports:
-      - "3003:3003"
-    depends_on:
-      payment-db:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:3003/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-
-  verification:
-    build:
-      context: .
-      dockerfile: services/verification/Dockerfile
-    env_file: ./services/verification/.env.production
-    ports:
-      - "3004:3004"
-    depends_on:
-      verification-db:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:3004/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
+networks:
+  jo-net:
+    driver: bridge
 
 volumes:
   auth-db-data:
@@ -253,6 +9,57 @@ volumes:
   payment-db-data:
   verification-db-data:
 
-networks:
-  jo-net:
-    driver: bridge
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    networks: [jo-net]
+    environment:
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://bjo-kafka.internal:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  redis:
+    image: redis:7-alpine
+    networks: [jo-net]
+
+  auth-db:
+    image: postgres:15
+    networks: [jo-net]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+
+  ticketing-db:
+    image: postgres:15
+    networks: [jo-net]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ticketing
+    volumes:
+      - ticketing-db-data:/var/lib/postgresql/data
+
+  payment-db:
+    image: postgres:15
+    networks: [jo-net]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: payment
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+
+  verification-db:
+    image: postgres:15
+    networks: [jo-net]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: verification
+    volumes:
+      - verification-db-data:/var/lib/postgresql/data

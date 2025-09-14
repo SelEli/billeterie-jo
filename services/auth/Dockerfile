@@ -1,40 +1,35 @@
-# ─────────────────────────────────────────────────────────────
-# Base image : Node 18 slim (Debian Bookworm)
 FROM node:18-slim
 
-# Variables d'environnement
 ENV TZ=Europe/Paris \
+    NODE_ENV=development \
     PATH=/app/node_modules/.bin:$PATH
 
-# Installer dépendances système
+# Dépendances système
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      openssl libssl-dev ca-certificates python3 make g++ && \
+      netcat-traditional \
+      python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
 
-# Dossier de travail
 WORKDIR /app
 
-# Copier uniquement les fichiers de dépendances en premier
-COPY services/auth/package*.json ./services/auth/
+# Copier package.json et prisma (chemins adaptés au contexte actuel)
+COPY package*.json ./
+COPY prisma ./prisma
 
-# Installer les dépendances NPM avec cache Docker
-RUN cd services/auth && npm ci --legacy-peer-deps && npm rebuild bcrypt --force
+# Installer deps + Prisma
+RUN npm ci --legacy-peer-deps --include=dev \
+    && npm rebuild bcrypt --build-from-source \
+    && npx prisma generate
 
-# Copier tout le reste du code
-COPY services/auth ./services/auth
-COPY shared ./shared
-RUN rm -rf services/auth/node_modules
+# Copier le reste du code
+COPY . .
 
-# Générer le client Prisma
-RUN cd services/auth && npx prisma generate
-
-# Exposer le port
 EXPOSE 3001
+WORKDIR /app
 
-# Dossier de travail final = service Auth
-WORKDIR /app/services/auth
-
-# Commande par défaut
-CMD ["npm", "run", "dev"]
-# ─────────────────────────────────────────────────────────────
+# Commande : attend DB, push schéma, seed, lance dev
+CMD sh -c "until nc -z auth-db 5432; do echo '⏳ Attente DB...'; sleep 2; done && \
+           npx prisma db push && \
+           if [ \"$SEED_ON_START\" = \"true\" ]; then npm run seed || true; fi && \
+           npm run dev"

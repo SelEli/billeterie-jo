@@ -1,0 +1,25 @@
+app = "bjo-kafka"
+primary_region = "cdg"
+
+[env]
+  KAFKA_BROKER_ID = "1"
+  KAFKA_CFG_LISTENERS = "PLAINTEXT://:9092"
+  KAFKA_CFG_ADVERTISED_LISTENERS = "PLAINTEXT://bjo-kafka.internal:9092"
+  KAFKA_CFG_ZOOKEEPER_CONNECT = "bjo-zookeeper.internal:2181"
+  ALLOW_PLAINTEXT_LISTENER = "yes"
+
+[[mounts]]
+  source = "data"
+  destination = "/var/lib/kafka/data"
+
+[[services]]
+  internal_port = 9092
+  protocol = "tcp"
+  processes = ["app"]
+  auto_stop_machines = false
+  min_machines_running = 1
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

@@ -6,35 +6,37 @@ FROM node:18-slim
 ENV TZ=Europe/Paris \
     PATH=/app/node_modules/.bin:$PATH
 
-# Installer dépendances système
+# Installer dépendances système nécessaires à certaines libs Node (ex: bcrypt)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      openssl libssl-dev ca-certificates python3 make g++ && \
+      openssl \
+      libssl-dev \
+      ca-certificates \
+      python3 \
+      make \
+      g++ \
+      netcat-traditional && \
     rm -rf /var/lib/apt/lists/*
 
-# Dossier de travail
+# Dossier de travail racine
 WORKDIR /app
 
-# Copier uniquement les fichiers de dépendances en premier
-COPY services/verification/package*.json ./services/verification/
+# Copier uniquement les fichiers de dépendances en premier (pour profiter du cache Docker)
+COPY package*.json ./
+COPY prisma ./prisma
 
-# Installer les dépendances NPM avec cache Docker
-RUN cd services/verification && npm ci --legacy-peer-deps && npm rebuild bcrypt --force
+# Installer les dépendances NPM
+RUN npm ci --legacy-peer-deps && npm rebuild bcrypt --force && npx prisma generate
 
-# Copier tout le reste du code
-COPY services/verification ./services/verification
-COPY shared ./shared
-RUN rm -rf services/verification/node_modules
+# Copier le reste du code du service Verification
+COPY . .
 
-# Générer le client Prisma
-RUN cd services/verification && npx prisma generate
-
-# Exposer le port
+# Exposer le port du service Verification
 EXPOSE 3004
 
-# Dossier de travail final = service Verification
-WORKDIR /app/services/verification
-
-# Commande par défaut
-CMD ["npm", "run", "dev"]
+# Commande : attendre DB → push schéma → seed → lancer dev
+CMD sh -c "until nc -z verification-db 5432; do echo '⏳ Attente DB verification...'; sleep 2; done && \
+           npx prisma db push && \
+           if [ \"$SEED_ON_START\" = \"true\" ]; then npm run seed || true; fi && \
+           npm run dev"
 # ─────────────────────────────────────────────────────────────

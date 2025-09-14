@@ -1,21 +1,12 @@
+networks:
+  jo-net:
+    external: true
+
 services:
   gateway:
     build:
       context: ./services/gateway
       dockerfile: Dockerfile
     ports:
-      - "3000:80"   # hôte 3000 → conteneur 80
+      - "80:80"
     networks: [jo-net]
-    restart: unless-stopped
-    #depends_on:
-    #  - frontend
-    #  - auth
-    #  - ticketing
-    #  - payment
-    #  - verification
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s

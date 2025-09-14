@@ -1,0 +1,24 @@
+app = "bjo-verification"
+primary_region = "fra"
+
+[build]
+
+[env]
+  REDIS_URL = "redis://bjo-redis.internal:6379"
+  KAFKA_BROKERS = "bjo-kafka.internal:9092"
+  KAFKA_CLIENT_ID = "verification-service"
+  NODE_ENV = "production"
+  SEED_ON_START = "false"
+
+[http_service]
+  internal_port = 3004
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

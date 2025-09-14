@@ -1,22 +1,16 @@
+
+networks:
+  jo-net:
+    external: true
+
 services:
   ticketing:
     build:
       context: .
       dockerfile: services/ticketing/Dockerfile
     env_file: ./services/ticketing/.env.production
-    ports:
-      - "3002:3002"
-    depends_on:
-      ticketing-db:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@ticketing-db:5432/ticketing
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
     networks: [jo-net]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:3002/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 5s

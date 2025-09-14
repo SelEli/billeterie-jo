@@ -21,18 +21,15 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copier uniquement les fichiers de dépendances en premier (pour profiter du cache Docker)
-COPY services/payment/package*.json ./services/payment/
+COPY package*.json ./
 
 # Installer les dépendances NPM
-WORKDIR /app/services/payment
 RUN npm ci --legacy-peer-deps && npm rebuild bcrypt --force
 
 # Copier le reste du code du service Payment
-COPY services/payment ./ 
-# Copier éventuellement un dossier partagé si utilisé
-COPY shared /app/shared
+COPY . .
 
-# Exposer le port du service (par défaut 4000, à aligner avec .env)
+# Exposer le port du service (par défaut 3003, à aligner avec .env)
 EXPOSE 3003
 
 # Commande par défaut
