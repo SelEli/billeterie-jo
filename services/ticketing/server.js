@@ -4,6 +4,8 @@ const { initKafka } = require('./utils/kafkaClient');
 const { initRedis } = require('./utils/redisClient');
 const { startConsumer } = require('./utils/kafkaConsumer'); // écoute user + ticket
 
+const PORT = process.env.PORT || 3002;
+
 (async () => {
   try {
     // Redis
@@ -20,10 +22,9 @@ const { startConsumer } = require('./utils/kafkaConsumer'); // écoute user + ti
 
     // HTTP API
     const app = require('./app');
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, () => {
       logger.info(`✅ Ticketing service listening on port ${PORT}`);
     });
-
 
   } catch (err) {
     logger.error('❌ Échec lors de l’initialisation des services', {
