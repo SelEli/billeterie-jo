@@ -1,30 +1,52 @@
-require('dotenv').config();
+// 📦 Charger les variables d'environnement uniquement en dev
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: '.env.development' });
+}
 
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 
-const {
-  logger,
-  requestId,
-  formatLogContext
-} = require('./utils');
-const { success, error } = require('./utils/response');
-
+const { logger, requestId, formatLogContext } = require('./utils');
+const { error } = require('./utils/response');
 const mainRoutes = require('./routes');
+
+// --- Config avec valeurs par défaut ---
+// On ajoute Railway + localhost par défaut si CORS_ORIGINS n'est pas défini
+const CORS_ORIGINS = (process.env.CORS_ORIGINS ||
+  'http://localhost:5173,https://frontend-production-a1c6.up.railway.app'
+)
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
 
 const app = express();
 
 // 🌍 Middlewares globaux
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Autoriser si pas d'origine (Postman, curl)
+    if (!origin) return callback(null, true);
+
+    // Autoriser si liste vide (aucune restriction)
+    if (CORS_ORIGINS.length === 0) return callback(null, true);
+
+    // Autoriser si l'origine est dans la liste
+    if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+
+    // Sinon, bloquer
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // si tu veux envoyer cookies / Authorization
+}));
+
 app.use(express.json());
 app.use(
-  morgan(
-    process.env.MORGAN_FORMAT ||
-      (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')
-  )
+  morgan(process.env.MORGAN_FORMAT || (process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 );
 
 // 🆔 ID unique pour chaque requête
@@ -45,7 +67,7 @@ app.use((req, res) => {
   res.status(404).json(error(['Route not found.']));
 });
 
-// 🛑 Gestion globale des erreurs (debug enrichi)
+// 🛑 Gestion globale des erreurs
 app.use((err, req, res, next) => {
   logger.error('[APP][ERROR] Unhandled error object:', err);
   logger.error('[APP][ERROR] Stack trace:', err && err.stack);
@@ -53,9 +75,7 @@ app.use((err, req, res, next) => {
     logger.error('[APP][ERROR] Request body at error time:', req.body);
   }
   const code = err.statusCode || 500;
-  res.status(code).json(
-    error([err.message || 'Internal server error.'])
-  );
+  res.status(code).json(error([err.message || 'Internal server error.']));
 });
 
 module.exports = app;

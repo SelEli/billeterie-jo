@@ -7,4 +7,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/auth': { target: 'https://auth-production-89f5.up.railway.app', changeOrigin: true },
+      '/ticket': { target: 'https://ticketing-production-af26.up.railway.app', changeOrigin: true },
+      '/payment': { target: 'https://payment-production-8baf.up.railway.app', changeOrigin: true },
+      '/verification': { target: 'https://verification-production.up.railway.app', changeOrigin: true },
+    },
+  },
 })

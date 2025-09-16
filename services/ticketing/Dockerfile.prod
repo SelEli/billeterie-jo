@@ -1,0 +1,46 @@
+FROM node:18-slim
+
+ENV TZ=Europe/Paris \
+    PATH=/app/node_modules/.bin:$PATH
+
+# Dépendances système pour bcrypt, Prisma et netcat
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ openssl libssl-dev ca-certificates netcat-traditional \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copier package.json + prisma/ AVANT le reste pour profiter du cache
+COPY package*.json ./
+COPY prisma ./prisma
+
+# Installer les dépendances (Railway injectera RUNTIME_ENV au runtime)
+RUN npm ci --legacy-peer-deps && npm rebuild bcrypt --build-from-source \
+ && npx prisma generate
+
+# Copier le reste du code
+COPY . .
+
+# Ne PAS copier de .env en prod
+# Ajoute .env dans .dockerignore pour éviter qu'il soit embarqué
+
+EXPOSE 3002
+
+CMD sh -c '\
+  if [ -n "$DB_HOST" ]; then \
+    echo "⏳ Attente DB ticketing sur $DB_HOST:${DB_PORT:-5432}..."; \
+    until nc -z "$DB_HOST" "${DB_PORT:-5432}"; do sleep 2; done; \
+    if [ "$RUNTIME_ENV" = "prod" ]; then \
+      npx prisma migrate deploy; \
+    else \
+      npx prisma db push; \
+    fi; \
+    if [ "$SEED_ON_START" = "true" ]; then node seed || true; fi; \
+  else \
+    echo "⚠️ Pas de DB_HOST défini → on saute Prisma et l’attente DB"; \
+  fi; \
+  if [ "$RUNTIME_ENV" = "prod" ]; then \
+    npm start; \
+  else \
+    npm run dev; \
+  fi'

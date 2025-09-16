@@ -10,10 +10,10 @@ const morgan = require('morgan');
 
 const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
-const mainRoutes = require('./routes'); // <-- index des routes
+const verificationRoutes = require('./routes/verification.routes');
 
 // --- Config avec valeurs par défaut ---
-// On inclut Railway + localhost par défaut si CORS_ORIGINS n'est pas défini
+// Ajout de Railway + localhost par défaut si CORS_ORIGINS n'est pas défini
 const allowedOrigins = (process.env.CORS_ORIGINS ||
   'http://localhost:5173,https://frontend-production-a1c6.up.railway.app'
 )
@@ -23,7 +23,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS ||
 
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log('🌍 Origin reçue:', origin); // log pour debug
+    console.log('🌍 Origin reçue:', origin); // log debug
     if (!origin) return callback(null, true); // Postman/curl
     if (allowedOrigins.length === 0) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
@@ -31,59 +31,65 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // si tu veux autoriser cookies / Authorization
+  credentials: true // autorise cookies / Authorization
 };
 
 const app = express();
 
 // 🌍 Middlewares globaux
 app.use(helmet());
+app.use(express.json());
 
-// CORS doit être placé avant les routes
+// CORS avant les routes
 app.use(cors(corsOptions));
 
 // Réponse aux préflights OPTIONS
 app.options('*', cors(corsOptions));
 
-app.use(express.json());
-app.use(
-  morgan(
-    process.env.MORGAN_FORMAT ||
-      (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')
-  )
-);
 
+// 📜 Logs HTTP
+app.use(
+  morgan(process.env.MORGAN_FORMAT || (process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
+);
 
 // 🆔 ID unique pour chaque requête
 app.use(requestId);
 
 // 🪵 Logger compact global
 app.use((req, res, next) => {
-  logger.debug(`[APP][REQ] ${formatLogContext(req)}`);
+  logger.debug(`[VERIFICATION-SERVICE][REQ] ${req.method} ${req.originalUrl} ${formatLogContext(req)}`);
   next();
 });
 
-// 🚏 Montage des routes via index
-app.use('/', mainRoutes);
+// 🧹 Normalisation des URL
+app.use((req, res, next) => {
+  if (req.url.includes('//')) {
+    req.url = req.url.replace(/\/{2,}/g, '/');
+  }
+  next();
+});
 
 // 💓 Healthcheck
 app.get('/health', (req, res) => {
-  logger.info('[HEALTH] 💓 OK');
+  logger.info('[VERIFICATION-SERVICE][HEALTH] 💓 OK');
   res.status(200).send('OK');
 });
 
+// 🚏 Routes Verification
+app.use('/verification', verificationRoutes);
+
 // 🚫 404 — non trouvé
 app.use((req, res) => {
-  logger.warn(`[APP][404] Route not found: ${req.method} ${req.originalUrl}`);
+  logger.warn(`[VERIFICATION-SERVICE][404] Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json(error(['Route not found.']));
 });
 
 // 🛑 Gestion globale des erreurs
 app.use((err, req, res, next) => {
-  logger.error('[APP][ERROR] Unhandled error object:', err);
-  logger.error('[APP][ERROR] Stack trace:', err && err.stack);
+  logger.error('[VERIFICATION-SERVICE][ERROR] Unhandled error object:', err);
+  logger.error('[VERIFICATION-SERVICE][ERROR] Stack trace:', err && err.stack);
   if (req.body && Object.keys(req.body).length) {
-    logger.error('[APP][ERROR] Request body at error time:', req.body);
+    logger.error('[VERIFICATION-SERVICE][ERROR] Request body at error time:', req.body);
   }
   const code = err.statusCode || 500;
   res.status(code).json(error([err.message || 'Internal server error.']));

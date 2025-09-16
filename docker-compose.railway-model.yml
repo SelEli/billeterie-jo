@@ -1,0 +1,263 @@
+networks:
+  bjo-network:
+    driver: bridge
+
+volumes:
+  postgres_auth_data:
+  postgres_ticketing_data:
+
+services:
+  # === Bases de données ===
+  auth-db:
+    image: seleli/postgres-custom:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth
+      PGHOST: "auth-db"
+      PGPORT: "5432"
+      PGUSER: "postgres"
+      PGPASSWORD: "postgres"
+      PGDATABASE: "auth"
+      DATABASE_URL: "postgresql://postgres:postgres@auth-db:5432/auth"
+      PGDATA: /var/lib/postgresql/data/db
+    ports:
+      - "54321:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    networks:
+      - bjo-network
+
+  ticketing-db:
+    image: seleli/postgres-custom:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ticketing
+      PGHOST: "ticketing-db"
+      PGPORT: "5432"
+      PGUSER: "postgres"
+      PGPASSWORD: "postgres"
+      PGDATABASE: "ticketing"
+      DATABASE_URL: "postgresql://postgres:postgres@ticketing-db:5432/ticketing"
+      PGDATA: /var/lib/postgresql/data/db
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres_ticketing_data:/var/lib/postgresql/data
+    networks:
+      - bjo-network
+
+  # === Redis ===
+  redis:
+    image: seleli/redis-custom:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - bjo-network
+
+  # === Kafka & Zookeeper ===
+  zookeeper:
+    image: seleli/zookeeper-custom:latest
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+    networks:
+      - bjo-network
+
+  kafka:
+    image: seleli/kafka-custom:latest
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    networks:
+      - bjo-network
+
+  # === Micro-services ===
+  auth:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+      HOST: "0.0.0.0"
+      DATABASE_URL: "postgresql://postgres:postgres@auth-db:5432/auth"
+      PGHOST: "auth-db"
+      PGPORT: "5432"
+      PGUSER: "postgres"
+      PGPASSWORD: "postgres"
+      PGDATABASE: "auth"
+      JWT_SECRET: "maCleTresSecreteEtComplexe12345!"
+      JWT_EXPIRES_IN: "1h"
+      REFRESH_TOKEN_SECRET: "uneAutreCleBienSecrete67890!"
+      REFRESH_TOKEN_EXPIRES_IN: "7d"
+      REDIS_URL: "redis://redis:6379"
+      KAFKA_BROKER: "kafka:9092"
+      SERVICE_NAME: "auth-service"
+      NODE_ENV: "production"
+      LOG_LEVEL: "info"
+      TICKETING_URL: "http://gateway/ticketing"
+      PAYMENT_URL: "http://gateway/payment"
+      VERIFICATION_URL: "http://gateway/verification"
+      VERIFY_CALLBACK_URL: "http://gateway/verify-callback"
+      ADAPTER_MODE: "live"
+      PAYMENT_MODE: ""
+      VERIFICATION_MODE: ""
+      KAFKA_MODE: ""
+      USE_EXTERNAL_PAYMENT: "true"
+      USE_EXTERNAL_VERIFICATION: "false"
+      SEED_ON_START: "true"
+    depends_on:
+      - auth-db
+      - redis
+      - kafka
+    networks:
+      - bjo-network
+
+  ticketing:
+    build:
+      context: ./services/ticketing
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: "3002"
+      HOST: "0.0.0.0"
+      DATABASE_URL: "postgresql://postgres:postgres@ticketing-db:5432/ticketing"
+      PGHOST: "ticketing-db"
+      PGPORT: "5432"
+      PGUSER: "postgres"
+      PGPASSWORD: "postgres"
+      PGDATABASE: "ticketing"
+      SERVICE_NAME: "ticketing-service"
+      NODE_ENV: "production"
+      LOG_LEVEL: "info"
+      JWT_SECRET: "maCleTresSecreteEtComplexe12345!"
+      JWT_EXPIRES_IN: "1h"
+      REFRESH_TOKEN_SECRET: "uneAutreCleBienSecrete67890!"
+      REFRESH_TOKEN_EXPIRES_IN: "7d"
+      KAFKA_BROKER: "kafka:9092"
+      REDIS_URL: "redis://redis:6379"
+      AUTH_URL: "http://gateway/auth"
+      ROLE_URL: "http://gateway/role"
+      USER_URL: "http://gateway/user"
+      PAYMENT_URL: "http://gateway/payment"
+      USE_MOCK_PAYMENT: "false"
+      VERIFICATION_URL: "http://gateway/verification"
+      USE_MOCK_VERIFICATION: "false"
+      VERIFY_CALLBACK_URL: "http://gateway/verify-callback"
+      USE_MOCK_VERIFY: "false"
+      ADAPTER_MODE: "live"
+      PAYMENT_MODE: ""
+      VERIFICATION_MODE: ""
+      KAFKA_MODE: ""
+      USE_EXTERNAL_PAYMENT: "true"
+      USE_EXTERNAL_VERIFICATION: "false"
+      PAYMENT_SERVICE_USER_ID: "9"
+      PAYMENT_SERVICE_EMAIL: "payment@example.com"
+      PAYMENT_SERVICE_PASSWORD: "Password123!"
+      SEED_ON_START: "true"
+    depends_on:
+      - ticketing-db
+      - redis
+      - kafka
+    networks:
+      - bjo-network
+
+  payment:
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: "3003"
+      HOST: "0.0.0.0"
+      DATABASE_URL: "postgresql://postgres:postgres@payment-db:5432/payment"
+      PGHOST: "payment-db"
+      PGPORT: "5432"
+      PGUSER: "postgres"
+      PGPASSWORD: "postgres"
+      PGDATABASE: "payment"
+      SERVICE_NAME: "payment-service"
+      NODE_ENV: "production"
+      LOG_LEVEL: "info"
+      JWT_SECRET: "maCleTresSecreteEtComplexe12345!"
+      JWT_EXPIRES_IN: "1h"
+      REFRESH_TOKEN_SECRET: "uneAutreCleBienSecrete67890!"
+      REFRESH_TOKEN_EXPIRES_IN: "7d"
+      KAFKA_BROKER: "kafka:9092"
+      REDIS_URL: "redis://redis:6379"
+      AUTH_URL: "http://gateway/auth"
+      ROLE_URL: "http://gateway/role"
+      USER_URL: "http://gateway/user"
+      TICKET_URL: "http://gateway/ticket"
+      USE_MOCK_PAYMENT: "true"
+      VERIFICATION_URL: "http://gateway/verification"
+      USE_MOCK_VERIFICATION: "true"
+      VERIFY_CALLBACK_URL: "http://gateway/verify-callback"
+      USE_MOCK_VERIFY: "true"
+      ADAPTER_MODE: "live"
+      PAYMENT_MODE: ""
+      VERIFICATION_MODE: ""
+      KAFKA_MODE: ""
+      USE_EXTERNAL_PAYMENT: "false"
+      USE_EXTERNAL_VERIFICATION: "false"
+      PAYMENT_SERVICE_USER_ID: "9"
+      PAYMENT_SERVICE_EMAIL: "payment@example.com"
+      PAYMENT_SERVICE_PASSWORD: "Password123!"
+    depends_on:
+      - redis
+      - kafka
+    networks:
+      - bjo-network
+
+  # === Frontend ===
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    environment:
+      NODE_ENV: "production"
+      VITE_API_URL: "http://localhost:3000"
+      # Ajoute ici les variables de ./frontend/.env.production
+    networks:
+      - bjo-network
+
+  # === Gateway (NGINX reverse proxy) ===
+  gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      SERVICE_NAME: "gateway-service"
+      NODE_ENV: "production"
+      LOG_LEVEL: "info"
+      AUTH_SERVICE_URL: "http://auth:3001"
+      TICKETING_SERVICE_URL: "http://ticketing:3002"
+      PAYMENT_SERVICE_URL: "http://payment:3003"
+      VERIFICATION_SERVICE_URL: "http://verification:3004"
+      KAFKA_BROKER: "kafka:9092"
+      REDIS_URL: "redis://redis:6379"
+    depends_on:
+      - auth
+      - ticketing
+      - payment
+      - frontend
+    networks:
+      - bjo-network

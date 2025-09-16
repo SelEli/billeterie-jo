@@ -1,0 +1,58 @@
+# === Étape 1 : Build des dépendances et génération Prisma ===
+FROM node:18-slim AS builder
+
+ENV TZ=Europe/Paris \
+    PATH=/app/node_modules/.bin:$PATH
+
+# Dépendances système minimales pour build
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      netcat-traditional \
+      python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copier package.json et prisma
+COPY package*.json ./
+COPY prisma ./prisma
+
+# Installer uniquement les deps de prod + générer Prisma
+RUN npm ci --only=production \
+    && npm rebuild bcrypt --build-from-source \
+    && npx prisma generate
+
+# Copier le reste du code
+COPY . .
+
+# === Étape 2 : Image finale ===
+FROM node:18-slim
+
+ENV TZ=Europe/Paris \
+    PATH=/app/node_modules/.bin:$PATH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      netcat-traditional \
+      python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copier depuis le builder uniquement ce qui est nécessaire
+COPY --from=builder /app /app
+
+EXPOSE 3001
+
+# Commande de démarrage en prod
+CMD sh -c '\
+  if [ -n "$DB_HOST" ]; then \
+    echo "⏳ Attente DB sur $DB_HOST:${DB_PORT:-5432}..."; \
+    until nc -z "$DB_HOST" "${DB_PORT:-5432}"; do sleep 2; done; \
+    npx prisma migrate deploy; \
+    if [ "$SEED_ON_START" = "true" ]; then node seed || true; fi; \
+  else \
+    echo "⚠️ Pas de DB_HOST défini → on saute Prisma et l’attente DB"; \
+  fi && \
+  npm start'
+

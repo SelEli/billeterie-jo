@@ -1,4 +1,7 @@
-require('dotenv').config();
+// 📦 Charger les variables d'environnement uniquement en dev
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: '.env.development' });
+}
 
 const express = require('express');
 const helmet = require('helmet');
@@ -7,9 +10,29 @@ const morgan = require('morgan');
 
 const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
-
-// On importe directement le routeur Payment
 const paymentRoutes = require('./routes/payment.routes');
+
+// --- Config avec valeurs par défaut ---
+// Ajout de Railway + localhost par défaut si CORS_ORIGINS n'est pas défini
+const allowedOrigins = (process.env.CORS_ORIGINS ||
+  'http://localhost:5173,https://frontend-production-a1c6.up.railway.app'
+)
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    console.log('🌍 Origin reçue:', origin); // log debug
+    if (!origin) return callback(null, true); // Postman/curl
+    if (allowedOrigins.length === 0) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // si tu veux autoriser cookies / Authorization
+};
 
 const app = express();
 
@@ -17,33 +40,15 @@ const app = express();
 app.use(helmet());
 app.use(express.json());
 
-// --- CORS dynamique ---
-const allowedOrigins = (process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.length === 0) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
+// CORS avant les routes
 app.use(cors(corsOptions));
+
+// Réponse aux préflights OPTIONS
+app.options(/.*/, cors(corsOptions));
 
 // 📜 Logs HTTP
 app.use(
-  morgan(
-    process.env.MORGAN_FORMAT ||
-      (process.env.NODE_ENV === 'production' ? 'combined' : 'dev')
-  )
+  morgan(process.env.MORGAN_FORMAT || (process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 );
 
 // 🆔 ID unique pour chaque requête
@@ -55,7 +60,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🧹 Normalisation des URL pour éviter les problèmes de double slash
+// 🧹 Normalisation des URL
 app.use((req, res, next) => {
   if (req.url.includes('//')) {
     req.url = req.url.replace(/\/{2,}/g, '/');
@@ -69,10 +74,10 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// 🚏 Montage direct des routes Payment
+// 🚏 Routes Payment
 app.use('/payment', paymentRoutes);
 
-// 🚫 404 — non trouvé
+// 🚫 404
 app.use((req, res) => {
   logger.warn(`[PAYMENT-SERVICE][404] Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json(error(['Route not found.']));

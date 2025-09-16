@@ -1,0 +1,18 @@
+FROM nginx:alpine
+
+# Supprimer la configuration par défaut
+RUN rm -f /etc/nginx/conf.d/*
+
+# Copier la configuration finale
+COPY nginx.prod.conf /etc/nginx/nginx.conf
+
+# Exposer le port HTTP
+EXPOSE 80
+
+# CMD : afficher le contenu de la conf, vérifier Nginx, puis démarrer
+CMD echo "=== Contenu de nginx.conf ===" && \
+    cat /etc/nginx/nginx.conf && \
+    echo "=== Vérification de la configuration Nginx ===" && \
+    nginx -t && \
+    echo "Configuration Nginx valide, démarrage du serveur…" && \
+    nginx -g "daemon off;"

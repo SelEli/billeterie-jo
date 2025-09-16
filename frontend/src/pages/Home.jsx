@@ -15,9 +15,9 @@ export default function Home() {
         <div className="hero-content">
           <h1>Vivez l’émotion des Jeux Olympiques<br />de Paris 2024</h1>
           <p>Réservez vos billets officiels et participez à l’histoire.</p>
-          <a href="/ticket" className="btn btn--primary btn--lg">
+          <link href="/ticket" className="btn btn--primary btn--lg">
             🎟 Voir les billets
-          </a>
+          </link>
         </div>
       </section>
 
@@ -35,9 +35,9 @@ export default function Home() {
                       <h5>{event.title}</h5>
                       <p>{event.date}</p>
                     </div>
-                    <a href="/ticket" className="btn btn--secondary mt-auto">
+                    <link href="/ticket" className="btn btn--secondary mt-auto">
                       Réserver
-                    </a>
+                    </link>
                   </div>
                 </div>
               </div>

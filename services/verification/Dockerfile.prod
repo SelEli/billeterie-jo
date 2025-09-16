@@ -1,0 +1,39 @@
+FROM node:18-slim
+
+ENV TZ=Europe/Paris \
+    PATH=/app/node_modules/.bin:$PATH \
+    RUNTIME_ENV=dev
+
+# Dépendances système minimales pour bcrypt
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      openssl \
+      libssl-dev \
+      ca-certificates \
+      python3 \
+      make \
+      g++ \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copier package.json et lockfile
+COPY package*.json ./
+
+# Installer les dépendances selon l'environnement
+RUN if [ "$RUNTIME_ENV" = "prod" ]; then \
+      npm ci --only=production && npm rebuild bcrypt --build-from-source ; \
+    else \
+      npm ci --legacy-peer-deps && npm rebuild bcrypt --force ; \
+    fi
+
+# Copier le reste du code
+COPY . .
+
+EXPOSE 3004
+
+# Lancer en prod ou en dev selon RUNTIME_ENV
+CMD if [ "$RUNTIME_ENV" = "prod" ]; then \
+      npm start ; \
+    else \
+      npm run dev ; \
+    fi

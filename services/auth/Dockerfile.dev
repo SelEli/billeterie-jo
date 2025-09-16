@@ -22,14 +22,13 @@ RUN npm ci --legacy-peer-deps --include=dev \
     && npm rebuild bcrypt --build-from-source \
     && npx prisma generate
 
-# Copier le reste du code
+# Copier le reste du code (y compris seed.js)
 COPY . .
 
 EXPOSE 3001
-WORKDIR /app
 
-# Commande : attend DB, push schéma, seed, lance dev
+# Commande : attend DB, push schéma, seed si demandé, lance dev
 CMD sh -c "until nc -z auth-db 5432; do echo '⏳ Attente DB...'; sleep 2; done && \
            npx prisma db push && \
-           if [ \"$SEED_ON_START\" = \"true\" ]; then npm run seed || true; fi && \
+           if [ \"$SEED_ON_START\" = \"true\" ]; then node seed || true; fi && \
            npm run dev"
