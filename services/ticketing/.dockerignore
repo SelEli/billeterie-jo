@@ -14,7 +14,7 @@ coverage
 
 # Variables d'environnement
 .env
-.env.*
+# .env.*
 */.env
 */.env.*
 

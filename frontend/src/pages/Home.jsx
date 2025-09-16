@@ -1,4 +1,5 @@
 import PageLayout from '../common/components/PageLayout';
+import { Link } from 'react-router-dom';
 
 export default function Home() {
   const events = [
@@ -15,9 +16,9 @@ export default function Home() {
         <div className="hero-content">
           <h1>Vivez l’émotion des Jeux Olympiques<br />de Paris 2024</h1>
           <p>Réservez vos billets officiels et participez à l’histoire.</p>
-          <link href="/ticket" className="btn btn--primary btn--lg">
+          <Link to="/ticket" className="btn btn--primary btn--lg">
             🎟 Voir les billets
-          </link>
+          </Link>
         </div>
       </section>
 
@@ -35,9 +36,9 @@ export default function Home() {
                       <h5>{event.title}</h5>
                       <p>{event.date}</p>
                     </div>
-                    <link href="/ticket" className="btn btn--secondary mt-auto">
+                    <Link to="/ticket" className="btn btn--secondary mt-auto">
                       Réserver
-                    </link>
+                    </Link>
                   </div>
                 </div>
               </div>
