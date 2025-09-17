@@ -15,22 +15,21 @@ async function confirmPaymentService(ticketId, isMock = false) {
 
   logger.info(`[PAYMENT SERVICE] Confirmation paiement pour ticket ${numericId} (mock=${isMock})`);
 
-  // 🔐 Token technique AGENT
+  const numericUserId = Number(process.env.PAYMENT_SERVICE_USER_ID);
+  logger.info('[PAYMENT SERVICE] PAYMENT_SERVICE_USER_ID env', { numericUserId });
+
   const token = jwt.sign(
-    {
-      userId: Number(process.env.PAYMENT_SERVICE_USER_ID),
-      role: 'AGENT'
-    },
+    { userId: numericUserId, role: 'AGENT' },
     process.env.JWT_SECRET,
     { expiresIn: '5m' }
   );
+  logger.info('[PAYMENT SERVICE] JWT payload', { userId: numericUserId, role: 'AGENT' });
 
-  // 💾 Lecture du cache
   let paymentInfo = getPaymentData(numericId);
   let amount = paymentInfo?.amount ?? null;
   let mode = paymentInfo?.mode ?? (isMock ? 'mock' : 'live');
 
-  // Fallback si cache vide ou expiré
+  // Si prix pas en cache, récupération depuis ticket-service
   if (amount === null) {
     try {
       const ticketResp = await axios.get(
@@ -38,32 +37,57 @@ async function confirmPaymentService(ticketId, isMock = false) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       amount = ticketResp.data?.data?.price ?? null;
+      logger.info('[PAYMENT SERVICE] Prix récupéré depuis ticket-service', { ticketId: numericId, amount });
     } catch (err) {
       logger.warn(`[PAYMENT SERVICE] Impossible de récupérer le prix du ticket ${numericId} : ${err.message}`);
     }
   }
 
-  // ✅ Appel à l’API ticket-service pour valider le ticket
-  const resp = await axios.post(
-    `${process.env.TICKET_URL}/validate`,
-    { ticketId: numericId },
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
+  // 🔹 Log avant POST /validate
+  logger.info('[PAYMENT SERVICE] Envoi requête POST /validate', {
+    ticketId: numericId,
+    headers: { Authorization: `Bearer ${token}` },
+    body: { ticketId: numericId }
+  });
 
-  const ticketStatus = resp.data?.data?.status || resp.data?.status;
-  if (ticketStatus !== 'VALID') {
-    logger.error(`[PAYMENT SERVICE] Ticket ${numericId} non validé côté ticket-service`, resp.data);
-    const err = new Error('TICKET_NOT_VALIDATED');
-    err.statusCode = ERROR_STATUS.TICKET_NOT_VALIDATED || 500;
+  try {
+    const resp = await axios.post(
+      `${process.env.TICKET_URL}/validate`,
+      { ticketId: numericId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // 🔹 Log réponse brute
+    logger.info('[PAYMENT SERVICE] Réponse Ticket Service', {
+      status: resp.status,
+      data: resp.data,
+      ticketId: numericId
+    });
+
+    const ticketStatus = resp.data?.data?.status || resp.data?.status;
+    if (ticketStatus !== 'VALID') {
+      logger.error(`[PAYMENT SERVICE] Ticket ${numericId} non validé côté ticket-service`, resp.data);
+      const err = new Error('TICKET_NOT_VALIDATED');
+      err.statusCode = ERROR_STATUS.TICKET_NOT_VALIDATED || 500;
+      throw err;
+    }
+
+  } catch (err) {
+    // 🔹 Log d’erreur détaillé
+    logger.error('[PAYMENT SERVICE] Erreur Ticket Service', {
+      status: err.response?.status,
+      data: err.response?.data,
+      ticketId: numericId
+    });
     throw err;
   }
 
   logger.info(`[PAYMENT SERVICE] Ticket ${numericId} validé avec succès`);
 
-  // 🧹 Nettoyage du cache
+  // Nettoyage cache
   clearPaymentData(numericId);
 
-  // 📢 Publication Kafka
+  // Publication Kafka
   await publishKafkaEvent('ticket', {
     type: 'PaymentSucceeded',
     ticketId: numericId,

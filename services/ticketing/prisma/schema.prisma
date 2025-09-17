@@ -23,6 +23,13 @@ enum TicketStatus {
   EXPIRED
 }
 
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  SOLD_OUT
+  CANCELLED
+}
+
 // ----------------------
 // Modèles
 // ----------------------
@@ -32,7 +39,11 @@ model Event {
   label      String
   date       DateTime
   location   String
-  category   String?                // Optionnel : "ceremony", "match", etc.
+  category   String?               // Optionnel : "ceremony", "match", etc.
+  capacity   Int?                  // Nombre total de places (optionnel, pour limiter tickets)
+  status     EventStatus?          // DRAFT / PUBLISHED / SOLD_OUT / CANCELLED
+  description String?              // Présentation détaillée
+  imageUrl   String?               // URL pour illustration
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?              // Soft delete

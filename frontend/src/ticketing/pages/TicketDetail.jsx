@@ -40,10 +40,12 @@ export default function TicketDetail() {
               >
                 ← Retour aux tickets
               </button>
+
               <div className="ticket-actions-right">
                 <button className="btn btn--danger" onClick={handleDelete}>
                   Supprimer
                 </button>
+
                 {isValid && (
                   <button className="btn btn--print" onClick={() => window.print()}>
                     🖨️ Imprimer
@@ -53,9 +55,7 @@ export default function TicketDetail() {
             </div>
 
             <div className="ticket-card print-area">
-              <div className="ticket-banner">
-                🎟️ Billet Officiel – Paris 2025
-              </div>
+              <div className="ticket-banner">🎟️ Billet Officiel – Paris 2025</div>
 
               <div className="ticket-content">
                 <h2 className="ticket-title">

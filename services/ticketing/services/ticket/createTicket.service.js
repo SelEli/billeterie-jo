@@ -28,11 +28,13 @@ async function createTicketService(
     err.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
     throw err;
   }
+
   if (eventIdNum !== null && Number.isNaN(eventIdNum)) {
     const err = new Error('INVALID_TICKET_ID');
     err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
     throw err;
   }
+
   if (offerIdNum !== null && Number.isNaN(offerIdNum)) {
     const err = new Error('INVALID_TICKET_ID');
     err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
@@ -55,6 +57,7 @@ async function createTicketService(
   } catch (err) {
     logger.warn(`[TICKET SERVICE] User check failed: ${err.message}`);
   }
+
   if (!found) {
     const e = new Error('USER_NOT_FOUND');
     e.statusCode = ERROR_STATUS.USER_NOT_FOUND;

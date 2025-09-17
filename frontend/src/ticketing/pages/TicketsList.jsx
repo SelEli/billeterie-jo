@@ -14,6 +14,7 @@ export default function TicketsList() {
     if (!user) {
       return { data: [], meta: { pagination: { total: 0 } } };
     }
+
     const finalParams = hasRole && hasRole('ADMIN')
       ? params
       : { ...params, userId: user.id };
@@ -54,6 +55,7 @@ export default function TicketsList() {
               if (col === 'status') {
                 return <TicketStatusBadge status={(value || '').toUpperCase()} />;
               }
+
               if (col === 'actions') {
                 if ((row.status || '').toUpperCase() === 'RESERVED') {
                   return (
@@ -72,6 +74,7 @@ export default function TicketsList() {
                 }
                 return null;
               }
+
               return value;
             }}
           />

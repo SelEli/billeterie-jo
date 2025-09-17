@@ -10,43 +10,31 @@ export default function TicketCreate() {
   const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedOffer, setSelectedOffer] = useState(null);
+  const [selectedZone, setSelectedZone] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Création auto dès qu'on a event + offre
   useEffect(() => {
     const create = async () => {
-      if (selectedEvent && selectedOffer) {
+      if (selectedEvent && selectedOffer && selectedZone) {
         setLoading(true);
         try {
-          const price =
-            selectedEvent.basePrice -
-            (selectedEvent.basePrice * selectedOffer.discount) / 100;
+          const price = selectedEvent.basePrice * (1 - selectedOffer.discount); // discount fraction
 
-          // 1️⃣ Création du ticket en BDD
           const newTicket = await createTicket({
             userId: user.id,
             eventId: selectedEvent.id,
             offerId: selectedOffer.id,
             status: 'RESERVED',
-            zone: 'A', // valeur par défaut ou choisie ailleurs
+            zone: selectedZone,
             price
           });
 
-          // Extraction prudente de l'ID
-          const ticketId = newTicket?.id ?? newTicket?.data?.id;
-          if (!ticketId) {
-            console.error('ID ticket invalide', newTicket);
-            return; // on sort pour éviter boucle infinie
-          }
+          const ticketId = newTicket?.data?.id ?? newTicket?.id;
+          if (!ticketId) return;
 
-          // 2️⃣ Lecture de confirmation (noCache si supporté)
           const confirmed = await getTicket(ticketId, { noCache: true });
-
           if (confirmed && (confirmed.id || confirmed.data?.id)) {
-            // 3️⃣ Navigation vers paiement
             navigate(`/pay/start?ticketId=${ticketId}`);
-          } else {
-            console.error('Ticket pas encore dispo en BDD, réessayer plus tard');
           }
         } catch (err) {
           console.error('Erreur création ticket', err);
@@ -56,7 +44,7 @@ export default function TicketCreate() {
       }
     };
     create();
-  }, [selectedEvent, selectedOffer, navigate, user]);
+  }, [selectedEvent, selectedOffer, selectedZone, navigate, user]);
 
   return (
     <PageLayout title="Créer un ticket">
@@ -71,8 +59,9 @@ export default function TicketCreate() {
                 <button
                   onClick={() => setSelectedEvent(ev)}
                   className="btn btn--secondary"
+                  disabled={ev.remainingCapacity === 0}
                 >
-                  {ev.label}
+                  {ev.label} {ev.remainingCapacity === 0 && '(Complet)'}
                 </button>
               </li>
             ))}
@@ -88,7 +77,23 @@ export default function TicketCreate() {
                   onClick={() => setSelectedOffer(of)}
                   className="btn btn--secondary"
                 >
-                  {of.label} ({of.discount}%)
+                  {of.label} ({of.discount * 100}%)
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : !selectedZone ? (
+        <>
+          <h3>Choisissez une zone pour {selectedEvent.label}</h3>
+          <ul>
+            {selectedEvent.zones.map(z => (
+              <li key={z}>
+                <button
+                  onClick={() => setSelectedZone(z)}
+                  className="btn btn--secondary"
+                >
+                  Zone {z}
                 </button>
               </li>
             ))}

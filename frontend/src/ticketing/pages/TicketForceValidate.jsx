@@ -1,4 +1,3 @@
-// src/ticketing/pages/TicketForceValidate.jsx
 import { useState } from 'react';
 import PageLayout from '../../common/components/PageLayout';
 import { validateTicket } from '../api/ticket';
@@ -27,9 +26,11 @@ export default function TicketForceValidate() {
       setError('Veuillez indiquer un motif');
       return;
     }
+
     setLoading(true);
     setError(null);
     setResult(null);
+
     try {
       const res = await validateTicket(ticketId, { reason });
       setResult(res);
@@ -54,6 +55,7 @@ export default function TicketForceValidate() {
             />
           </label>
         </div>
+
         <div>
           <label>
             Motif :
@@ -65,12 +67,14 @@ export default function TicketForceValidate() {
             />
           </label>
         </div>
+
         <button type="submit" className="btn btn--primary" disabled={loading}>
           {loading ? 'Validation...' : 'Forcer la validation'}
         </button>
       </form>
 
       {error && <p className="alert alert--error">{error}</p>}
+
       {result && (
         <div className="alert alert--success" style={{ marginTop: '1rem' }}>
           <h3>Ticket validé ✅</h3>

@@ -6,23 +6,20 @@ const { setPaymentData } = require('../utils/paymentCache');
 
 async function startPaymentService(ticketId, _amountFromFront, isMock = false) {
   const numericId = Number(ticketId);
-  if (!numericId) {
-    throw new Error('INVALID_TICKET_ID');
-  }
+  if (!numericId) throw new Error('INVALID_TICKET_ID');
 
   logger.info(`[PAYMENT SERVICE] Démarrage paiement pour ticket ${numericId} (mock=${isMock})`);
 
-  // 🔐 Token technique AGENT
+  const numericUserId = Number(process.env.PAYMENT_SERVICE_USER_ID);
+  logger.info('[PAYMENT SERVICE] PAYMENT_SERVICE_USER_ID env', { numericUserId });
+
   const token = jwt.sign(
-    {
-      userId: Number(process.env.PAYMENT_SERVICE_USER_ID),
-      role: 'AGENT'
-    },
+    { userId: numericUserId, role: 'AGENT' },
     process.env.JWT_SECRET,
     { expiresIn: '5m' }
   );
+  logger.info('[PAYMENT SERVICE] JWT payload', { userId: numericUserId, role: 'AGENT' });
 
-  // 📡 Récupération du prix et statut depuis ticket-service
   const ticketResp = await axios.get(
     `${process.env.TICKET_URL}/${numericId}`,
     { headers: { Authorization: `Bearer ${token}` } }
@@ -36,14 +33,10 @@ async function startPaymentService(ticketId, _amountFromFront, isMock = false) {
     throw new Error('INVALID_TICKET_PRICE');
   }
 
-  // 💾 Stockage en cache mémoire
   setPaymentData(numericId, { amount, mode: isMock ? 'mock' : 'live' });
 
-  if (isMock) {
-    logger.debug('[PAYMENT SERVICE] Mode mock : paiement simulé');
-  }
+  if (isMock) logger.debug('[PAYMENT SERVICE] Mode mock : paiement simulé');
 
-  // 📢 Publication Kafka
   await publishKafkaEvent('ticket', {
     type: 'PaymentStarted',
     ticketId: numericId,

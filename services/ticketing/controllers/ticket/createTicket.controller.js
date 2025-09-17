@@ -1,4 +1,3 @@
-// controllers/ticket/createTicket.controller.js
 const logger = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { createTicketService } = require('../../services/ticket/createTicket.service');
@@ -6,6 +5,7 @@ const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const prisma = require('../../utils/prismaClient'); // pour vérifier capacité
 
 async function createTicketController(req, res) {
   logger.debug('[TICKET CONTROLLER] Requête création ticket reçue', {
@@ -13,12 +13,10 @@ async function createTicketController(req, res) {
     body: req.body
   });
 
-  // Autorisation
-  if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
+  if (!req.user) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
-  // Champs obligatoires
   const missing = [];
   if (req.body.price == null) missing.push('price');
   if (!req.body.zone) missing.push('zone');
@@ -29,12 +27,25 @@ async function createTicketController(req, res) {
     return sendBusinessError(res, 'MISSING_REQUIRED_FIELDS');
   }
 
-  // Validation basique
   if (typeof req.body.price !== 'number' || req.body.price <= 0) {
     return sendBusinessError(res, 'INVALID_TICKET_DATA');
   }
   if (!Number.isInteger(Number(req.body.eventId)) || Number(req.body.eventId) <= 0) {
     return sendBusinessError(res, 'INVALID_EVENT_ID');
+  }
+
+  // ⚡ Vérification capacité
+  const event = await prisma.event.findUnique({
+    where: { id: req.body.eventId },
+    include: { tickets: true } // récupère tous les tickets existants
+  });
+
+  if (!event) {
+    return sendBusinessError(res, 'EVENT_NOT_FOUND');
+  }
+
+  if (event.capacity != null && event.tickets.length >= event.capacity) {
+    return sendBusinessError(res, 'EVENT_FULL'); // ou code/message adapté pour frontend
   }
 
   const timer = monitor.timer('ticket_create').start();
@@ -43,13 +54,13 @@ async function createTicketController(req, res) {
       ...req.body,
       userId: req.user.userId,
       role: req.user.role,
-      status: 'RESERVED' // forcé à RESERVED à la création
+      status: 'RESERVED'
     };
 
     logger.debug('[TICKET CONTROLLER] Appel service createTicketService', payload);
     const ticket = await createTicketService(payload, req.headers.authorization);
 
-    // Publication Kafka vers payment-service (déclenche le paiement)
+    // Publication Kafka vers payment-service
     try {
       await publishKafkaEvent('payment', {
         type: 'PaymentRequested',
