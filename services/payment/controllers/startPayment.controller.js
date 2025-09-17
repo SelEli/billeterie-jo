@@ -19,7 +19,10 @@ async function startPaymentController(req, res) {
       isMock
     });
 
-    const result = await startPaymentService(ticketId, null, isMock);
+    // Passe le header d’auth si présent (propriétaire du ticket)
+    const authHeader = req.headers.authorization || null;
+
+    const result = await startPaymentService(ticketId, authHeader, isMock);
 
     logger.info('[START PAYMENT CTRL] Paiement démarré avec succès', {
       ticketId: result.ticketId,

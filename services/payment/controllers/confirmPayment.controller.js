@@ -13,13 +13,12 @@ async function confirmPaymentController(req, res) {
 
   try {
     const isMock = (process.env.USE_MOCK_PAYMENT || '').toLowerCase() === 'true';
+    const authHeader = req.headers.authorization || null;
 
-    logger.debug('[CONFIRM PAYMENT CTRL] Appel du service confirmPaymentService', {
-      ticketId,
-      isMock
-    });
+    logger.debug('[CONFIRM PAYMENT CTRL] Appel du service confirmPaymentService', { ticketId, isMock });
 
-    const result = await confirmPaymentService(ticketId, isMock);
+    // 🔹 Passer le Bearer du propriétaire directement au service
+    const result = await confirmPaymentService(ticketId, authHeader, isMock);
 
     logger.info('[CONFIRM PAYMENT CTRL] Paiement confirmé avec succès', {
       ticketId: result.ticketId,
@@ -36,7 +35,8 @@ async function confirmPaymentController(req, res) {
       body: req.body
     });
 
-    return sendBusinessError(res, err.message || 'INTERNAL_SERVER_ERROR');
+    const code = err.statusCode || 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

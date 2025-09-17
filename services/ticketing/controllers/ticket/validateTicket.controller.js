@@ -6,6 +6,15 @@ const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 
 async function validateTicketController(req, res) {
+  // 🔎 LOG DEBUG INCOMING REQUEST
+  logger.info('[VALIDATE CTRL] Incoming request details', {
+    method: req.method,
+    url: req.originalUrl,
+    headers: req.headers,
+    body: req.body,
+    query: req.query
+  });
+
   try {
     const { ticketId } = req.body;
     const ticketIdNum = Number(ticketId);
