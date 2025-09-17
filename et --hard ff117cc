@@ -1,0 +1,17 @@
+[33mff117cc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbackend[m[33m, [m[1;31morigin/backend[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: commit: Ticketing: create fix + logs payment (fail...)
+[33m66b47fe[m HEAD@{1}: commit: save: dockerfile ticketing
+[33m69a2717[m HEAD@{2}: commit: Online: fix config, CORS, routing...
+[33ma3a3f17[m HEAD@{3}: commit: Docker: OK
+[33mba0d911[m HEAD@{4}: commit: DOcker: ok
+[33m817204e[m HEAD@{5}: commit: Railway
+[33ma44d832[m HEAD@{6}: commit: UPDATE: railway
+[33mda405b9[m HEAD@{7}: commit: ONLINE: frontend => Vercel; backend => fly.io
+[33m2508352[m HEAD@{8}: commit: Ticket & Payment: OK
+[33m04f3ce5[m HEAD@{9}: commit: Ticket: creation ok, sauf enchainement payment
+[33mfe6e13d[m HEAD@{10}: commit: Payment ...
+[33madd39f8[m HEAD@{11}: commit: Payment: 95%
+[33m5eb7840[m HEAD@{12}: reset: moving to 5eb7840
+[33m2ca5d95[m HEAD@{13}: reset: moving to 2ca5d95
+[33m5eb7840[m HEAD@{14}: commit: Payment back+front: get price from ticket service
+[33m2ca5d95[m HEAD@{15}: commit: Payment: 70%
+[33m343be01[m HEAD@{16}: clone: from https://github.com/SelEli/billeterie-jo.git
