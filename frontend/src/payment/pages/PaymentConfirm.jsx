@@ -49,15 +49,16 @@ export default function PaymentConfirm() {
   return (
     <PageLayout title="Paiement réussi" titleClassName="page-title is-centered">
       {loading ? (
-        <div className="alert alert-info" style={{ marginBottom: '1.5rem' }}>
+        <div className="alert alert-info mb-2">
           ⏳ Validation en cours…
         </div>
       ) : (
-        <div className="alert alert-success" style={{ marginBottom: '1.5rem' }}>
+        <div className="alert alert-success mb-2">
           ✅ Votre ticket <strong>#{ticketId}</strong> a été validé avec succès.
         </div>
       )}
-      <div className="actions-bar" style={{ justifyContent: 'center', gap: '1rem' }}>
+
+      <div className="actions-bar centered gap-md">
         <Link to={`/ticket/${ticketId}`} className="btn btn--primary">
           Voir le ticket
         </Link>

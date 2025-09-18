@@ -20,15 +20,17 @@ export default function Pagination({
         root?.items ||
         (Array.isArray(root) ? root : []);
 
+      // 🔹 Fallback amélioré
       const totalFromApi =
         root?.pagination?.total ??
         root?.meta?.pagination?.total ??
         root?.total ??
         root?.count ??
-        // Fallback "force" : si on a pile la limite, on suppose qu'il y a plus
-        (items.length >= pagination.limit
-          ? (pagination.page + 1) * pagination.limit
-          : items.length);
+        (
+          items.length >= pagination.limit
+            ? Number.MAX_SAFE_INTEGER // on suppose qu'il y a plus de pages
+            : (page - 1) * pagination.limit + items.length
+        );
 
       setData(items);
       setPagination({
@@ -44,7 +46,11 @@ export default function Pagination({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
+  // 🔹 Calcul des pages totales avec fallback
+  const totalPages =
+    pagination.total === Number.MAX_SAFE_INTEGER
+      ? pagination.page + 1 // on autorise toujours une page suivante
+      : Math.ceil(pagination.total / pagination.limit) || 1;
 
   return (
     <>

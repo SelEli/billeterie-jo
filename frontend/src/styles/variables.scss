@@ -1,5 +1,8 @@
 // src/styles/variables.scss
 
+/* =========================
+   COULEURS
+   ========================= */
 $bleu-primaire: #002654;
 $or-secondaire: #FFD700;
 $or-hover: #e6c200;
@@ -7,9 +10,16 @@ $texte-fonce: #1e293b;
 $texte-clair: #ffffff;
 
 $fond-verre: rgba(255, 255, 255, 0.15);
+
+/* =========================
+   OMBRES
+   ========================= */
 $ombre-douce: 0 4px 12px rgba(0,0,0,0.08);
 $ombre-carte: 0 6px 16px rgba(0,0,0,0.12);
 
+/* =========================
+   BOUTONS
+   ========================= */
 $btn-radius: 0.5rem;
 $btn-font-weight: 600;
 $btn-font-size: 0.95rem;
@@ -20,32 +30,43 @@ $btn-disabled-bg: #e5e7eb;
 $btn-disabled-text: #9ca3af;
 $btn-disabled-border: #e5e7eb;
 
+/* =========================
+   VARIABLES CSS GLOBALES
+   ========================= */
 :root {
   --bleu-primaire: #{$bleu-primaire};
   --or-secondaire: #{$or-secondaire};
   --or-hover: #{$or-hover};
   --texte-fonce: #{$texte-fonce};
   --texte-clair: #{$texte-clair};
+
   --fond-verre: #{$fond-verre};
+
   --ombre-douce: #{$ombre-douce};
   --ombre-carte: #{$ombre-carte};
+
   --btn-radius: #{$btn-radius};
   --btn-font-weight: #{$btn-font-weight};
   --btn-font-size: #{$btn-font-size};
   --btn-padding-y: #{$btn-padding-y};
   --btn-padding-x: #{$btn-padding-x};
+
   --btn-primary-bg: var(--or-secondaire);
   --btn-primary-bg-hover: var(--or-hover);
   --btn-primary-text: var(--bleu-primaire);
+
   --btn-secondary-bg: var(--bleu-primaire);
   --btn-secondary-bg-hover: #001a3d;
   --btn-secondary-text: var(--texte-clair);
+
   --btn-danger-bg: #dc2626;
   --btn-danger-bg-hover: #b91c1c;
   --btn-danger-text: var(--texte-clair);
+
   --btn-ghost-bg: transparent;
   --btn-ghost-bg-hover: rgba(0,0,0,0.05);
   --btn-ghost-text: var(--texte-fonce);
+
   --btn-disabled-bg: #{$btn-disabled-bg};
   --btn-disabled-text: #{$btn-disabled-text};
   --btn-disabled-border: #{$btn-disabled-border};

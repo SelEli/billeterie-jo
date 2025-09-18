@@ -33,6 +33,7 @@ export default function TicketDetail() {
 
         return (
           <div className="ticket-detail-container">
+            {/* Actions haut */}
             <div className="ticket-actions-top">
               <button
                 className="btn btn--secondary"
@@ -54,6 +55,7 @@ export default function TicketDetail() {
               </div>
             </div>
 
+            {/* Carte ticket */}
             <div className="ticket-card print-area">
               <div className="ticket-banner">🎟️ Billet Officiel – Paris 2025</div>
 
@@ -73,6 +75,7 @@ export default function TicketDetail() {
                   <p><strong>Prix :</strong> {Number(ticket.price).toFixed(2)} €</p>
                 </div>
 
+                {/* Alerte paiement */}
                 {isReserved && (
                   <div className="ticket-warning">
                     ⚠️ Ce ticket est réservé mais <strong>le paiement n’a pas encore été effectué</strong>.  
@@ -88,6 +91,7 @@ export default function TicketDetail() {
                   </div>
                 )}
 
+                {/* QR code */}
                 {isValid && (
                   <div className="ticket-qr">
                     <QRCodeSVG
@@ -105,8 +109,8 @@ export default function TicketDetail() {
                   </div>
                 )}
 
-                {/* Bouton pour afficher plus */}
-                <div style={{ marginTop: '1rem' }}>
+                {/* Bouton afficher plus */}
+                <div className="ticket-showmore">
                   <button
                     className="btn btn--secondary"
                     onClick={() => setShowMore(v => !v)}
@@ -118,7 +122,7 @@ export default function TicketDetail() {
                 {showMore && (
                   <>
                     {/* Infos techniques */}
-                    <div className="ticket-info-grid" style={{ marginTop: '1rem' }}>
+                    <div className="ticket-info-grid mt-1">
                       <p><strong>Créé le :</strong> {new Date(ticket.createdAt).toLocaleString()}</p>
                       <p><strong>Mis à jour le :</strong> {new Date(ticket.updatedAt).toLocaleString()}</p>
                       <p><strong>ID Utilisateur :</strong> {ticket.userId}</p>
