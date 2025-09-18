@@ -37,6 +37,11 @@ import PaymentStart from '../../payment/pages/PaymentStart';
 import PaymentConfirm from '../../payment/pages/PaymentConfirm';
 import PaymentFailed from '../../payment/pages/PaymentFailed';
 
+// Verification
+import VerificationStart from '../../verification/pages/VerificationStart';
+import VerificationConfirm from '../../verification/pages/VerificationConfirm';
+import VerificationFailed from '../../verification/pages/VerificationFailed';
+
 export const routesConfig = [
   // Public
   { path: '/', element: <Home /> },
@@ -73,5 +78,11 @@ export const routesConfig = [
   // Payment
   { path: '/pay/start', element: <PaymentStart />, private: true },
   { path: '/pay/confirm', element: <PaymentConfirm />, private: true },
-  { path: '/pay/failed', element: <PaymentFailed />, private: true }
+  { path: '/pay/failed', element: <PaymentFailed />, private: true },
+
+
+  // Verification
+  { path: '/verification/start', element: <VerificationStart />, private: true },
+  { path: '/verification/confirm', element: <VerificationConfirm />, private: true },
+  { path: '/verification/failed', element: <VerificationFailed />, private: true }
 ];

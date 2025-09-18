@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 
 export default function Home() {
   const events = [
-    { title: 'Athlétisme', date: '2 août 2024', img: '/images/athletisme.jpg' },
-    { title: 'Natation', date: '28 juillet 2024', img: '/images/natation.jpg' },
-    { title: 'Gymnastique', date: '5 août 2024', img: '/images/gymnastique.jpg' },
+    { title: 'Athlétisme', date: '2 août 2024', img: 'images/athletisme.jpg' },
+    { title: 'Natation', date: '28 juillet 2024', img: 'images/natation.jpg' },
+    { title: 'Gymnastique', date: '5 août 2024', img: 'images/gymnastique.jpg' },
   ];
 
   return (

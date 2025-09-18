@@ -1,5 +1,4 @@
-// src/App.jsx
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './common/context/AuthContext';
 import PrivateRoute from './common/components/PrivateRoute';
 import { routesConfig } from './common/utils/routesConfig.jsx';
@@ -7,19 +6,17 @@ import { routesConfig } from './common/utils/routesConfig.jsx';
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {routesConfig.map(({ path, element, private: isPrivate, roles }, idx) => {
-            const routeElement = isPrivate ? (
-              <PrivateRoute roles={roles}>{element}</PrivateRoute>
-            ) : (
-              element
-            );
+      <Routes>
+        {routesConfig.map(({ path, element, private: isPrivate, roles }, idx) => {
+          const routeElement = isPrivate ? (
+            <PrivateRoute roles={roles}>{element}</PrivateRoute>
+          ) : (
+            element
+          );
 
-            return <Route key={idx} path={path} element={routeElement} />;
-          })}
-        </Routes>
-      </Router>
+          return <Route key={idx} path={path} element={routeElement} />;
+        })}
+      </Routes>
     </AuthProvider>
   );
 }
