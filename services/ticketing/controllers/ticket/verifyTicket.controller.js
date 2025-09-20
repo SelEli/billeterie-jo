@@ -1,4 +1,3 @@
-// controllers/ticket/verifyTicket.controller.js
 const axios = require('axios');
 const { requestVerification } = require('../../utils/kafkaConsumer');
 const { sendBusinessError } = require('../../utils/sendError');
@@ -10,11 +9,22 @@ const roleCache = new Map();
 const CACHE_TTL_MS = 60_000; // 1 minute
 
 async function verifyTicketController(req, res) {
+  // 🔎 LOG DEBUG INCOMING REQUEST
+  logger.info('[TICKET-SERVICE][VERIFY CTRL] Incoming request details', {
+    method: req.method,
+    url: req.originalUrl,
+    headers: req.headers,
+    body: req.body,
+    query: req.query
+  });
+
   try {
+    // 1️⃣ Vérification authentification
     if (!req.user) {
       return sendBusinessError(res, 'FORBIDDEN');
     }
 
+    // 2️⃣ Validation ticketId
     const { ticketId } = req.body;
     const ticketIdNum = Number(ticketId);
     if (!ticketId || isNaN(ticketIdNum)) {
@@ -24,25 +34,23 @@ async function verifyTicketController(req, res) {
     const userId = req.user.userId;
     let role;
 
-    // 🔹 Vérifie si le rôle est en cache et encore valide
+    // 3️⃣ Récupération rôle depuis cache ou Auth
     const cached = roleCache.get(userId);
     if (cached && cached.expiresAt > Date.now()) {
       role = cached.role;
     } else {
       try {
-        // 🔹 Récupère depuis Auth
         const { data: profileRes } = await axios.get(
           `${process.env.USER_URL}/${userId}`,
           { headers: { Authorization: req.headers.authorization } }
         );
         role = profileRes?.data?.role || null;
 
-        // 🔹 Met en cache si trouvé
         if (role) {
           roleCache.set(userId, { role, expiresAt: Date.now() + CACHE_TTL_MS });
         }
       } catch (authErr) {
-        logger.warn('[VERIFY CTRL] Échec récupération rôle utilisateur', {
+        logger.warn('[TICKET-SERVICE][VERIFY CTRL] Échec récupération rôle utilisateur', {
           userId,
           error: authErr.message
         });
@@ -50,29 +58,27 @@ async function verifyTicketController(req, res) {
       }
     }
 
-    // 🔹 Vérifie que le rôle est autorisé
-    if (!['AGENT', 'EMPLOYEE'].includes(role)) {
+    // 4️⃣ Vérification rôle autorisé (ADMIN, AGENT, EMPLOYEE)
+    if (!['ADMIN', 'AGENT', 'EMPLOYEE'].includes(role)) {
       return sendBusinessError(res, 'FORBIDDEN');
     }
 
-    // 🔹 Envoi de la demande de vérification via Kafka
-    logger.info('[VERIFY CTRL] Demande de vérification envoyée via Kafka', {
+    // 5️⃣ Envoi de la demande de vérification via Kafka
+    logger.info('[TICKET-SERVICE][VERIFY CTRL] Demande de vérification envoyée via Kafka', {
       ticketId: ticketIdNum,
       userId
     });
 
     await requestVerification(ticketIdNum);
 
-    // 🔹 Réponse immédiate au client
+    // 6️⃣ Réponse au client
     return sendBusinessSuccess(res, 'VERIFY_TICKET_REQUESTED', { ticketId: ticketIdNum });
+
   } catch (err) {
-    logger.error('[VERIFY CTRL] Error', { message: err.message });
-    const code =
-      err &&
-      err.message &&
-      err.message in require('../../utils/httpErrorMap').ERROR_STATUS
-        ? err.message
-        : 'INTERNAL_SERVER_ERROR';
+    logger.error('[TICKET-SERVICE][VERIFY CTRL] Error', { message: err.message });
+    const code = err && err.statusCode
+      ? err.statusCode
+      : 'INTERNAL_SERVER_ERROR';
     return sendBusinessError(res, code);
   }
 }

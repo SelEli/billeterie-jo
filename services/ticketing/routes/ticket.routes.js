@@ -109,7 +109,7 @@ router.post(
   validateTicketController
 );
 
-// ✅ Endpoint pour vérification sur site (AGENT / EMPLOYEE)
+// ✅ Endpoint pour vérification sur site (AGENT / EMPLOYEE / ADMIN)
 //    - Auth obligatoire
 //    - Rôle vérifié dans le contrôleur
 //    - Appelle verifyTicketController qui met à jour le statut (USED) et émet Kafka

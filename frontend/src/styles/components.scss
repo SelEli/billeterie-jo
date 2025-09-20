@@ -72,6 +72,17 @@
   }
 }
 
+/* Bouton Vérification */
+.btn--verification {
+  background-color: var(--bleu-primaire);
+  color: var(--texte-clair);
+
+  &:hover {
+    background-color: var(--btn-primary-bg-hover); /* déjà défini */
+  }
+}
+
+
 /* Variantes spécifiques nav */
 .btn--nav {
   background: transparent;

@@ -13,9 +13,8 @@ const { error } = require('./utils/response');
 const verificationRoutes = require('./routes/verification.routes');
 
 // --- Config avec valeurs par défaut ---
-// Ajout de Railway + localhost par défaut si CORS_ORIGINS n'est pas défini
 const allowedOrigins = (process.env.CORS_ORIGINS ||
-  'http://localhost:5173,https://frontend-production-a1c6.up.railway.app'
+  'http://localhost:5173,http://127.0.0.1:5173,https://frontend-production-a1c6.up.railway.app'
 )
   .split(',')
   .map(o => o.trim())
@@ -23,7 +22,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS ||
 
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log('🌍 Origin reçue:', origin); // log debug
+    console.log('🌍 Origin reçue:', origin);
     if (!origin) return callback(null, true); // Postman/curl
     if (allowedOrigins.length === 0) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
@@ -31,7 +30,7 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // autorise cookies / Authorization
+  credentials: true
 };
 
 const app = express();
@@ -44,8 +43,7 @@ app.use(express.json());
 app.use(cors(corsOptions));
 
 // Réponse aux préflights OPTIONS
-app.options('*', cors(corsOptions));
-
+app.options(/.*/, cors(corsOptions));
 
 // 📜 Logs HTTP
 app.use(
@@ -78,7 +76,7 @@ app.get('/health', (req, res) => {
 // 🚏 Routes Verification
 app.use('/verification', verificationRoutes);
 
-// 🚫 404 — non trouvé
+// 🚫 404
 app.use((req, res) => {
   logger.warn(`[VERIFICATION-SERVICE][404] Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json(error(['Route not found.']));

@@ -1,6 +1,5 @@
-// src/common/components/Header.jsx
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
@@ -11,6 +10,7 @@ export default function Header() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const headerRef = useRef(null);
+  const location = useLocation(); // 🔹 pour détecter navigation
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => {
@@ -27,8 +27,9 @@ export default function Header() {
   const isAdmin = user?.role === 'ADMIN';
   const canVerify = ['ADMIN', 'AGENT', 'EMPLOYEE'].includes(user?.role);
 
+  // 🔹 Pour l’instant, Vérification pointe vers /ticket
   const verificationLink = canVerify
-    ? { to: '/verification/start', label: 'Vérification' }
+    ? { to: '/ticket', label: 'Vérification' }
     : null;
 
   const adminLinks = isAdmin
@@ -43,6 +44,23 @@ export default function Header() {
     { action: logout, label: 'Déconnexion', isButton: true }
   ];
 
+  const renderChevron = (isOpen) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="0.9em"
+      height="0.9em"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      style={{
+        marginLeft: '0.4rem',
+        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+        transition: 'transform 0.2s ease'
+      }}
+    >
+      <path d="M7 10l5 5 5-5z" />
+    </svg>
+  );
+
   const renderLink = (link) => {
     const baseClasses = 'header-jo__link';
     const ticketClasses = 'btn btn--nav-ticket text-black';
@@ -51,7 +69,7 @@ export default function Header() {
     const extraClasses =
       link.to === '/ticket'
         ? ticketClasses
-        : link.to === '/verification/start'
+        : link.to === '/verification/start' || link.to === '/ticket'
         ? outlined
         : '';
 
@@ -78,7 +96,7 @@ export default function Header() {
     );
   };
 
-  // 🔹 Fermer les sous-menus si clic à l'extérieur
+  // 🔹 Fermer les menus si clic à l'extérieur
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (headerRef.current && !headerRef.current.contains(e.target)) {
@@ -90,6 +108,11 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // 🔹 Fermer le menu principal et sous-menus à chaque navigation
+  useEffect(() => {
+    closeMenu();
+  }, [location]);
 
   return (
     <header className="header-jo" ref={headerRef}>
@@ -119,7 +142,7 @@ export default function Header() {
               className="header-jo__dropdown-toggle btn btn--nav-outlined no-border"
             >
               Événements
-              <span>{eventMenuOpen ? '▲' : '▼'}</span>
+              {renderChevron(eventMenuOpen)}
             </button>
             <div
               className={`header-jo__dropdown-menu wide ${
@@ -148,7 +171,7 @@ export default function Header() {
                 className="header-jo__dropdown-toggle btn btn--nav-outlined no-border"
               >
                 Administration
-                <span>{adminMenuOpen ? '▲' : '▼'}</span>
+                {renderChevron(adminMenuOpen)}
               </button>
               <div
                 className={`header-jo__dropdown-menu wide ${
@@ -176,7 +199,7 @@ export default function Header() {
                 onClick={toggleAccountMenu}
                 className="header-jo__dropdown-toggle btn btn--nav-outlined no-border"
               >
-                {/* Icône SVG inline */}
+                {/* Icône utilisateur */}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="1.2em"
@@ -188,7 +211,7 @@ export default function Header() {
                   <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z" />
                 </svg>
                 Mon compte
-                <span>{accountMenuOpen ? '▲' : '▼'}</span>
+                {renderChevron(accountMenuOpen)}
               </button>
               <div
                 className={`header-jo__dropdown-menu wide ${

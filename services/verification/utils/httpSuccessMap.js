@@ -35,9 +35,8 @@ const SUCCESS_STATUS = {
   VERIFY_TICKET:   { status: 200, wrap: (payload) => payload },
 
   // --- VERIFICATION ---
-  START_VERIFICATION:       { status: 200, wrap: (payload) => payload },
-  CONFIRM_VERIFICATION:     { status: 200, wrap: (payload) => payload },
-  VERIFY_TICKET_REQUESTED:  { status: 200, wrap: (payload) => payload },
+  START_VERIFICATION:   { status: 200, wrap: (payload) => payload }, // démarrage vérification
+  CONFIRM_VERIFICATION: { status: 200, wrap: (payload) => payload }, // confirmation vérification
 
   // --- DELETE ---
   DELETE:          { status: 204, wrap: () => null },

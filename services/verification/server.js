@@ -5,8 +5,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 const logger = require('./utils/logger');
 const { initKafka } = require('./utils/kafkaClient');
-const { initRedis } = require('./utils/redisClient'); // si besoin de Redis ici
-const { startConsumer } = require('./utils/kafkaConsumer'); // écoute verification
+const { initRedis } = require('./utils/redisClient');
+const { startConsumer } = require('./utils/kafkaConsumer');
 const app = require('./app');
 
 // --- Config avec valeurs par défaut ---
@@ -19,7 +19,7 @@ const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID || 'verification-service';
 
 (async () => {
   try {
-    // Redis (si nécessaire pour verification-service)
+    // Redis
     await initRedis({ host: REDIS_HOST, port: REDIS_PORT });
     logger.info(`[VERIFICATION-SERVICE] ✅ Redis connecté à ${REDIS_HOST}:${REDIS_PORT}`);
 
@@ -27,7 +27,7 @@ const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID || 'verification-service';
     await initKafka({ brokers: KAFKA_BROKERS, clientId: KAFKA_CLIENT_ID });
     logger.info(`[VERIFICATION-SERVICE] ✅ Kafka connecté à ${KAFKA_BROKERS.join(', ')}`);
 
-    // Consumer Kafka
+    // Consumers Kafka
     await startConsumer();
     logger.info('[VERIFICATION-SERVICE] ✅ Kafka consumer (verification) démarré');
 

@@ -3,11 +3,13 @@ import Detail from '../../common/components/Detail';
 import { getTicket, deleteTicket } from '../api/ticket';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
+import { useAuth } from '../../common/context/AuthContext'; // 🔹 pour récupérer le rôle
 
 export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
+  const { hasRole } = useAuth(); // 🔹 hook auth
 
   const handleDelete = async () => {
     if (!window.confirm('Confirmer la suppression ?')) return;
@@ -75,18 +77,28 @@ export default function TicketDetail() {
                   <p><strong>Prix :</strong> {Number(ticket.price).toFixed(2)} €</p>
                 </div>
 
-                {/* Alerte paiement */}
+                {/* Alerte paiement + vérification */}
                 {isReserved && (
                   <div className="ticket-warning">
                     ⚠️ Ce ticket est réservé mais <strong>le paiement n’a pas encore été effectué</strong>.  
                     Il ne sera valide qu’après règlement.
-                    <div className="ticket-warning-btn">
+                    <div className="ticket-warning-btn" style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
                         className="btn btn--payment"
                         onClick={() => navigate(`/pay/start?ticketId=${ticket.id}`)}
                       >
                         💳 Procéder au paiement
                       </button>
+
+                      {/* Bouton Vérification réservé aux rôles habilités */}
+                      {hasRole(['ADMIN', 'EMPLOYEE', 'AGENT']) && (
+                        <button
+                          className="btn btn--verification"
+                          onClick={() => navigate(`/verification/start?ticketId=${ticket.id}`)}
+                        >
+                          ✅ Vérifier
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

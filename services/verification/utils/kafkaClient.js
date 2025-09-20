@@ -1,3 +1,4 @@
+// utils/kafka.js
 const { Kafka } = require('kafkajs');
 const logger = require('./logger');
 
@@ -16,10 +17,9 @@ async function initKafka() {
     });
     producer = kafka.producer();
     await producer.connect();
-    logger.info(`[kafka] Producer connecté à ${process.env.KAFKA_BROKER}`);
+    logger.info(`[kafka][Verification] Producer connecté à ${process.env.KAFKA_BROKER}`);
   } catch (err) {
-    logger.error(`[kafka] Échec connexion producer: ${err.message}`);
-    // On ne bloque pas le démarrage
+    logger.error(`[kafka][Verification] Échec connexion producer: ${err.message}`);
   }
 }
 
@@ -30,11 +30,11 @@ function getKafka() {
 
 async function publishKafkaEvent(topic, message) {
   if (!producer) {
-    logger.warn('[kafka] Producer non initialisé, tentative de reconnexion...');
+    logger.warn('[kafka][Verification] Producer non initialisé, tentative de reconnexion...');
     try {
       await initKafka();
     } catch (err) {
-      logger.error(`[kafka] Impossible de publier: ${err.message}`);
+      logger.error(`[kafka][Verification] Impossible de publier: ${err.message}`);
       return;
     }
   }
@@ -43,9 +43,9 @@ async function publishKafkaEvent(topic, message) {
       topic,
       messages: [{ value: JSON.stringify(message) }]
     });
-    logger.info(`[kafka] Message envoyé sur ${topic}: ${JSON.stringify(message)}`);
+    logger.info(`[kafka][Verification] Message envoyé sur ${topic}: ${JSON.stringify(message)}`);
   } catch (err) {
-    logger.error(`[kafka] Erreur envoi sur ${topic}: ${err.message}`);
+    logger.error(`[kafka][Verification] Erreur envoi sur ${topic}: ${err.message}`);
   }
 }
 
@@ -57,9 +57,9 @@ async function startKafkaConsumer(groupId, topics, handler) {
       for (const topic of topics) {
         try {
           await consumer.subscribe({ topic, fromBeginning: true });
-          logger.info(`[Kafka][Consumer] Abonné au topic "${topic}"`);
+          logger.info(`[Kafka][Verification][Consumer] Abonné au topic "${topic}"`);
         } catch (err) {
-          logger.error(`[Kafka][Consumer] Erreur abonnement "${topic}": ${err.message}`);
+          logger.error(`[Kafka][Verification][Consumer] Erreur abonnement "${topic}": ${err.message}`);
         }
       }
 
@@ -67,16 +67,16 @@ async function startKafkaConsumer(groupId, topics, handler) {
         eachMessage: async ({ topic, message }) => {
           try {
             const event = JSON.parse(message.value.toString());
-            logger.debug(`[Kafka][Consumer] Event reçu sur ${topic}: ${JSON.stringify(event)}`);
+            logger.debug(`[Kafka][Verification][Consumer] Event reçu sur ${topic}: ${JSON.stringify(event)}`);
             await handler(topic, event);
           } catch (err) {
-            logger.error(`[Kafka][Consumer] Erreur traitement message: ${err.message}`);
+            logger.error(`[Kafka][Verification][Consumer] Erreur traitement message: ${err.message}`);
           }
         }
       });
     })
     .catch(err => {
-      logger.error(`[Kafka][Consumer] Erreur connexion: ${err.message}`);
+      logger.error(`[Kafka][Verification][Consumer] Erreur connexion: ${err.message}`);
     });
 }
 

@@ -12,6 +12,12 @@ const { invalidateCachedTicket } = require('../../cache/ticket.cache');
  * - Marque le ticket comme USED si tout est OK
  */
 async function verifyTicketService(qrPayload, authHeader) {
+  logger.info('[TICKET SERVICE][VERIFY] Incoming verification request', {
+    ticketId: qrPayload?.ticketId,
+    eventId: qrPayload?.eventId,
+    userId: qrPayload?.userId
+  });
+
   const {
     ticketId,
     eventId,
@@ -23,6 +29,7 @@ async function verifyTicketService(qrPayload, authHeader) {
   } = qrPayload;
 
   // Charger le ticket depuis la base
+  logger.debug('[TICKET SERVICE][VERIFY] Fetching ticket from DB', { ticketId });
   const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
   if (!ticket) {
     const err = new Error('TICKET_NOT_FOUND');
@@ -44,12 +51,14 @@ async function verifyTicketService(qrPayload, authHeader) {
   // Récupérer invisibleKey depuis Auth pour l'utilisateur du ticket
   let invisibleKey;
   try {
+    logger.debug('[TICKET SERVICE][VERIFY] Fetching invisibleKey from Auth', { ticketUserId: ticket.userId });
     const res = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
       headers: { Authorization: authHeader }
     });
     invisibleKey = res.data?.data?.invisibleKey;
+    logger.debug('[TICKET SERVICE][VERIFY] Invisible key retrieved', { ticketId, invisibleKey: !!invisibleKey });
   } catch (err) {
-    logger.warn(`[VERIFY SERVICE] Impossible de récupérer invisibleKey: ${err.message}`);
+    logger.warn(`[TICKET SERVICE][VERIFY] Impossible de récupérer invisibleKey: ${err.message}`, { ticketId });
   }
   if (!invisibleKey) {
     const e = new Error('USER_KEY_NOT_FOUND');
@@ -58,6 +67,7 @@ async function verifyTicketService(qrPayload, authHeader) {
   }
 
   // Recalculer la signature attendue
+  logger.debug('[TICKET SERVICE][VERIFY] Recalculating expected signature', { ticketId });
   const payloadToSign = `${ticket.secretKey}:${invisibleKey}:${ticket.id}:${ticket.eventId}:${ticket.userId}:${ticket.zone}:${ticket.price}:${ticket.updatedAt.toISOString()}`;
   const expectedSignature = crypto
     .createHmac('sha256', invisibleKey)
@@ -72,6 +82,7 @@ async function verifyTicketService(qrPayload, authHeader) {
   }
 
   // Tout est OK → marquer comme USED
+  logger.info('[TICKET SERVICE][VERIFY] Marking ticket as USED', { ticketId });
   const updated = await prisma.ticket.update({
     where: { id: ticketId },
     data: { status: 'USED' }
@@ -80,8 +91,9 @@ async function verifyTicketService(qrPayload, authHeader) {
   // Invalidation cache
   await invalidateCachedTicket(ticketId);
 
-  logger.info(`[TICKET SERVICE][VERIFY] Ticket ${ticketId} marked as USED`);
+  logger.info(`[TICKET SERVICE][VERIFY] Ticket ${ticketId} marked as USED successfully`);
 
+  // Publication Kafka
   try {
     await publishKafkaEvent('ticket', {
       type: 'TicketVerified',
@@ -93,7 +105,7 @@ async function verifyTicketService(qrPayload, authHeader) {
     });
     logger.debug(`[TICKET SERVICE][VERIFY] Kafka event TicketVerified published for ticket ${ticketId}`);
   } catch (err) {
-    logger.warn(`[TICKET SERVICE][VERIFY] Kafka publish failed: ${err.message}`);
+    logger.warn(`[TICKET SERVICE][VERIFY] Kafka publish failed: ${err.message}`, { ticketId });
   }
 
   return updated;

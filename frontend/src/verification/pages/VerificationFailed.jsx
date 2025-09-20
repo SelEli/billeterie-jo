@@ -9,22 +9,28 @@ export default function VerificationFailed() {
   const ticketId = query.get('ticketId');
 
   useEffect(() => {
-    if (!ticketId) {
-      navigate('/');
+    if (!ticketId || Number.isNaN(Number(ticketId))) {
+      navigate('/ticket');
     }
   }, [ticketId, navigate]);
 
   return (
     <PageLayout title="Vérification échouée" titleClassName="page-title is-centered">
-      <div className="alert alert-danger" style={{ marginBottom: '1.5rem' }}>
-        ❌ Le ticket <strong>#{ticketId}</strong> est invalide ou n’a pas pu être vérifié.
+      <div className="alert alert-warning mb-2">
+        ⚠️ La vérification du ticket <strong>#{ticketId}</strong> a échoué ou le ticket est invalide.
       </div>
-      <div className="actions-bar" style={{ justifyContent: 'center', gap: '1rem' }}>
-        <Link to={`/verification/start?ticketId=${ticketId}`} className="btn btn--primary">
+      <div className="actions-bar centered gap-md">
+        <Link
+          to={`/verification/start?ticketId=${ticketId}`}
+          className="btn btn--primary"
+        >
           Réessayer
         </Link>
-        <Link to="/ticket" className="btn btn--secondary">
-          Retour à mes tickets
+        <Link
+          to={`/ticket/${ticketId}`}
+          className="btn btn--secondary"
+        >
+          Retour au ticket
         </Link>
       </div>
     </PageLayout>

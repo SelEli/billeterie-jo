@@ -1,6 +1,10 @@
 // updateUser.schema.js (version admin)
 const { z } = require('zod');
 
+// Regex : au moins 12 caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial
+const strongPasswordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/;
+
 const updateUserSchema = z.object({
   email: z
     .string()
@@ -11,7 +15,10 @@ const updateUserSchema = z.object({
 
   password: z
     .string()
-    .min(6, { message: 'Mot de passe trop court (min 6 caractères)' })
+    .regex(strongPasswordRegex, {
+      message:
+        'Le mot de passe doit contenir au moins 12 caractères, avec une majuscule, une minuscule, un chiffre et un caractère spécial',
+    })
     .optional(),
 
   firstName: z

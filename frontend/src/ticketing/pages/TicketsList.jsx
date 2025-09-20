@@ -57,7 +57,10 @@ export default function TicketsList() {
               }
 
               if (col === 'actions') {
-                if ((row.status || '').toUpperCase() === 'RESERVED') {
+                const statusUpper = (row.status || '').toUpperCase();
+
+                // Bouton Paiement si réservé
+                if (statusUpper === 'RESERVED') {
                   return (
                     <button
                       type="button"
@@ -72,6 +75,27 @@ export default function TicketsList() {
                     </button>
                   );
                 }
+
+                // Bouton Vérification si valide et rôle autorisé
+                if (
+                  statusUpper === 'VALID' &&
+                  (hasRole('ADMIN') || hasRole('EMPLOYEE') || hasRole('AGENT'))
+                ) {
+                  return (
+                    <button
+                      type="button"
+                      className="btn btn--verification btn--sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate(`/verification/start?ticketId=${row.id}`);
+                      }}
+                    >
+                      Vérifier
+                    </button>
+                  );
+                }
+
                 return null;
               }
 
