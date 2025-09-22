@@ -36,13 +36,13 @@ Concevoir une plateforme billetterie :
 
 ## 🏗 Architecture technique
 
-| Service      | Rôle métier                                      |
+| Service      | Rôle métier                                     |
 |--------------|-------------------------------------------------|
-| auth/        | Inscription, connexion, clefs invisibles         |
+| auth/        | Inscription, connexion, clefs invisibles        |
 | paiement/    | Session Stripe, clef achat, Kafka billet-achat  |
 | ticketing/   | Création des billets, QR code, statuts          |
 | verification/| Scan, validation de billet, contrôles événement |
-| gateway/     | Reverse proxy centralisé                        |
+| frontend/    | Front-end & Reverse proxy centralisé            |
 
 Chaque microservice est isolé, Dockerisé, et contient :
 
@@ -118,6 +118,6 @@ services/
 │   └── ...
 ├── verification/
 │   └── ...
-gateway/
+frontend/
 └── ...
 ```
