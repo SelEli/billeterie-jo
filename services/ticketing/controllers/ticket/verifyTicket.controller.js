@@ -1,16 +1,13 @@
-const axios = require('axios');
-const { requestVerification } = require('../../utils/kafkaConsumer');
+// controllers/ticket/verifyTicket.controller.js
+const { verifyTicketService } = require('../../services/ticket/verifyTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
-
-// Cache simple en mémoire : { userId: { role, expiresAt } }
-const roleCache = new Map();
-const CACHE_TTL_MS = 60_000; // 1 minute
+const axios = require('axios');
 
 async function verifyTicketController(req, res) {
   // 🔎 LOG DEBUG INCOMING REQUEST
-  logger.info('[TICKET-SERVICE][VERIFY CTRL] Incoming request details', {
+  logger.info('[VERIFY CTRL] Incoming request details', {
     method: req.method,
     url: req.originalUrl,
     headers: req.headers,
@@ -19,63 +16,45 @@ async function verifyTicketController(req, res) {
   });
 
   try {
-    // 1️⃣ Vérification authentification
-    if (!req.user) {
-      return sendBusinessError(res, 'FORBIDDEN');
-    }
-
-    // 2️⃣ Validation ticketId
     const { ticketId } = req.body;
     const ticketIdNum = Number(ticketId);
     if (!ticketId || isNaN(ticketIdNum)) {
       return sendBusinessError(res, 'INVALID_TICKET_ID');
     }
 
-    const userId = req.user.userId;
-    let role;
+    logger.info('[VERIFY CTRL] Vérification ticket', { ticketId: ticketIdNum });
 
-    // 3️⃣ Récupération rôle depuis cache ou Auth
-    const cached = roleCache.get(userId);
-    if (cached && cached.expiresAt > Date.now()) {
-      role = cached.role;
-    } else {
-      try {
-        const { data: profileRes } = await axios.get(
-          `${process.env.USER_URL}/${userId}`,
-          { headers: { Authorization: req.headers.authorization } }
-        );
-        role = profileRes?.data?.role || null;
-
-        if (role) {
-          roleCache.set(userId, { role, expiresAt: Date.now() + CACHE_TTL_MS });
-        }
-      } catch (authErr) {
-        logger.warn('[TICKET-SERVICE][VERIFY CTRL] Échec récupération rôle utilisateur', {
-          userId,
-          error: authErr.message
-        });
-        return sendBusinessError(res, 'USER_NOT_FOUND');
-      }
+    // 1️⃣ Vérifier le ticket (signature, statut, etc.)
+    const updated = await verifyTicketService(req.body, req.headers.authorization);
+    if (!updated) {
+      return sendBusinessError(res, 'TICKET_NOT_FOUND');
     }
 
-    // 4️⃣ Vérification rôle autorisé (ADMIN, AGENT, EMPLOYEE)
-    if (!['ADMIN', 'AGENT', 'EMPLOYEE'].includes(role)) {
-      return sendBusinessError(res, 'FORBIDDEN');
+    // 2️⃣ Récupérer infos utilisateur associées
+    let userInfo = null;
+    try {
+      const { data: userRes } = await axios.get(
+        `${process.env.USER_URL}/${updated.userId}`,
+        { headers: { Authorization: req.headers.authorization } }
+      );
+      userInfo = userRes?.data || null;
+      logger.info('[VERIFY CTRL] Infos utilisateur récupérées', { userId: updated.userId });
+    } catch (err) {
+      logger.warn('[VERIFY CTRL] Impossible de récupérer infos utilisateur', {
+        userId: updated.userId,
+        error: err.message
+      });
+      // On ne bloque pas la vérification si l’info user est indispo
     }
 
-    // 5️⃣ Envoi de la demande de vérification via Kafka
-    logger.info('[TICKET-SERVICE][VERIFY CTRL] Demande de vérification envoyée via Kafka', {
-      ticketId: ticketIdNum,
-      userId
+    // 3️⃣ Réponse enrichie
+    return sendBusinessSuccess(res, 'VERIFY_TICKET', {
+      ticket: updated,
+      user: userInfo
     });
 
-    await requestVerification(ticketIdNum);
-
-    // 6️⃣ Réponse au client
-    return sendBusinessSuccess(res, 'VERIFY_TICKET_REQUESTED', { ticketId: ticketIdNum });
-
   } catch (err) {
-    logger.error('[TICKET-SERVICE][VERIFY CTRL] Error', { message: err.message });
+    logger.error('[VERIFY CTRL] Error', { message: err.message });
     const code = err && err.statusCode
       ? err.statusCode
       : 'INTERNAL_SERVER_ERROR';

@@ -76,7 +76,13 @@ app.get('/health', (req, res) => {
 // 🚏 Routes Verification
 app.use('/verification', verificationRoutes);
 
-// 🚫 404
+// 🚫 Root route (alignement avec Payment)
+app.get('/', (req, res) => {
+  logger.warn(`[VERIFICATION-SERVICE][404] Root path accessed`);
+  res.status(404).json(error(['Route not found.']));
+});
+
+// 🚫 404 catch-all
 app.use((req, res) => {
   logger.warn(`[VERIFICATION-SERVICE][404] Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json(error(['Route not found.']));

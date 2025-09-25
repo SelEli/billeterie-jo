@@ -21,8 +21,8 @@ const requestId = require('./requestId');
 // 📦 Uniform JSON responses
 const { success, error } = require('./response');
 
-// 💾 Payment cache
-const paymentCache = require('./paymentCache');
+// 💾 Verification cache
+const verificationCache = require('./verificationCache');
 
 module.exports = {
   // Keys
@@ -53,6 +53,6 @@ module.exports = {
   success,
   error,
 
-  // Payment cache
-  ...paymentCache
+  // Verification cache
+  ...verificationCache
 };
