@@ -253,3 +253,15 @@
   gap: 1rem;
   animation: fadeIn 0.2s ease-out;
 }
+
+
+.form-hint {
+  display: block;
+  margin-top: 0.25rem;
+  color: #555;
+  font-size: 0.875rem;
+}
+.form-hint--error {
+  color: #d22;
+  font-weight: 500;
+}
