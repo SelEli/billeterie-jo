@@ -6,34 +6,65 @@ const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
-async function verifyTicketService(ticketId, authHeader) {
+/**
+ * Vérifie un ticket déjà VALID (compare signature QR vs recalcul) et le passe en USED
+ * @param {object} qrPayload – payload complet du QR code (inclut signature)
+ * @param {string|null} authHeader
+ */
+async function verifyTicketService(qrPayload, authHeader) {
+  const { ticketId, signature } = qrPayload;
   const numericId = Number(ticketId);
-  if (!numericId) throw Object.assign(new Error('INVALID_TICKET_ID'), { statusCode: ERROR_STATUS.INVALID_TICKET_ID });
+
+  if (!numericId) {
+    const err = new Error('INVALID_TICKET_ID');
+    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
+    throw err;
+  }
+
+  logger.info('[TICKET SERVICE] Ticket verification called', { ticketId: numericId });
 
   const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
-  if (!ticket) throw Object.assign(new Error('TICKET_NOT_FOUND'), { statusCode: ERROR_STATUS.TICKET_NOT_FOUND });
+  if (!ticket) {
+    const err = new Error('TICKET_NOT_FOUND');
+    err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
+    throw err;
+  }
 
-  if (['USED', 'EXPIRED'].includes(ticket.status)) return ticket;
-  if (ticket.status !== 'VALID') throw Object.assign(new Error('TICKET_NOT_VALID'), { statusCode: ERROR_STATUS.TICKET_NOT_VALID });
+  if (ticket.status !== 'VALID') {
+    const err = new Error('TICKET_NOT_VALID');
+    err.statusCode = ERROR_STATUS.TICKET_NOT_VALID;
+    throw err;
+  }
 
-  // Récupération invisibleKey
+  // 🔹 Récupération invisibleKey utilisateur
   let invisibleKey;
   try {
     const res = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
       headers: authHeader ? { Authorization: authHeader } : {}
     });
     invisibleKey = res.data?.data?.invisibleKey;
-  } catch {
-    throw Object.assign(new Error('USER_KEY_NOT_FOUND'), { statusCode: ERROR_STATUS.USER_KEY_NOT_FOUND });
+  } catch (err) {
+    logger.warn(`[TICKET SERVICE] Impossible de récupérer invisibleKey: ${err.message}`, { ticketId: numericId });
   }
 
-  // Recalcul signature côté serveur
+  if (!invisibleKey) {
+    const err = new Error('USER_KEY_NOT_FOUND');
+    err.statusCode = ERROR_STATUS.USER_KEY_NOT_FOUND;
+    throw err;
+  }
+
+  // 🔹 Recalcul HMAC signature côté serveur
   const payloadToSign = `${ticket.secretKey}:${invisibleKey}`;
   const expectedSignature = crypto.createHmac('sha256', invisibleKey).update(payloadToSign).digest('hex');
 
-  if (ticket.signature !== expectedSignature) throw Object.assign(new Error('INVALID_SIGNATURE'), { statusCode: ERROR_STATUS.INVALID_SIGNATURE });
+  // 🔹 Comparer avec signature fournie par le QR
+  if (signature !== expectedSignature) {
+    const err = new Error('INVALID_SIGNATURE');
+    err.statusCode = ERROR_STATUS.INVALID_SIGNATURE;
+    throw err;
+  }
 
-  // Tout est OK → marquer USED
+  // 🔹 Tout est OK → mise à jour statut USED
   const updated = await prisma.ticket.update({
     where: { id: numericId },
     data: { status: 'USED' }
@@ -41,7 +72,7 @@ async function verifyTicketService(ticketId, authHeader) {
 
   await invalidateCachedTicket(numericId);
 
-  // Publication Kafka
+  // 🔹 Publication Kafka
   try {
     await publishKafkaEvent('ticket', {
       type: 'TicketVerified',
