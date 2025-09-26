@@ -385,6 +385,15 @@ body {
   background-color: var(--btn-ghost-bg-hover);
 }
 
+/* Bouton Vérification */
+.btn--verification {
+  background-color: var(--bleu-primaire);
+  color: var(--texte-clair);
+}
+.btn--verification:hover {
+  background-color: var(--btn-primary-bg-hover); /* déjà défini */
+}
+
 /* Variantes spécifiques nav */
 .btn--nav {
   background: transparent;
@@ -542,6 +551,18 @@ body {
   flex-direction: column;
   gap: 1rem;
   animation: fadeIn 0.2s ease-out;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 0.25rem;
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.form-hint--error {
+  color: #d22;
+  font-weight: 500;
 }
 
 /* =========================
@@ -1139,4 +1160,33 @@ body {
     border-radius: 0;
     margin-top: 0.5rem;
   }
+}
+/* src/auth/pages/AuthRegister.scss */
+.cta-login {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #facc15; /* jaune */
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+.cta-login__title {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #111827; /* gris très foncé */
+  margin: 0;
+}
+.cta-login__button {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background-color: #111827;
+  color: #facc15;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.cta-login__button:hover {
+  background-color: #1f2937; /* gris plus clair au hover */
 }/*# sourceMappingURL=main.css.map */

@@ -237,31 +237,35 @@
    ========================= */
 
 .file-drop {
-  border: 2px dashed #999;
-  border-radius: 8px;
+  border: 2px dashed var(--texte-fonce);
+  border-radius: 0.5rem;
   padding: 1.5rem;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.3s, background-color 0.2s;
+  background-color: var(--fond-verre);
 
   &:hover {
-    border-color: #666;
-    background-color: #fafafa;
+    border-color: var(--bleu-primaire);
+    background-color: rgba(0, 38, 84, 0.05);
   }
 
   &.drag-active {
-    border-color: $primary-color; // utilise ta variable couleur principale
-    background-color: rgba(0, 123, 255, 0.1);
+    border-color: var(--bleu-primaire);
+    background-color: rgba(0, 38, 84, 0.1);
   }
 
   p {
     margin: 0;
     font-size: 0.95rem;
-    color: $text-color; // utilise ta variable texte existante
+    color: var(--texte-fonce);
   }
 
   @media (max-width: 600px) {
     padding: 1rem;
-    font-size: 0.9rem;
+
+    p {
+      font-size: 0.9rem;
+    }
   }
 }

@@ -12,7 +12,8 @@ async function verifyTicketWithLogging(qrPayload, authHeader, serviceName) {
   const ticketIdRaw = qrPayload?.ticketId;
   const numericId = Number(ticketIdRaw);
 
-  if (!numericId || Number.isNaN(numericId)) {
+  // ✅ On ne rejette que si c'est vraiment NaN
+  if (Number.isNaN(numericId)) {
     const err = new Error('INVALID_TICKET_ID');
     err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
     logger.error(`[${serviceName}] Invalid ticketId`, { ticketIdRaw });

@@ -65,6 +65,15 @@
   background-color: var(--btn-ghost-bg-hover);
 }
 
+/* Bouton Vérification */
+.btn--verification {
+  background-color: var(--bleu-primaire);
+  color: var(--texte-clair);
+}
+.btn--verification:hover {
+  background-color: var(--btn-primary-bg-hover); /* déjà défini */
+}
+
 /* Variantes spécifiques nav */
 .btn--nav {
   background: transparent;
@@ -222,4 +231,16 @@
   flex-direction: column;
   gap: 1rem;
   animation: fadeIn 0.2s ease-out;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 0.25rem;
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.form-hint--error {
+  color: #d22;
+  font-weight: 500;
 }/*# sourceMappingURL=components.css.map */
