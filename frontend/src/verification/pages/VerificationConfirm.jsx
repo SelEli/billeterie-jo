@@ -1,39 +1,63 @@
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
-import { useEffect, useState } from 'react';
 import { confirmVerification } from '../api/verification';
+import { getTicket } from '../../ticketing/api/ticket';
+import { useEffect, useState } from 'react';
 
 export default function VerificationConfirm() {
   const navigate = useNavigate();
   const query = new URLSearchParams(useLocation().search);
   const ticketId = query.get('ticketId');
   const [loading, setLoading] = useState(false);
+  const [qrPayload, setQrPayload] = useState(null);
 
+  // Charger le ticket complet
   useEffect(() => {
-    if (!ticketId || Number.isNaN(Number(ticketId))) navigate('/ticket');
+    if (!ticketId || Number.isNaN(Number(ticketId))) {
+      navigate('/ticket');
+      return;
+    }
+
+    getTicket(ticketId, { noCache: true })
+      .then(res => {
+        const t = res?.data || res;
+        if (!t) return navigate('/ticket');
+
+        // Assurer que issuedAt n'est jamais vide
+        setQrPayload({
+          ticketId: Number(t.id),
+          userId: t.userId,
+          eventId: t.eventId,
+          offerId: t.offerId,
+          zone: t.zone,
+          price: t.price,
+          issuedAt: t.issuedAt || new Date().toISOString(),
+          signature: t.signature
+        });
+      })
+      .catch(() => navigate('/ticket'));
   }, [ticketId, navigate]);
 
+  // Confirmer le ticket
   useEffect(() => {
-    const doConfirm = async () => {
-      const numericId = Number(ticketId);
-      if (!numericId) return;
+    if (!qrPayload) return;
 
+    const doConfirm = async () => {
       setLoading(true);
       try {
-        const res = await confirmVerification({ ticketId: numericId });
-        if (res?.data?.status === 'USED') {
-          // succès → on reste ici
-        } else {
-          navigate(`/verification/failed?ticketId=${numericId}`);
+        const res = await confirmVerification(qrPayload);
+        if (res?.data?.status !== 'USED') {
+          navigate(`/verification/failed?ticketId=${qrPayload.ticketId}`);
         }
       } catch {
-        navigate(`/verification/failed?ticketId=${numericId}`);
+        navigate(`/verification/failed?ticketId=${qrPayload.ticketId}`);
       } finally {
         setLoading(false);
       }
     };
+
     doConfirm();
-  }, [ticketId, navigate]);
+  }, [qrPayload, navigate]);
 
   return (
     <PageLayout title="Vérification réussie" titleClassName="page-title is-centered">
@@ -46,8 +70,8 @@ export default function VerificationConfirm() {
       )}
 
       <div className="actions-bar centered gap-md">
-        <Link to={`/ticket/${ticketId}`} className="btn btn--primary">Voir le ticket</Link>
-        <Link to="/ticket" className="btn btn--secondary">Retour à mes tickets</Link>
+        <button className="btn btn--primary" onClick={() => navigate(`/ticket/${ticketId}`)}>Voir le ticket</button>
+        <button className="btn btn--secondary" onClick={() => navigate('/ticket')}>Retour à mes tickets</button>
       </div>
     </PageLayout>
   );

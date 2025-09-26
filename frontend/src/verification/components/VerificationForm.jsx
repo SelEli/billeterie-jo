@@ -40,7 +40,8 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
   });
   const [error, setError] = useState('');
 
-  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const handleChange = (field, value) =>
+    setForm(prev => ({ ...prev, [field]: value }));
 
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -51,14 +52,15 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
       try {
         setError('');
         const qrPayload = await decodeQRCode(e.target.result);
+
         setForm({
-          ticketId: qrPayload.ticketId || '',
-          eventId: qrPayload.eventId || '',
-          userId: qrPayload.userId || '',
-          zone: qrPayload.zone || '',
-          price: qrPayload.price || '',
-          issuedAt: qrPayload.issuedAt || '',
-          signature: qrPayload.signature || ''
+          ticketId: qrPayload.ticketId ?? '',
+          eventId: qrPayload.eventId ?? '',
+          userId: qrPayload.userId ?? '',
+          zone: qrPayload.zone ?? '',
+          price: qrPayload.price ?? '',
+          issuedAt: qrPayload.issuedAt ?? new Date().toISOString(),
+          signature: qrPayload.signature ?? ''
         });
       } catch (err) {
         setError(err.message);
@@ -76,12 +78,13 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
     e.preventDefault();
     const { ticketId, eventId, userId, price, zone, issuedAt, signature } = form;
 
+    // Validation complète
     if (!ticketId || !eventId || !userId || !price || !zone || !issuedAt || !signature) {
       setError('Veuillez remplir tous les champs (QR ou manuel).');
       return;
     }
 
-    const qrPayload = {
+    const payload = {
       ticketId: Number(ticketId),
       eventId: Number(eventId),
       userId: Number(userId),
@@ -91,17 +94,12 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
       signature
     };
 
-    if (
-      Number.isNaN(qrPayload.ticketId) ||
-      Number.isNaN(qrPayload.eventId) ||
-      Number.isNaN(qrPayload.userId) ||
-      Number.isNaN(qrPayload.price)
-    ) {
+    if ([payload.ticketId, payload.eventId, payload.userId, payload.price].some(Number.isNaN)) {
       setError('Champs numériques invalides.');
       return;
     }
 
-    onVerify(qrPayload);
+    onVerify(payload);
   };
 
   return (
@@ -118,34 +116,13 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
       </div>
 
       <form className="form-fields" onSubmit={handleSubmit}>
-        <label>
-          ID du ticket
-          <input type="text" value={form.ticketId} onChange={e => handleChange('ticketId', e.target.value)} />
-        </label>
-        <label>
-          ID de l'événement
-          <input type="text" value={form.eventId} onChange={e => handleChange('eventId', e.target.value)} />
-        </label>
-        <label>
-          ID utilisateur
-          <input type="text" value={form.userId} onChange={e => handleChange('userId', e.target.value)} />
-        </label>
-        <label>
-          Zone
-          <input type="text" value={form.zone} onChange={e => handleChange('zone', e.target.value)} />
-        </label>
-        <label>
-          Prix
-          <input type="number" value={form.price} onChange={e => handleChange('price', e.target.value)} />
-        </label>
-        <label>
-          Date émission (ISO)
-          <input type="text" value={form.issuedAt} onChange={e => handleChange('issuedAt', e.target.value)} />
-        </label>
-        <label>
-          Signature HMAC
-          <input type="text" value={form.signature} onChange={e => handleChange('signature', e.target.value)} />
-        </label>
+        <label>ID du ticket<input type="text" value={form.ticketId} onChange={e => handleChange('ticketId', e.target.value)} /></label>
+        <label>ID de l'événement<input type="text" value={form.eventId} onChange={e => handleChange('eventId', e.target.value)} /></label>
+        <label>ID utilisateur<input type="text" value={form.userId} onChange={e => handleChange('userId', e.target.value)} /></label>
+        <label>Zone<input type="text" value={form.zone} onChange={e => handleChange('zone', e.target.value)} /></label>
+        <label>Prix<input type="number" value={form.price} onChange={e => handleChange('price', e.target.value)} /></label>
+        <label>Date émission (ISO)<input type="text" value={form.issuedAt} onChange={e => handleChange('issuedAt', e.target.value)} /></label>
+        <label>Signature HMAC<input type="text" value={form.signature} onChange={e => handleChange('signature', e.target.value)} /></label>
 
         <div className="actions-bar">
           <button type="submit" className="btn btn--primary" disabled={loading}>
