@@ -113,7 +113,8 @@ export default function TicketDetail() {
                         userId: ticket.userId,
                         zone: ticket.zone,
                         price: ticket.price,
-                        issuedAt: ticket.updatedAt
+                        issuedAt: ticket.updatedAt,
+                        signature: ticket.signature // 🔹 ajouté
                       })}
                       size={160}
                     />

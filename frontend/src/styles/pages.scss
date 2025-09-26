@@ -231,3 +231,37 @@
     }
   }
 }
+
+/* =========================
+   PAGE VERIFICATION - FILE DROPZONE
+   ========================= */
+
+.file-drop {
+  border: 2px dashed #999;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.3s, background-color 0.2s;
+
+  &:hover {
+    border-color: #666;
+    background-color: #fafafa;
+  }
+
+  &.drag-active {
+    border-color: $primary-color; // utilise ta variable couleur principale
+    background-color: rgba(0, 123, 255, 0.1);
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: $text-color; // utilise ta variable texte existante
+  }
+
+  @media (max-width: 600px) {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+}

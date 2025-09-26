@@ -16,8 +16,6 @@ async function validateTicketService(ticketId, authHeader) {
     throw err;
   }
 
-  logger.debug('[TICKET SERVICE] Recherche ticket dans DB', { ticketId: numericId });
-
   const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
   if (!ticket) {
     const err = new Error('TICKET_NOT_FOUND');
@@ -31,16 +29,15 @@ async function validateTicketService(ticketId, authHeader) {
     throw err;
   }
 
-  // 🔹 Récupération de la clé utilisateur via authHeader du user propriétaire
+  // 🔹 Récupération de la clé utilisateur
   let invisibleKey;
   try {
     const res = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
       headers: authHeader ? { Authorization: authHeader } : {}
     });
     invisibleKey = res.data?.data?.invisibleKey;
-    logger.debug('[TICKET SERVICE] Invisible key récupérée', { ticketId: numericId, invisibleKey });
   } catch (err) {
-    logger.warn(`[TICKET SERVICE] Impossible de récupérer invisibleKey: ${err.message}`, { ticketId: numericId });
+    logger.warn(`[TICKET SERVICE] Impossible de récupérer invisibleKey: ${err.message}`, { ticketId });
   }
 
   if (!invisibleKey) {
@@ -49,8 +46,8 @@ async function validateTicketService(ticketId, authHeader) {
     throw err;
   }
 
-  // 🔹 Création de la signature
-  const payloadToSign = `${ticket.secretKey}:${invisibleKey}:${ticket.id}:${ticket.eventId}:${ticket.userId}:${ticket.zone}:${ticket.price}:${ticket.updatedAt.toISOString()}`;
+  // 🔹 Signature calculée uniquement avec les deux clés
+  const payloadToSign = `${ticket.secretKey}:${invisibleKey}`;
   const signature = crypto.createHmac('sha256', invisibleKey).update(payloadToSign).digest('hex');
 
   // 🔹 Mise à jour ticket
@@ -60,7 +57,6 @@ async function validateTicketService(ticketId, authHeader) {
   });
 
   await invalidateCachedTicket(numericId);
-  logger.info(`[TICKET SERVICE] Ticket ${numericId} validated & signed`, { signature });
 
   // 🔹 Publication Kafka
   try {
@@ -72,7 +68,6 @@ async function validateTicketService(ticketId, authHeader) {
       offerId: updated.offerId,
       status: updated.status
     });
-    logger.debug(`[TICKET SERVICE] Kafka event TicketValidated published for ticket ${numericId}`);
   } catch (err) {
     logger.warn(`[TICKET SERVICE] Kafka publish failed: ${err.message}`, { ticketId: numericId });
   }

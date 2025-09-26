@@ -24,6 +24,8 @@ const { success, error } = require('./response');
 // 💾 Verification cache
 const verificationCache = require('./verificationCache');
 
+const { verifyTicketWithLogging } = require('./verifyTicketHelper');
+
 module.exports = {
   // Keys
   generateInvisibleKey: keys.generateInvisibleKey,
@@ -54,5 +56,7 @@ module.exports = {
   error,
 
   // Verification cache
-  ...verificationCache
+  ...verificationCache,
+
+  verifyTicketWithLogging
 };

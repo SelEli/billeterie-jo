@@ -1,4 +1,3 @@
-// src/verification/pages/VerificationStart.jsx
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import VerificationForm from '../components/VerificationForm';
@@ -23,13 +22,17 @@ export default function VerificationStart() {
     }
   }, [ticketId, navigate]);
 
-  const handleVerify = async ({ ticketId: formId, hmac }) => {
-    const numericId = Number(formId || ticketId);
+  const handleVerify = async (qrPayload) => {
+    const numericId = Number(qrPayload.ticketId || ticketId);
     if (Number.isNaN(numericId)) return navigate('/ticket');
     setLoading(true);
     try {
-      await startVerification(numericId, hmac);
-      navigate(`/verification/confirm?ticketId=${numericId}`);
+      const res = await startVerification(qrPayload);
+      if (res?.data?.status === 'STARTED') {
+        navigate(`/verification/confirm?ticketId=${numericId}`);
+      } else {
+        navigate(`/verification/failed?ticketId=${numericId}`);
+      }
     } catch {
       navigate(`/verification/failed?ticketId=${numericId}`);
     } finally {
@@ -52,7 +55,6 @@ export default function VerificationStart() {
           </div>
         )}
 
-        {/* Formulaire affiché pour tout le monde */}
         <VerificationForm
           onVerify={handleVerify}
           onCancel={handleCancel}

@@ -1,44 +1,31 @@
-// src/verification/api/verification.js
 import { apiFetch } from '../../common/utils/fetcher';
 
 /**
- * Démarrer une vérification de ticket (ex: scan QR code)
- * @param {number|string} ticketId - ID du ticket à vérifier
+ * Démarrer une vérification de ticket
+ * @param {object} qrPayload - Payload complet du QR code
  */
-export const startVerification = (ticketId) => {
-  const numericId = Number(ticketId);
-  if (Number.isNaN(numericId)) {
-    throw new Error(`Invalid ticketId: ${ticketId}`);
+export const startVerification = (qrPayload) => {
+  if (!qrPayload?.ticketId) {
+    throw new Error(`Invalid payload: ${JSON.stringify(qrPayload)}`);
   }
 
   return apiFetch('/verification/start', {
     method: 'POST',
-    body: { ticketId: numericId }
+    body: qrPayload
   });
 };
 
 /**
- * Confirmer une vérification de ticket (ex: agent sur place)
- * @param {number|string} ticketId - ID du ticket à confirmer
+ * Confirmer une vérification de ticket
+ * @param {object} qrPayload - Payload complet du QR code
  */
-export const confirmVerification = (ticketId) => {
-  const numericId = Number(ticketId);
-  if (Number.isNaN(numericId)) {
-    throw new Error(`Invalid ticketId: ${ticketId}`);
+export const confirmVerification = (qrPayload) => {
+  if (!qrPayload?.ticketId) {
+    throw new Error(`Invalid payload: ${JSON.stringify(qrPayload)}`);
   }
 
   return apiFetch('/verification/confirm', {
     method: 'POST',
-    body: { ticketId: numericId }
-  });
-};
-
-/**
- * Obtenir l’historique des vérifications
- * Utile pour les admins ou superviseurs
- */
-export const getVerificationHistory = () => {
-  return apiFetch('/verification/history', {
-    method: 'GET'
+    body: qrPayload
   });
 };
