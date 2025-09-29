@@ -18,16 +18,20 @@ import UserDetail from '../../auth/pages/UserDetail';
 import RolesList from '../../auth/pages/RolesList';
 import RoleDetail from '../../auth/pages/RoleDetail';
 
-// Event (à décommenter quand pages prêtes)
-// import EventsList from '../../event/pages/EventsList';
-// import EventDetail from '../../event/pages/EventDetail';
+// Events
+import EventList from '../../ticketing/pages/EventList';
+import EventDetail from '../../ticketing/pages/EventDetail';
+import EventCreate from '../../ticketing/pages/EventCreate';
+import EventUpdate from '../../ticketing/pages/EventUpdate';
 
-// Offer (à décommenter quand pages prêtes)
-// import OffersList from '../../offer/pages/OffersList';
-// import OfferDetail from '../../offer/pages/OfferDetail';
+// Offers
+import OfferList from '../../ticketing/pages/OfferList';
+import OfferDetail from '../../ticketing/pages/OfferDetail';
+import OfferCreate from '../../ticketing/pages/OfferCreate';
+import OfferUpdate from '../../ticketing/pages/OfferUpdate';
 
 // Ticketing
-import TicketsList from '../../ticketing/pages/TicketsList'; // seul au pluriel
+import TicketsList from '../../ticketing/pages/TicketsList';
 import TicketDetail from '../../ticketing/pages/TicketDetail';
 import TicketCreate from '../../ticketing/pages/TicketCreate';
 import TicketForceValidate from '../../ticketing/pages/TicketForceValidate';
@@ -61,13 +65,17 @@ export const routesConfig = [
   { path: '/role', element: <RolesList />, private: true, roles: ['ADMIN'] },
   { path: '/role/:id', element: <RoleDetail />, private: true, roles: ['ADMIN'] },
 
-  // Events (à décommenter quand pages prêtes)
-  // { path: '/events', element: <EventsList />, private: true },
-  // { path: '/event/:id', element: <EventDetail />, private: true },
+  // Events
+  { path: '/event', element: <EventList />, private: true },
+  { path: '/event/create', element: <EventCreate />, private: true, roles: ['ADMIN'] },
+  { path: '/event/:id', element: <EventDetail />, private: true },
+  { path: '/event/:id/edit', element: <EventUpdate />, private: true, roles: ['ADMIN'] },
 
-  // Offers (à décommenter quand pages prêtes)
-  // { path: '/offers', element: <OffersList />, private: true },
-  // { path: '/offer/:id', element: <OfferDetail />, private: true },
+  // Offers
+  { path: '/offer', element: <OfferList />, private: true, roles: ['ADMIN'] },
+  { path: '/offer/create', element: <OfferCreate />, private: true, roles: ['ADMIN'] },
+  { path: '/offer/:id', element: <OfferDetail />, private: true, roles: ['ADMIN'] },
+  { path: '/offer/:id/edit', element: <OfferUpdate />, private: true, roles: ['ADMIN'] },
 
   // Tickets
   { path: '/ticket', element: <TicketsList />, private: true },
@@ -79,7 +87,6 @@ export const routesConfig = [
   { path: '/pay/start', element: <PaymentStart />, private: true },
   { path: '/pay/confirm', element: <PaymentConfirm />, private: true },
   { path: '/pay/failed', element: <PaymentFailed />, private: true },
-
 
   // Verification
   { path: '/verification/start', element: <VerificationStart />, private: true },

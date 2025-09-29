@@ -1,3 +1,4 @@
+// src/common/components/Header.jsx
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +11,7 @@ export default function Header() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const headerRef = useRef(null);
-  const location = useLocation(); // 🔹 pour détecter navigation
+  const location = useLocation();
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => {
@@ -27,7 +28,6 @@ export default function Header() {
   const isAdmin = user?.role === 'ADMIN';
   const canVerify = ['ADMIN', 'AGENT', 'EMPLOYEE'].includes(user?.role);
 
-  // 🔹 Pour l’instant, Vérification pointe vers /ticket
   const verificationLink = canVerify
     ? { to: '/ticket', label: 'Vérification' }
     : null;
@@ -35,7 +35,8 @@ export default function Header() {
   const adminLinks = isAdmin
     ? [
         { to: '/user', label: 'Utilisateurs' },
-        { to: '/role', label: 'Rôles' }
+        { to: '/role', label: 'Rôles' },
+        // ⚠️ On garde Événements et Offres visibles par tous en dehors du menu Admin
       ]
     : [];
 
@@ -96,7 +97,6 @@ export default function Header() {
     );
   };
 
-  // 🔹 Fermer les menus si clic à l'extérieur
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (headerRef.current && !headerRef.current.contains(e.target)) {
@@ -109,7 +109,6 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 🔹 Fermer le menu principal et sous-menus à chaque navigation
   useEffect(() => {
     closeMenu();
   }, [location]);
@@ -135,13 +134,19 @@ export default function Header() {
         <nav className={`header-jo__nav ${menuOpen ? 'open' : ''}`}>
           {renderLink({ to: '/', label: 'Accueil' })}
 
-          {/* Événements */}
+          {/* Lien direct vers événements */}
+          {renderLink({ to: '/event', label: 'Événements' })}
+
+          {/* Lien direct vers offres */}
+          {renderLink({ to: '/offer', label: 'Offres' })}
+
+          {/* Dropdown infos événements */}
           <div className="header-jo__dropdown">
             <button
               onClick={toggleEventMenu}
               className="header-jo__dropdown-toggle btn btn--nav-outlined no-border"
             >
-              Événements
+              Plus d’infos
               {renderChevron(eventMenuOpen)}
             </button>
             <div
@@ -199,7 +204,6 @@ export default function Header() {
                 onClick={toggleAccountMenu}
                 className="header-jo__dropdown-toggle btn btn--nav-outlined no-border"
               >
-                {/* Icône utilisateur */}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="1.2em"

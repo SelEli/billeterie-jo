@@ -57,6 +57,18 @@ async function verifyTicketService(qrPayload, authHeader) {
   const payloadToSign = `${ticket.secretKey}:${invisibleKey}`;
   const expectedSignature = crypto.createHmac('sha256', invisibleKey).update(payloadToSign).digest('hex');
 
+  // 🔍 Log complet pour debug
+  logger.info('[DEBUG] Signature verification details', {
+    ticketId: numericId,
+    ticketStatus: ticket.status,
+    secretKey: ticket.secretKey,
+    invisibleKey,
+    payloadToSign,
+    expectedSignature,
+    receivedSignature: signature,
+    match: signature === expectedSignature
+  });
+
   // 🔹 Comparer avec signature fournie par le QR
   if (signature !== expectedSignature) {
     const err = new Error('INVALID_SIGNATURE');

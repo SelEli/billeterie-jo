@@ -35,3 +35,11 @@ export const validateTicket = (ticketId, extra = {}) => {
   }
   return apiFetch('/ticket/validate', { method: 'POST', body: { ticketId, ...extra } });
 };
+
+// Validation standard (paiement réussi)
+export const verifyTicket = (ticketId, extra = {}) => {
+  if (ticketId == null) {
+    throw new Error('INVALID_TICKET_ID');
+  }
+  return apiFetch('/ticket/verify', { method: 'POST', body: { ticketId, ...extra } });
+};

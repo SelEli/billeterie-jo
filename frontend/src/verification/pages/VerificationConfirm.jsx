@@ -1,8 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
-import { confirmVerification } from '../api/verification';
-import { getTicket } from '../../ticketing/api/ticket';
 import { useEffect, useState } from 'react';
+import { confirmVerification } from '../api/verification';
+// import { getTicket } from '../../ticketing/api/ticket'; // ❌ plus utilisé
 
 export default function VerificationConfirm() {
   const navigate = useNavigate();
@@ -11,7 +11,8 @@ export default function VerificationConfirm() {
   const [loading, setLoading] = useState(false);
   const [qrPayload, setQrPayload] = useState(null);
 
-  // Charger le ticket complet
+  // ❌ On commente le rechargement du ticket pour éviter le GET
+  /*
   useEffect(() => {
     if (!ticketId || Number.isNaN(Number(ticketId))) {
       navigate('/ticket');
@@ -23,7 +24,6 @@ export default function VerificationConfirm() {
         const t = res?.data || res;
         if (!t) return navigate('/ticket');
 
-        // Assurer que issuedAt n'est jamais vide
         setQrPayload({
           ticketId: Number(t.id),
           userId: t.userId,
@@ -37,8 +37,9 @@ export default function VerificationConfirm() {
       })
       .catch(() => navigate('/ticket'));
   }, [ticketId, navigate]);
+  */
 
-  // Confirmer le ticket
+  // ✅ On suppose que le payload complet est déjà fourni via navigate(state)
   useEffect(() => {
     if (!qrPayload) return;
 
@@ -62,7 +63,7 @@ export default function VerificationConfirm() {
   return (
     <PageLayout title="Vérification réussie" titleClassName="page-title is-centered">
       {loading ? (
-        <div className="alert alert-info mb-2">⏳ Validation en cours…</div>
+        <div className="alert alert-info mb-2">⏳ Vérification en cours…</div>
       ) : (
         <div className="alert alert-success mb-2">
           ✅ Le ticket <strong>#{ticketId}</strong> a été vérifié avec succès et marqué comme utilisé.
@@ -70,8 +71,20 @@ export default function VerificationConfirm() {
       )}
 
       <div className="actions-bar centered gap-md">
-        <button className="btn btn--primary" onClick={() => navigate(`/ticket/${ticketId}`)}>Voir le ticket</button>
-        <button className="btn btn--secondary" onClick={() => navigate('/ticket')}>Retour à mes tickets</button>
+        <button
+          className="btn btn--primary"
+          onClick={() => navigate(`/ticket/${ticketId}`)}
+          disabled={loading}
+        >
+          Voir le ticket
+        </button>
+        <button
+          className="btn btn--secondary"
+          onClick={() => navigate('/ticket')}
+          disabled={loading}
+        >
+          Retour à mes tickets
+        </button>
       </div>
     </PageLayout>
   );
