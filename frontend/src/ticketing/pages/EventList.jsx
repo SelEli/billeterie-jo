@@ -1,4 +1,4 @@
-// src/event/pages/EventList.jsx
+// src/ticketing/pages/EventList.jsx
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import List from '../../common/components/List';
@@ -57,39 +57,35 @@ export default function EventList() {
               }
 
               if (col === 'actions') {
-                return (
+                return hasRole('ADMIN') ? (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {hasRole('ADMIN') && (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn--sm btn--secondary"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            navigate(`/event/${row.id}/edit`);
-                          }}
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn--sm btn--danger"
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (window.confirm('Supprimer cet événement ?')) {
-                              await deleteEvent(row.id);
-                              window.location.reload();
-                            }
-                          }}
-                        >
-                          Supprimer
-                        </button>
-                      </>
-                    )}
+                    <button
+                      type="button"
+                      className="btn btn--sm btn--secondary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate(`/event/${row.id}/edit`);
+                      }}
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--sm btn--danger"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (window.confirm('Supprimer cet événement ?')) {
+                          await deleteEvent(row.id);
+                          window.location.reload();
+                        }
+                      }}
+                    >
+                      Supprimer
+                    </button>
                   </div>
-                );
+                ) : null;
               }
 
               return value;

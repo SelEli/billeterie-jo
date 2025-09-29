@@ -1,4 +1,3 @@
-// controllers/offer/createOffer.controller.js
 const { createOfferSchema } = require('../../validators/offer.validator');
 const { createOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
@@ -24,8 +23,13 @@ async function createOfferController(req, res) {
       });
     }
 
-    const payload = req.validated ?? createOfferSchema.parse(req.body);
-    const offer = await createOfferService(payload);
+    // Validation stricte
+    const parsed = req.validated ?? createOfferSchema.parse(req.body);
+
+    // ⚠️ On retire l'id si présent
+    const { id, ...safePayload } = parsed;
+
+    const offer = await createOfferService(safePayload);
 
     return res.status(201).json({
       status: 'success',

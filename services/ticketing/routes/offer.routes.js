@@ -31,63 +31,28 @@ const {
 // Middleware de log compact global
 router.use((req, res, next) => {
   logger.debug(
-    `[OFFER ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
+    `[OFFER ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(
+      req.params
+    )} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
   );
   next();
 });
 
 // ----------- ROUTES -----------
 
-router.post(
-  '/',
-  authenticate,
-  validateRequest(createOfferSchema),
-  (req, res, next) => {
-    logger.info('[OFFER ROUTES][POST /] → createOfferController');
-    next();
-  },
-  createOfferController
-);
+// Création d’offre (protégé)
+router.post('/', authenticate, validateRequest(createOfferSchema), createOfferController);
 
-router.get(
-  '/:id',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[OFFER ROUTES][GET /:id] → readOfferController');
-    next();
-  },
-  readOfferController
-);
+// Lecture d’une offre par ID (public)
+router.get('/:id', readOfferController);
 
-router.put(
-  '/:id',
-  authenticate,
-  validateRequest(updateOfferSchema),
-  (req, res, next) => {
-    logger.info('[OFFER ROUTES][PUT /:id] → updateOfferController');
-    next();
-  },
-  updateOfferController
-);
+// Mise à jour d’une offre (protégé)
+router.put('/:id', authenticate, validateRequest(updateOfferSchema), updateOfferController);
 
-router.delete(
-  '/:id',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[OFFER ROUTES][DELETE /:id] → deleteOfferController');
-    next();
-  },
-  deleteOfferController
-);
+// Suppression d’une offre (protégé)
+router.delete('/:id', authenticate, deleteOfferController);
 
-router.get(
-  '/',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[OFFER ROUTES][GET /] → listOffersController');
-    next();
-  },
-  listOffersController
-);
+// Liste des offres (public)
+router.get('/', listOffersController);
 
 module.exports = router;

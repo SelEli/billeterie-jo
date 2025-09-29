@@ -1,22 +1,19 @@
-// schemas/offer.schema.js
 const { z } = require('zod');
 
-// 🎯 Rôles autorisés
+// Rôles cibles possibles (si tu veux filtrer certaines offres)
 const roles = ['VISITOR', 'USER', 'ADMIN', 'EMPLOYEE', 'AGENT'];
 
-// 🛠 Schéma de base pour création
-const createOfferSchema = z.object({
-  label: z
-    .string()
-    .min(3, { message: 'Label must be at least 3 characters' }),
-  discount: z
-    .number()
-    .min(0, { message: 'Discount must be >= 0' })
-    .max(1, { message: 'Discount must be between 0 and 1 (e.g., 0.25)' }),
+const OfferCreateSchema = z.object({
+  label: z.string()
+    .min(3, { message: 'Le nom doit contenir au moins 3 caractères' })
+    .max(200, { message: 'Le nom ne peut pas dépasser 200 caractères' }),
+
+  discount: z.number()
+    .min(0, { message: 'La réduction doit être >= 0' })
+    .max(1, { message: 'La réduction doit être <= 1 (ex: 0.25 pour 25%)' }),
+
   active: z.boolean().optional(),
-  targetRole: z.enum(roles, {
-    errorMap: () => ({ message: `Target role must be one of: ${roles.join(', ')}` })
-  }),
+  targetRole: z.enum(roles).optional(),
   eventId: z.number().int().positive().optional(),
   validFrom: z.coerce.date().optional(),
   validTo: z.coerce.date().optional(),
@@ -27,24 +24,24 @@ const createOfferSchema = z.object({
   }
   return true;
 }, {
-  message: 'validFrom must be before validTo',
+  message: 'validFrom doit être antérieur à validTo',
   path: ['validFrom']
 });
 
-// 🛠 Schéma de mise à jour (tous champs optionnels)
-const updateOfferSchema = createOfferSchema
-  .partial()
-  .refine((data) => {
-    if (data.validFrom && data.validTo) {
-      return data.validFrom < data.validTo;
-    }
-    return true;
-  }, {
-    message: 'validFrom must be before validTo',
-    path: ['validFrom']
-  });
+// Mise à jour (tous champs optionnels + id obligatoire)
+const OfferUpdateSchema = OfferCreateSchema.partial().extend({
+  id: z.string().regex(/^\d+$/).transform(Number)
+}).refine((data) => {
+  if (data.validFrom && data.validTo) {
+    return data.validFrom < data.validTo;
+  }
+  return true;
+}, {
+  message: 'validFrom doit être antérieur à validTo',
+  path: ['validFrom']
+});
 
 module.exports = {
-  createOfferSchema,
-  updateOfferSchema
+  OfferCreateSchema,
+  OfferUpdateSchema
 };

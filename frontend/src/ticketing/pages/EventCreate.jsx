@@ -1,4 +1,3 @@
-// src/ticketing/pages/EventCreate.jsx
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import EventForm from '../components/EventForm';
@@ -25,7 +24,7 @@ export default function EventCreate() {
 
   return (
     <PageLayout title="Créer un événement">
-      <EventForm onSubmit={handleSubmit} />
+      <EventForm initialValues={{}} onSubmit={handleSubmit} isEdit />
     </PageLayout>
   );
 }

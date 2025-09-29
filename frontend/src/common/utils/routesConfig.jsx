@@ -57,24 +57,24 @@ export const routesConfig = [
   // Profil
   { path: '/profile', element: <AuthProfile />, private: true },
 
-  // Users
+  // Users (ADMIN only)
   { path: '/user', element: <UsersList />, private: true, roles: ['ADMIN'] },
   { path: '/user/:id', element: <UserDetail />, private: true, roles: ['ADMIN'] },
 
-  // Roles
+  // Roles (ADMIN only)
   { path: '/role', element: <RolesList />, private: true, roles: ['ADMIN'] },
   { path: '/role/:id', element: <RoleDetail />, private: true, roles: ['ADMIN'] },
 
   // Events
-  { path: '/event', element: <EventList />, private: true },
+  { path: '/event', element: <EventList /> }, // lecture publique
   { path: '/event/create', element: <EventCreate />, private: true, roles: ['ADMIN'] },
-  { path: '/event/:id', element: <EventDetail />, private: true },
+  { path: '/event/:id', element: <EventDetail /> }, // lecture publique
   { path: '/event/:id/edit', element: <EventUpdate />, private: true, roles: ['ADMIN'] },
 
   // Offers
-  { path: '/offer', element: <OfferList />, private: true, roles: ['ADMIN'] },
+  { path: '/offer', element: <OfferList /> }, // lecture publique
   { path: '/offer/create', element: <OfferCreate />, private: true, roles: ['ADMIN'] },
-  { path: '/offer/:id', element: <OfferDetail />, private: true, roles: ['ADMIN'] },
+  { path: '/offer/:id', element: <OfferDetail /> }, // lecture publique
   { path: '/offer/:id/edit', element: <OfferUpdate />, private: true, roles: ['ADMIN'] },
 
   // Tickets

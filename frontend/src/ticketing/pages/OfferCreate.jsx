@@ -25,7 +25,7 @@ export default function OfferCreate() {
 
   return (
     <PageLayout title="Créer une offre">
-      <OfferForm onSubmit={handleSubmit} />
+      <OfferForm initialValues={{}} onSubmit={handleSubmit} isEdit />
     </PageLayout>
   );
 }

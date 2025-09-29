@@ -13,11 +13,15 @@ async function createEventController(req, res) {
       });
     }
 
+    // Validation stricte
     const parsed = createEventSchema.parse(req.body);
+
+    // ⚠️ On retire l'id si présent pour éviter les collisions Prisma
+    const { id, ...safePayload } = parsed;
 
     logger.info(`[EVENT CONTROLLER] Creating event by user ${req.user.userId}`);
 
-    const event = await createEventService(parsed);
+    const event = await createEventService(safePayload);
 
     return res.status(201).json({
       status: 'success',
@@ -30,7 +34,7 @@ async function createEventController(req, res) {
 
     if (err?.name === 'ZodError') {
       return res.status(400).json({
-        status: 'error', // ✅ ajouté pour test POST invalide
+        status: 'error',
         data: null,
         errors: err.issues?.map(i => i.message) ?? [err.message],
         meta: {}

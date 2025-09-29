@@ -32,7 +32,7 @@ router.use((req, res, next) => {
 // Montage des sous‑routeurs
 router.use('/ticket', ticketRoutes);
 router.use('/event',  eventRoutes);
-router.use('/offers',  offerRoutes);
+router.use('/offer',  offerRoutes);
 router.use('/health', healthRoutes);
 
 module.exports = router;

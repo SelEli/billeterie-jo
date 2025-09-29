@@ -37,68 +37,28 @@ const {
 // Middleware de debug compact : trace chaque requête avec ses données clés
 router.use((req, res, next) => {
   logger.debug(
-    `[EVENT ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
+    `[EVENT ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(
+      req.params
+    )} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
   );
   next();
 });
 
 // ----------- ROUTES -----------
 
-// Création d’événement
-router.post(
-  '/',
-  authenticate,
-  validateRequest(createEventSchema),
-  (req, res, next) => {
-    logger.info('[EVENT ROUTES][POST /] → createEventController');
-    next();
-  },
-  createEventController
-);
+// Création d’événement (protégé)
+router.post('/', authenticate, validateRequest(createEventSchema), createEventController);
 
-// Lecture d’un événement par ID
-router.get(
-  '/:id',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[EVENT ROUTES][GET /:id] → readEventController');
-    next();
-  },
-  readEventController
-);
+// Lecture d’un événement par ID (public)
+router.get('/:id', readEventController);
 
-// Mise à jour d’un événement
-router.put(
-  '/:id',
-  authenticate,
-  validateRequest(updateEventSchema),
-  (req, res, next) => {
-    logger.info('[EVENT ROUTES][PUT /:id] → updateEventController');
-    next();
-  },
-  updateEventController
-);
+// Mise à jour d’un événement (protégé)
+router.put('/:id', authenticate, validateRequest(updateEventSchema), updateEventController);
 
-// Suppression d’un événement
-router.delete(
-  '/:id',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[EVENT ROUTES][DELETE /:id] → deleteEventController');
-    next();
-  },
-  deleteEventController
-);
+// Suppression d’un événement (protégé)
+router.delete('/:id', authenticate, deleteEventController);
 
-// Liste des événements (avec filtres)
-router.get(
-  '/',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[EVENT ROUTES][GET /] → listEventsController');
-    next();
-  },
-  listEventsController
-);
+// Liste des événements (public)
+router.get('/', listEventsController);
 
 module.exports = router;
