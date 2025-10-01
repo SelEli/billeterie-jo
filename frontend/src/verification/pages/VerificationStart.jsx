@@ -15,45 +15,27 @@ export default function VerificationStart() {
   useEffect(() => {
     if (!ticketId) {
       navigate('/ticket');
-      return;
+    } else {
+      getTicket(ticketId, { noCache: true })
+        .then(res => setTicket(res?.data || res))
+        .catch(() => navigate('/ticket'));
     }
-
-    getTicket(ticketId, { noCache: true })
-      .then(res => setTicket(res?.data || res))
-      .catch(() => navigate('/ticket'));
   }, [ticketId, navigate]);
 
   const handleVerify = async (qrPayload) => {
-    // 🔹 strict : ne pas remplacer ticketId par défaut
-    if (!qrPayload.ticketId || !qrPayload.userId || !qrPayload.signature) {
-      return navigate(`/verification/failed?ticketId=${ticketId}`);
-    }
-
-    const numericTicketId = Number(qrPayload.ticketId);
-    const numericUserId = Number(qrPayload.userId);
-
-    if ([numericTicketId, numericUserId].some(Number.isNaN)) {
-      return navigate(`/verification/failed?ticketId=${ticketId}`);
-    }
-
-    const payload = {
-      ticketId: numericTicketId,
-      userId: numericUserId,
-      signature: qrPayload.signature,
-      ...(qrPayload.status !== undefined && { status: qrPayload.status }) // 🔹 uniquement si présent
-    };
-
+    const numericId = Number(qrPayload.ticketId || ticketId);
+    if (Number.isNaN(numericId)) return navigate('/ticket');
     setLoading(true);
     try {
-      const res = await startVerification(payload);
+      const res = await startVerification(qrPayload);
       // START verification : VALID -> USED seulement si signature ok
       if (res?.data?.status === 'USED') {
-        navigate(`/verification/confirm?ticketId=${numericTicketId}`);
+        navigate(`/verification/confirm?ticketId=${numericId}`);
       } else {
-        navigate(`/verification/failed?ticketId=${numericTicketId}`);
+        navigate(`/verification/failed?ticketId=${numericId}`);
       }
     } catch {
-      navigate(`/verification/failed?ticketId=${numericTicketId}`);
+      navigate(`/verification/failed?ticketId=${numericId}`);
     } finally {
       setLoading(false);
     }
