@@ -12,15 +12,12 @@ const StartVerificationSchema = z.object({
   ticketId: z.number().int().positive()
 });
 
-// Schéma pour confirmVerification
+// Schéma simplifié pour confirmVerification
 const ConfirmVerificationSchema = z.object({
   ticketId: z.number().int().positive(),
-  eventId: z.number().int().positive(),
   userId: z.number().int().positive(),
-  zone: z.string().min(1),
-  price: z.number().positive(),
-  issuedAt: z.string().min(1),
-  signature: z.string().min(1)
+  signature: z.string().min(1),
+  status: z.enum(['USED', 'VALID'])
 });
 
 // START

@@ -7,7 +7,8 @@ const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
 /**
- * Vérifie un ticket VALID en comparant sa signature QR et le passe en USED
+ * Vérifie un ticket VALID en comparant sa signature QR, le passe en USED,
+ * et transmet le statut à Confirm.
  * @param {object} qrPayload – payload QR reçu (doit contenir ticketId + signature)
  * @param {string|null} authHeader
  */
@@ -59,6 +60,15 @@ async function verifyTicketService(qrPayload, authHeader) {
     logger.info('[TICKET SERVICE] Kafka event TicketVerified publié', { ticketId: numericId });
   } catch (err) {
     logger.warn(`[TICKET SERVICE] Kafka publish failed: ${err.message}`, { ticketId: numericId });
+  }
+
+  // 🔹 Appel Confirm pour transmettre statut
+  try {
+    const confirmUrl = `${process.env.VERIFICATION_URL}/confirm`;
+    await axios.post(confirmUrl, { ticketId: numericId, status: 'USED' }, { headers: authHeader ? { Authorization: authHeader } : {} });
+    logger.info('[TICKET SERVICE] Confirm appelé avec succès', { ticketId: numericId });
+  } catch (err) {
+    logger.error(`[TICKET SERVICE] Impossible d'appeler Confirm: ${err.message}`, { ticketId: numericId });
   }
 
   return updated;

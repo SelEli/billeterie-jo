@@ -15,6 +15,17 @@ export const startVerification = (qrPayload) => {
   });
 };
 
+export const verifyTicketDirect = (qrPayload) => {
+  if (!qrPayload?.ticketId) {
+    throw new Error(`Invalid payload: ${JSON.stringify(qrPayload)}`);
+  }
+
+  return apiFetch('/ticket/verify', {
+    method: 'POST',
+    body: qrPayload
+  });
+};
+
 /**
  * Confirmer une vérification de ticket
  * @param {object} qrPayload - Payload complet du QR code

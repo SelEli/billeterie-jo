@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import VerificationForm from '../components/VerificationForm';
-import { startVerification } from '../api/verification';
+import { verifyTicketDirect } from '../api/verification'; // nouveau helper direct vers /verify
 import { getTicket } from '../../ticketing/api/ticket';
 import { useState, useEffect } from 'react';
 
@@ -13,23 +13,22 @@ export default function VerificationStart() {
   const [ticket, setTicket] = useState(null);
 
   useEffect(() => {
-    if (!ticketId) {
-      navigate('/ticket');
-    } else {
-      getTicket(ticketId, { noCache: true })
-        .then(res => setTicket(res?.data || res))
-        .catch(() => navigate('/ticket'));
-    }
+    if (!ticketId) return navigate('/ticket');
+    getTicket(ticketId, { noCache: true })
+      .then(res => setTicket(res?.data || res))
+      .catch(() => navigate('/ticket'));
   }, [ticketId, navigate]);
 
   const handleVerify = async (qrPayload) => {
     const numericId = Number(qrPayload.ticketId || ticketId);
     if (Number.isNaN(numericId)) return navigate('/ticket');
+    
     setLoading(true);
     try {
-      const res = await startVerification(qrPayload);
-      // START verification : VALID -> USED seulement si signature ok
-      if (res?.data?.status === 'USED') {
+      const res = await verifyTicketDirect(qrPayload); // appel direct /verify
+      const status = res?.status || res?.data?.status;
+
+      if (status === 'USED') {
         navigate(`/verification/confirm?ticketId=${numericId}`);
       } else {
         navigate(`/verification/failed?ticketId=${numericId}`);
@@ -40,8 +39,6 @@ export default function VerificationStart() {
       setLoading(false);
     }
   };
-
-  const handleCancel = () => navigate(`/ticket/${ticketId}`);
 
   return (
     <PageLayout title="Vérification" titleClassName="page-title is-centered">
@@ -56,7 +53,7 @@ export default function VerificationStart() {
 
         <VerificationForm
           onVerify={handleVerify}
-          onCancel={handleCancel}
+          onCancel={() => navigate(`/ticket/${ticketId}`)}
           loading={loading}
         />
       </div>
