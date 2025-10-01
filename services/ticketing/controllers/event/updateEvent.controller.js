@@ -1,79 +1,49 @@
-// controllers/event/updateEvent.controller.js
-const { updateEventSchema } = require('../../validators/event.validator');
+const logger  = require('../../utils/logger');
+const monitor = require('../../monitor/monitor');
+const { EventUpdateSchema } = require('../../schemas/event.schema');
 const { updateEventService } = require('../../services/event/updateEvent.service');
-const logger = require('../../utils/logger');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function updateEventController(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return sendBusinessError(res, 'INVALID_EVENT_ID');
+  }
+
+  if (!req.user || req.user.role !== 'ADMIN') {
+    return sendBusinessError(res, 'FORBIDDEN');
+  }
+
+  let parsed;
   try {
-    if (!req.user || req.user.role !== 'ADMIN') {
-      return res.status(403).json({
-        status: 'error',
-        errors: ['Forbidden'],
-        data: null,
-        meta: {}
-      });
-    }
-
-    const parsed = updateEventSchema.parse(req.body);
-    const id = Number(req.params.id);
-
-    if (isNaN(id) || id <= 0) {
-      return res.status(400).json({
-        status: 'error',
-        errors: ['Invalid event ID'],
-        data: null,
-        meta: {}
-      });
-    }
-
-    logger.info(`[EVENT CONTROLLER] Updating event ${id} by user ${req.user.id}`);
-
-    const updatedEvent = await updateEventService(id, parsed);
-
-    if (!updatedEvent) {
-      logger.info(`[EVENT CONTROLLER] Event not found: ${id}`);
-      return res.status(404).json({
-        status: 'error',
-        errors: ['Event not found'], // harmonisé
-        data: null,
-        meta: {}
-      });
-    }
-
-    logger.info(`[EVENT CONTROLLER] Event updated: ${id}`);
-    return res.status(200).json({
-      status: 'success',
-      data: updatedEvent,
-      errors: [],
-      meta: { message: 'Event updated successfully' }
-    });
+    parsed = EventUpdateSchema.parse(req.body);
   } catch (err) {
-    logger.error(`[EVENT CONTROLLER] Update failed for ${req.params.id}: ${err.message}`);
+    logger.warn('[EVENT CONTROLLER] Validation échouée', { issues: err.issues });
+    return sendBusinessError(res, 'INVALID_EVENT_DATA', err.issues?.map(i => i.message));
+  }
 
-    if (err?.name === 'ZodError') {
-      return res.status(400).json({
-        status: 'error',
-        errors: err.issues?.map(i => i.message) ?? [err.message],
-        data: null,
-        meta: {}
-      });
+  const { id: ignored, ...safePayload } = parsed;
+
+  const timer = monitor.timer('event_update').start();
+  try {
+    const event = await updateEventService(id, safePayload);
+    timer.stop();
+
+    if (!event) {
+      return sendBusinessError(res, 'EVENT_NOT_FOUND');
     }
 
-    if (err.statusCode === 404) {
-      return res.status(404).json({
-        status: 'error',
-        errors: ['Event not found'], // harmonisé
-        data: null,
-        meta: {}
-      });
-    }
-
-    return res.status(err.statusCode || 500).json({
-      status: 'error',
-      errors: [err.message],
-      data: null,
-      meta: {}
-    });
+    logger.info('[EVENT CONTROLLER] Event mis à jour', { eventId: id });
+    return sendBusinessSuccess(res, 'UPDATE_EVENT', event, { message: 'Event updated successfully' });
+  } catch (error) {
+    timer.stop();
+    logger.error('[EVENT CONTROLLER] Erreur update event', { error: error.message });
+    const code = error.message && error.message in ERROR_STATUS
+      ? error.message
+      : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

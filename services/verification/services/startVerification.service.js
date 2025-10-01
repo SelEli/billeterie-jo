@@ -1,61 +1,61 @@
-// services/startVerificationService.js
-const axios = require('axios');
 const logger = require('../utils/logger');
 const { publishKafkaEvent } = require('../utils/kafkaClient');
+const { setVerificationData } = require('../utils/verificationCache');
 const { ERROR_STATUS } = require('../utils/httpErrorMap');
 
 /**
- * Démarre la vérification d’un ticket (statut INITIAL : STARTED)
- * @param {number|string} ticketId
- * @param {string|null} authHeader
+ * Démarre la vérification d'un ticket sans consulter le Ticket Service
+ * @param {object} payload - données reçues du front { ticketId, userId, signature, status? }
+ * @param {boolean} isMock - mode mock/live
  */
-async function startVerificationService(ticketId, authHeader = null) {
+async function startVerificationService(payload, isMock = false) {
+  const { ticketId, userId, signature, status = 'VALID' } = payload;
+
+  // 🔹 Log complet du payload reçu
+  logger.info('[VERIFICATION SERVICE] Payload reçu', { ticketId, userId, signature, status, isMock });
+
   const numericId = Number(ticketId);
-  if (!numericId) {
+  if (!ticketId || isNaN(numericId)) {
     const err = new Error('INVALID_TICKET_ID');
     err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
     throw err;
   }
 
+  if (!userId || !signature) {
+    const err = new Error('MISSING_REQUIRED_FIELDS');
+    err.statusCode = ERROR_STATUS.INVALID_PAYLOAD;
+    throw err;
+  }
+
+  // 🔹 Vérification stricte du statut
+  if (status !== 'VALID') {
+    const err = new Error('TICKET_NOT_VALID');
+    err.statusCode = ERROR_STATUS.TICKET_NOT_VALID;
+    logger.error('[VERIFICATION SERVICE] Ticket non valide pour vérification', { ticketId: numericId, status });
+    throw err;
+  }
+
   logger.info(`[VERIFICATION SERVICE] Démarrage vérification pour ticket ${numericId}`);
 
-  // 🔹 Récupération ticket depuis Ticket Service
-  let ticketResp;
-  try {
-    ticketResp = await axios.get(`${process.env.TICKET_URL}/${numericId}`, {
-      headers: authHeader ? { Authorization: authHeader } : {}
-    });
-    logger.info('[VERIFICATION SERVICE] Ticket récupéré', { ticketId: numericId, data: ticketResp.data });
-  } catch (err) {
-    logger.error('[VERIFICATION SERVICE] Impossible de récupérer le ticket', {
-      ticketId: numericId,
-      message: err.message,
-      stack: err.stack,
-      config: err.config
-    });
-    throw new Error('TICKET_FETCH_FAILED');
-  }
+  // 🔹 Mise en cache
+  setVerificationData(numericId, { status, userId, signature, mode: isMock ? 'mock' : 'live' });
 
-  const status = ticketResp.data?.data?.status;
-  if (!status) {
-    logger.error('[VERIFICATION SERVICE] Réponse ticket-service invalide', ticketResp.data);
-    throw new Error('INVALID_TICKET_STATUS');
-  }
-
-  // 🔹 Publication Kafka
+  // 🔹 Publication Kafka "started"
   try {
     await publishKafkaEvent('ticket', {
-      type: 'VerificationStarted',
+      type: 'TicketVerificationStarted',
       ticketId: numericId,
-      startedAt: new Date().toISOString()
+      status,
+      userId,
+      mode: isMock ? 'mock' : 'live'
     });
-    logger.info(`[VERIFICATION SERVICE] Kafka event VerificationStarted publié pour ticket ${numericId}`);
+    logger.info(`[VERIFICATION SERVICE] Kafka event TicketVerificationStarted publié`, { ticketId: numericId });
   } catch (err) {
     logger.warn(`[VERIFICATION SERVICE] Kafka publish failed: ${err.message}`, { ticketId: numericId });
   }
 
-  return { ticketId: numericId, status: 'STARTED' };
+  // 🔹 Retourne ce qu'on a reçu
+  return { ticketId: numericId, status, userId, signature };
 }
 
 module.exports = { startVerificationService };
-

@@ -10,7 +10,10 @@ export default function EventUpdate() {
   const [initialValues, setInitialValues] = useState(null);
 
   useEffect(() => {
-    getEvent(id).then(res => setInitialValues(res.data || res));
+    getEvent(id).then(res => {
+      // ⚠️ le back renvoie { data: { ...event } }
+      setInitialValues(res.data || res);
+    });
   }, [id]);
 
   const handleSubmit = async (values) => {

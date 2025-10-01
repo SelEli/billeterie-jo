@@ -1,14 +1,12 @@
 const { z } = require('zod');
 
-// Création d’événement
-const EventCreateSchema = z.object({
+// Schéma de base pour un événement
+const EventBaseSchema = z.object({
   label: z.string()
     .min(3, { message: 'Le titre doit contenir au moins 3 caractères' })
     .max(200, { message: 'Le titre ne peut pas dépasser 200 caractères' }),
 
-  date: z.coerce.date().refine(d => d > new Date(), {
-    message: 'La date doit être dans le futur'
-  }),
+  date: z.coerce.date(), // on valide la logique métier plus bas
 
   location: z.string()
     .min(3, { message: 'Le lieu doit contenir au moins 3 caractères' })
@@ -21,15 +19,28 @@ const EventCreateSchema = z.object({
   imageUrl: z.string().url().optional()
 });
 
-// Mise à jour (tous champs optionnels + id obligatoire)
-const EventUpdateSchema = EventCreateSchema.partial().extend({
-  id: z.string().regex(/^\d+$/).transform(Number)
-}).refine((data) => {
-  if (data.date) return data.date > new Date();
-  return true;
-}, {
-  message: 'La date mise à jour doit être dans le futur',
-  path: ['date']
+// Création : tous les champs obligatoires de base + règle métier sur la date
+const EventCreateSchema = EventBaseSchema.superRefine((data, ctx) => {
+  if (data.date && data.date <= new Date()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'La date doit être dans le futur',
+      path: ['date']
+    });
+  }
+});
+
+// Mise à jour : tous les champs optionnels + id obligatoire + règle métier sur la date
+const EventUpdateSchema = EventBaseSchema.partial().extend({
+  id: z.string().regex(/^\d+$/, { message: 'id doit être une chaîne numérique' }).transform(Number)
+}).superRefine((data, ctx) => {
+  if (data.date && data.date <= new Date()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'La date mise à jour doit être dans le futur',
+      path: ['date']
+    });
+  }
 });
 
 module.exports = {

@@ -1,4 +1,3 @@
-// src/offer/pages/OfferUpdate.jsx
 import { useParams, useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import OfferForm from '../components/OfferForm';
@@ -11,7 +10,10 @@ export default function OfferUpdate() {
   const [initialValues, setInitialValues] = useState(null);
 
   useEffect(() => {
-    getOffer(id).then(res => setInitialValues(res.data || res));
+    getOffer(id).then(res => {
+      // ⚠️ le back renvoie { data: { ...offer } }
+      setInitialValues(res.data || res);
+    });
   }, [id]);
 
   const handleSubmit = async (values) => {

@@ -1,52 +1,52 @@
-const { createEventSchema } = require('../../validators/event.validator');
-const { createEventService } = require('../../services/event/createEvent.service');
 const logger = require('../../utils/logger');
+const monitor = require('../../monitor/monitor');
+const { EventCreateSchema } = require('../../schemas/event.schema');
+const { createEventService } = require('../../services/event/createEvent.service');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function createEventController(req, res) {
+  logger.debug('[EVENT CONTROLLER] Requête création event reçue', {
+    user: req.user,
+    body: req.body
+  });
+
+  if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
+    return sendBusinessError(res, 'FORBIDDEN');
+  }
+
+  // Validation Zod
+  let parsed;
   try {
-    if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
-      return res.status(403).json({
-        status: 'error',
-        data: null,
-        errors: ['Forbidden'],
-        meta: {}
-      });
-    }
+    parsed = EventCreateSchema.parse(req.body);
+  } catch (err) {
+    logger.warn('[EVENT CONTROLLER] Validation échouée', { issues: err.issues });
+    return sendBusinessError(res, 'INVALID_EVENT_DATA', err.issues?.map(i => i.message));
+  }
 
-    // Validation stricte
-    const parsed = createEventSchema.parse(req.body);
+  // Nettoyage payload
+  const { id, ...safePayload } = parsed;
 
-    // ⚠️ On retire l'id si présent pour éviter les collisions Prisma
-    const { id, ...safePayload } = parsed;
-
-    logger.info(`[EVENT CONTROLLER] Creating event by user ${req.user.userId}`);
-
+  const timer = monitor.timer('event_create').start();
+  try {
+    logger.debug('[EVENT CONTROLLER] Appel service createEventService', safePayload);
     const event = await createEventService(safePayload);
 
-    return res.status(201).json({
-      status: 'success',
-      data: { eventId: event.id },
-      errors: [],
-      meta: { message: 'Event created successfully' }
-    });
-  } catch (err) {
-    logger.error(`[EVENT CONTROLLER] Create failed: ${err.message}`);
+    timer.stop();
+    logger.info('[EVENT CONTROLLER] Event créé avec succès', { eventId: event.id });
 
-    if (err?.name === 'ZodError') {
-      return res.status(400).json({
-        status: 'error',
-        data: null,
-        errors: err.issues?.map(i => i.message) ?? [err.message],
-        meta: {}
-      });
-    }
-
-    return res.status(err.statusCode || 500).json({
-      status: 'error',
-      data: null,
-      errors: [err.message || 'Internal server error'],
-      meta: {}
+    return sendBusinessSuccess(res, 'CREATE_EVENT', { eventId: event.id }, {
+      message: 'Event created successfully'
     });
+  } catch (error) {
+    timer.stop();
+    logger.error('[EVENT CONTROLLER] Erreur création event', { error: error.message });
+    const code =
+      error.message && error.message in ERROR_STATUS
+        ? error.message
+        : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

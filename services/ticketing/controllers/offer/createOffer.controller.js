@@ -1,60 +1,52 @@
-const { createOfferSchema } = require('../../validators/offer.validator');
-const { createOfferService } = require('../../services/offer');
 const logger = require('../../utils/logger');
+const monitor = require('../../monitor/monitor');
+const { OfferCreateSchema } = require('../../schemas/offer.schema');
+const { createOfferService } = require('../../services/offer/createOffer.service');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function createOfferController(req, res) {
+  logger.debug('[OFFER CONTROLLER] Requête création offer reçue', {
+    user: req.user,
+    body: req.body
+  });
+
+  if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
+    return sendBusinessError(res, 'FORBIDDEN');
+  }
+
+  // Validation Zod
+  let parsed;
   try {
-    if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
-      return res.status(403).json({
-        status: 'error',
-        data: null,
-        errors: ['Forbidden'],
-        meta: {}
-      });
-    }
+    parsed = OfferCreateSchema.parse(req.body);
+  } catch (err) {
+    logger.warn('[OFFER CONTROLLER] Validation échouée', { issues: err.issues });
+    return sendBusinessError(res, 'INVALID_OFFER_DATA', err.issues?.map(i => i.message));
+  }
 
-    if (!createOfferSchema || typeof createOfferSchema.parse !== 'function') {
-      logger.error('[OFFER CONTROLLER] createOfferSchema missing or invalid');
-      return res.status(500).json({
-        status: 'error',
-        data: null,
-        errors: ['Server misconfiguration: offer schema missing'],
-        meta: {}
-      });
-    }
+  // Nettoyage payload
+  const { id, ...safePayload } = parsed;
 
-    // Validation stricte
-    const parsed = req.validated ?? createOfferSchema.parse(req.body);
-
-    // ⚠️ On retire l'id si présent
-    const { id, ...safePayload } = parsed;
-
+  const timer = monitor.timer('offer_create').start();
+  try {
+    logger.debug('[OFFER CONTROLLER] Appel service createOfferService', safePayload);
     const offer = await createOfferService(safePayload);
 
-    return res.status(201).json({
-      status: 'success',
-      data: { offerId: offer.id },
-      errors: [],
-      meta: { message: 'Offer created successfully' }
-    });
-  } catch (err) {
-    logger.error(`[OFFER CONTROLLER] Create failed: ${err.message}`);
+    timer.stop();
+    logger.info('[OFFER CONTROLLER] Offer créée avec succès', { offerId: offer.id });
 
-    if (err?.name === 'ZodError') {
-      return res.status(400).json({
-        status: 'error',
-        data: null,
-        errors: err.issues?.map(i => i.message) ?? [err.message],
-        meta: {}
-      });
-    }
-
-    return res.status(err.statusCode || 500).json({
-      status: 'error',
-      data: null,
-      errors: [err.message || 'Internal server error'],
-      meta: {}
+    return sendBusinessSuccess(res, 'CREATE_OFFER', { offerId: offer.id }, {
+      message: 'Offer created successfully'
     });
+  } catch (error) {
+    timer.stop();
+    logger.error('[OFFER CONTROLLER] Erreur création offer', { error: error.message });
+    const code =
+      error.message && error.message in ERROR_STATUS
+        ? error.message
+        : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

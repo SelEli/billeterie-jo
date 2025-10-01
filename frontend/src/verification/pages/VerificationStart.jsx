@@ -15,26 +15,45 @@ export default function VerificationStart() {
   useEffect(() => {
     if (!ticketId) {
       navigate('/ticket');
-    } else {
-      getTicket(ticketId, { noCache: true })
-        .then(res => setTicket(res?.data || res))
-        .catch(() => navigate('/ticket'));
+      return;
     }
+
+    getTicket(ticketId, { noCache: true })
+      .then(res => setTicket(res?.data || res))
+      .catch(() => navigate('/ticket'));
   }, [ticketId, navigate]);
 
   const handleVerify = async (qrPayload) => {
-    const numericId = Number(qrPayload.ticketId || ticketId);
-    if (Number.isNaN(numericId)) return navigate('/ticket');
+    // 🔹 strict : ne pas remplacer ticketId par défaut
+    if (!qrPayload.ticketId || !qrPayload.userId || !qrPayload.signature) {
+      return navigate(`/verification/failed?ticketId=${ticketId}`);
+    }
+
+    const numericTicketId = Number(qrPayload.ticketId);
+    const numericUserId = Number(qrPayload.userId);
+
+    if ([numericTicketId, numericUserId].some(Number.isNaN)) {
+      return navigate(`/verification/failed?ticketId=${ticketId}`);
+    }
+
+    const payload = {
+      ticketId: numericTicketId,
+      userId: numericUserId,
+      signature: qrPayload.signature,
+      ...(qrPayload.status !== undefined && { status: qrPayload.status }) // 🔹 uniquement si présent
+    };
+
     setLoading(true);
     try {
-      const res = await startVerification(qrPayload);
-      if (res?.data?.status === 'STARTED') {
-        navigate(`/verification/confirm?ticketId=${numericId}`);
+      const res = await startVerification(payload);
+      // START verification : VALID -> USED seulement si signature ok
+      if (res?.data?.status === 'USED') {
+        navigate(`/verification/confirm?ticketId=${numericTicketId}`);
       } else {
-        navigate(`/verification/failed?ticketId=${numericId}`);
+        navigate(`/verification/failed?ticketId=${numericTicketId}`);
       }
     } catch {
-      navigate(`/verification/failed?ticketId=${numericId}`);
+      navigate(`/verification/failed?ticketId=${numericTicketId}`);
     } finally {
       setLoading(false);
     }
@@ -49,9 +68,7 @@ export default function VerificationStart() {
           <div className="verification-summary mb-4">
             <h2>Détails du ticket</h2>
             <p><strong>Numéro :</strong> {ticket.id}</p>
-            <p><strong>Événement :</strong> {ticket.event?.label || '—'}</p>
-            <p><strong>Date :</strong> {ticket.event?.date ? new Date(ticket.event.date).toLocaleDateString() : '—'}</p>
-            <p><strong>Zone :</strong> {ticket.zone}</p>
+            <p><strong>Status :</strong> {ticket.status}</p>
           </div>
         )}
 

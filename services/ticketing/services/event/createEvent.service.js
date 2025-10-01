@@ -1,47 +1,31 @@
-// services/event/createEvent.service.js
 const prisma = require('../../utils/prismaClient');
 const { emitEventCreated } = require('../../kafka/event.kafka');
 const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
 const { cacheEvent } = require('../../cache/event.cache');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
-/**
- * Service de création d'un événement
- * @param {Object} data - Données de l'événement
- * @returns {Promise<Object>} - L'événement créé
- */
 async function createEventService(data) {
   const t = timer('createEventService').start();
 
   try {
-    // --- Validation de base ---
-    const requiredFields = ['label', 'date', 'location', 'category'];
-    for (const field of requiredFields) {
-      if (!data[field] || (typeof data[field] === 'string' && !data[field].trim())) {
-        const err = new Error(`${field} is required`);
-        err.statusCode = 400;
-        throw err;
-      }
-    }
+    // Whitelist des champs attendus par Prisma
+    const safeData = {
+      label: data.label,
+      date: new Date(data.date),
+      location: data.location,
+      category: data.category ?? null,
+      capacity: data.capacity ?? null,
+      status: data.status ?? 'DRAFT',
+      description: data.description ?? null,
+      imageUrl: data.imageUrl ?? null
+    };
 
-    // Validation spécifique pour la date
-    const parsedDate = new Date(data.date);
-    if (isNaN(parsedDate)) {
-      const err = new Error('date is required and must be valid');
-      err.statusCode = 400;
-      throw err;
-    }
-
-    // --- Création en base ---
     const event = await prisma.event.create({
-      data: {
-        ...data,
-        date: parsedDate // garantir que c’est un Date et pas une string
-      },
+      data: safeData,
       include: { offers: true, tickets: true }
     });
 
-    // --- Notifications & cache (non bloquants en cas d'erreur) ---
     try {
       await emitEventCreated({
         id: event.id,
@@ -63,10 +47,10 @@ async function createEventService(data) {
     logger.info(`[EVENT] Created: ${event.id}`);
     t.success();
     return event;
-
   } catch (err) {
     logger.error(`[EVENT] Failed to create: ${err.message}`);
     t.fail(err);
+    err.statusCode = err.statusCode || ERROR_STATUS.INTERNAL_SERVER_ERROR;
     throw err;
   }
 }

@@ -7,36 +7,23 @@ const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
 /**
- * Vérifie un ticket déjà VALID (compare signature QR vs recalcul) et le passe en USED
- * @param {object} qrPayload – payload complet du QR code (inclut signature)
+ * Vérifie un ticket VALID en comparant sa signature QR et le passe en USED
+ * @param {object} qrPayload – payload QR reçu (doit contenir ticketId + signature)
  * @param {string|null} authHeader
  */
 async function verifyTicketService(qrPayload, authHeader) {
   const { ticketId, signature } = qrPayload;
   const numericId = Number(ticketId);
 
-  if (!numericId) {
-    const err = new Error('INVALID_TICKET_ID');
-    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
-    throw err;
-  }
+  if (!numericId) throw Object.assign(new Error('INVALID_TICKET_ID'), { statusCode: ERROR_STATUS.INVALID_TICKET_ID });
 
-  logger.info('[TICKET SERVICE] Ticket verification called', { ticketId: numericId });
+  logger.info('[TICKET SERVICE] Vérification ticket appelée', { ticketId: numericId });
 
   const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
-  if (!ticket) {
-    const err = new Error('TICKET_NOT_FOUND');
-    err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
-    throw err;
-  }
+  if (!ticket) throw Object.assign(new Error('TICKET_NOT_FOUND'), { statusCode: ERROR_STATUS.TICKET_NOT_FOUND });
+  if (ticket.status !== 'VALID') throw Object.assign(new Error('TICKET_NOT_VALID'), { statusCode: ERROR_STATUS.TICKET_NOT_VALID });
 
-  if (ticket.status !== 'VALID') {
-    const err = new Error('TICKET_NOT_VALID');
-    err.statusCode = ERROR_STATUS.TICKET_NOT_VALID;
-    throw err;
-  }
-
-  // 🔹 Récupération invisibleKey utilisateur
+  // 🔹 Récupération de la clé invisible utilisateur
   let invisibleKey;
   try {
     const res = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
@@ -47,53 +34,29 @@ async function verifyTicketService(qrPayload, authHeader) {
     logger.warn(`[TICKET SERVICE] Impossible de récupérer invisibleKey: ${err.message}`, { ticketId: numericId });
   }
 
-  if (!invisibleKey) {
-    const err = new Error('USER_KEY_NOT_FOUND');
-    err.statusCode = ERROR_STATUS.USER_KEY_NOT_FOUND;
-    throw err;
-  }
+  if (!invisibleKey) throw Object.assign(new Error('USER_KEY_NOT_FOUND'), { statusCode: ERROR_STATUS.USER_KEY_NOT_FOUND });
 
-  // 🔹 Recalcul HMAC signature côté serveur
+  // 🔹 Recalcul de la signature côté serveur
   const payloadToSign = `${ticket.secretKey}:${invisibleKey}`;
   const expectedSignature = crypto.createHmac('sha256', invisibleKey).update(payloadToSign).digest('hex');
 
-  // 🔍 Log complet pour debug
-  logger.info('[DEBUG] Signature verification details', {
-    ticketId: numericId,
-    ticketStatus: ticket.status,
-    secretKey: ticket.secretKey,
-    invisibleKey,
-    payloadToSign,
-    expectedSignature,
-    receivedSignature: signature,
-    match: signature === expectedSignature
-  });
+  logger.info('[DEBUG] Vérification signature', { ticketId: numericId, expectedSignature, receivedSignature: signature });
 
-  // 🔹 Comparer avec signature fournie par le QR
-  if (signature !== expectedSignature) {
-    const err = new Error('INVALID_SIGNATURE');
-    err.statusCode = ERROR_STATUS.INVALID_SIGNATURE;
-    throw err;
-  }
+  if (signature !== expectedSignature) throw Object.assign(new Error('INVALID_SIGNATURE'), { statusCode: ERROR_STATUS.INVALID_SIGNATURE });
 
-  // 🔹 Tout est OK → mise à jour statut USED
-  const updated = await prisma.ticket.update({
-    where: { id: numericId },
-    data: { status: 'USED' }
-  });
-
+  // 🔹 Tout est OK → mise à jour en USED
+  const updated = await prisma.ticket.update({ where: { id: numericId }, data: { status: 'USED' } });
   await invalidateCachedTicket(numericId);
 
   // 🔹 Publication Kafka
   try {
     await publishKafkaEvent('ticket', {
       type: 'TicketVerified',
-      ticketId: updated.id,
-      userId: updated.userId,
-      eventId: updated.eventId,
-      offerId: updated.offerId,
-      status: updated.status
+      ticketId: numericId,
+      verifiedAt: new Date().toISOString(),
+      status: 'USED'
     });
+    logger.info('[TICKET SERVICE] Kafka event TicketVerified publié', { ticketId: numericId });
   } catch (err) {
     logger.warn(`[TICKET SERVICE] Kafka publish failed: ${err.message}`, { ticketId: numericId });
   }

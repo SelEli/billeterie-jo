@@ -18,7 +18,8 @@ export default function EventCreate() {
 
   const handleSubmit = async (values) => {
     const newEvent = await createEvent(values);
-    const id = newEvent?.data?.id ?? newEvent?.id;
+    // ⚠️ le back renvoie { data: { eventId: ... } }
+    const id = newEvent?.data?.eventId ?? newEvent?.id;
     if (id) navigate(`/event/${id}`);
   };
 

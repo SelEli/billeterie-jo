@@ -1,101 +1,92 @@
 const axios = require('axios');
-const logger = require('../utils/logger');
 const { publishKafkaEvent } = require('../utils/kafkaClient');
+const logger = require('../utils/logger');
 const { ERROR_STATUS } = require('../utils/httpErrorMap');
+const { getVerificationData, clearVerificationData } = require('../utils/verificationCache');
 
 /**
- * Confirme la vérification d’un ticket (statut FINAL : USED)
- * @param {object} qrPayload - Payload complet du QR code (inclut signature)
+ * Confirme la vérification d'un ticket après start
+ * @param {string|number} ticketId
  * @param {string|null} authHeader
+ * @param {boolean} isMock
  */
-async function confirmVerificationService(qrPayload, authHeader = null) {
-  const ticketIdRaw = qrPayload?.ticketId;
-  const numericId = Number(ticketIdRaw);
+async function confirmVerificationService(ticketId, authHeader = null, isMock = false) {
+  // 🔹 Log complet du payload reçu
+  logger.info('[VERIFICATION SERVICE] Payload reçu', { ticketId, authHeader, isMock });
+
+  const numericId = Number(ticketId);
   if (!numericId) {
     const err = new Error('INVALID_TICKET_ID');
     err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
     throw err;
   }
 
-  logger.info(`[VERIFICATION SERVICE] Confirmation pour ticket ${numericId}`, { qrPayload });
+  logger.info(`[VERIFICATION SERVICE] Confirmation vérification pour ticket ${numericId} (mock=${isMock})`);
 
-  // 🔹 Récupération ticket depuis Ticket Service
-  let ticketResp;
+  // 🔹 Récupération du cache
+  const verificationInfo = getVerificationData(numericId);
+  const userId = verificationInfo?.userId ?? null;
+  const signature = verificationInfo?.signature ?? null;
+  const status = verificationInfo?.status ?? null;
+
+  // 🔹 Préparation payload pour Ticket Service
+  const url = `${process.env.TICKET_URL}/verify`;
+  const body = { ticketId: numericId, userId, signature, status };
+  const headers = authHeader ? { Authorization: authHeader } : {};
+
+  logger.info('[VERIFICATION SERVICE] Préparation requête verify', { url, body, headers });
+
   try {
-    ticketResp = await axios.get(`${process.env.TICKET_URL}/${numericId}`, {
-      headers: authHeader ? { Authorization: authHeader } : {}
+    const resp = await axios.post(url, body, { headers });
+
+    logger.info('[VERIFICATION SERVICE] Réponse brute verify', {
+      status: resp.status,
+      data: resp.data,
+      headers: resp.headers
     });
-    logger.info('[VERIFICATION SERVICE] Ticket récupéré', { ticketId: numericId, data: ticketResp.data });
+
+    const ticketStatus = resp.data?.data?.status || resp.data?.status;
+    logger.info('[VERIFICATION SERVICE] Statut renvoyé par ticket-service', { ticketStatus });
+
+    if (ticketStatus !== 'USED') {
+      logger.error(`[VERIFICATION SERVICE] Ticket ${numericId} non validé côté ticket-service`, resp.data);
+      const err = new Error('TICKET_NOT_VALIDATED');
+      err.statusCode = ERROR_STATUS.TICKET_NOT_VALIDATED || 500;
+      throw err;
+    }
+
+    logger.info(`[VERIFICATION SERVICE] Ticket ${numericId} validé avec succès`);
   } catch (err) {
-    logger.error('[VERIFICATION SERVICE] Impossible de récupérer le ticket', {
-      ticketId: numericId,
+    logger.error('[VERIFICATION SERVICE] Erreur Ticket Service', {
       message: err.message,
       stack: err.stack,
-      config: err.config
+      status: err.response?.status,
+      data: err.response?.data,
+      config: {
+        method: err.config?.method,
+        url: err.config?.url,
+        data: err.config?.data,
+        headers: err.config?.headers
+      }
     });
-    throw new Error('TICKET_FETCH_FAILED');
-  }
-
-  const ticketData = ticketResp.data?.data;
-  if (!ticketData || !ticketData.secretKey || !ticketData.userId) {
-    logger.error('[VERIFICATION SERVICE] Ticket-service returned invalid data', ticketResp.data);
-    throw new Error('INVALID_TICKET_DATA');
-  }
-
-  // 🔹 Vérification signature côté ticketing (comparaison directe)
-  if (qrPayload.signature !== ticketData.signature) {
-    const err = new Error('INVALID_SIGNATURE');
-    err.statusCode = ERROR_STATUS.INVALID_SIGNATURE;
     throw err;
   }
 
-  // 🔹 Update ticket status USED
-  try {
-    await axios.post(`${process.env.TICKET_URL}/verify`, { ticketId: numericId }, {
-      headers: authHeader ? { Authorization: authHeader } : {}
-    });
-    logger.info(`[VERIFICATION SERVICE] Ticket ${numericId} passé en USED`);
-  } catch (err) {
-    logger.error('[VERIFICATION SERVICE] Erreur Ticket Service (POST /verify)', {
-      ticketId: numericId,
-      message: err.message,
-      stack: err.stack,
-      config: err.config
-    });
-    throw err;
-  }
+  // 🔹 Nettoyage cache
+  clearVerificationData(numericId);
 
-  // 🔹 Publication Kafka
-  try {
-    await publishKafkaEvent('ticket', {
-      type: 'VerificationSucceeded',
-      ticketId: numericId,
-      confirmedAt: new Date().toISOString(),
-      userId: ticketData.userId,
-      eventId: ticketData.eventId,
-      offerId: ticketData.offerId,
-      zone: ticketData.zone,
-      price: ticketData.price,
-      issuedAt: ticketData.issuedAt,
-      signature: ticketData.signature
-    });
-    logger.info(`[VERIFICATION SERVICE] Kafka event VerificationSucceeded publié pour ticket ${numericId}`);
-  } catch (err) {
-    logger.warn(`[VERIFICATION SERVICE] Kafka publish failed: ${err.message}`, { ticketId: numericId });
-  }
-
-  // 🔹 Retour complet pour front
-  return {
+  // 🔹 Publication Kafka "succeeded"
+  await publishKafkaEvent('ticket', {
+    type: 'TicketVerified',
     ticketId: numericId,
-    userId: ticketData.userId,
-    eventId: ticketData.eventId,
-    offerId: ticketData.offerId,
-    zone: ticketData.zone,
-    price: ticketData.price,
-    issuedAt: ticketData.issuedAt,
-    status: 'USED',
-    signature: ticketData.signature
-  };
+    userId,
+    signature,
+    mode: isMock ? 'mock' : 'live',
+    confirmedAt: new Date().toISOString(),
+    status: 'USED'
+  });
+
+  return { ticketId: numericId, status: 'USED', userId };
 }
 
 module.exports = { confirmVerificationService };

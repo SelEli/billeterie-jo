@@ -1,5 +1,3 @@
-// src/ticketing/forms/eventFormConfig.js
-
 export const eventFields = [
   { name: 'label', label: 'Nom de l’événement', type: 'text' },
   { name: 'category', label: 'Catégorie', type: 'text' },
@@ -12,8 +10,6 @@ export const eventFields = [
     type: 'select', 
     options: ['DRAFT', 'PUBLISHED', 'SOLD_OUT', 'CANCELLED'] 
   },
-  { name: 'basePrice', label: 'Prix de base (€)', type: 'number' },
-  { name: 'zones', label: 'Zones', type: 'tags' },
   { name: 'description', label: 'Description', type: 'textarea' },
   { name: 'imageUrl', label: 'Image (URL)', type: 'text' },
 

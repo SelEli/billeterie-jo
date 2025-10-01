@@ -1,77 +1,52 @@
-const { updateOfferSchema } = require('../../validators/offer.validator');
-const { updateOfferService } = require('../../services/offer');
-const logger = require('../../utils/logger');
+const logger  = require('../../utils/logger');
+const monitor = require('../../monitor/monitor');
+const { OfferUpdateSchema } = require('../../schemas/offer.schema');
+const { updateOfferService } = require('../../services/offer/updateOffer.service');
+const { sendBusinessError } = require('../../utils/sendError');
+const { sendBusinessSuccess } = require('../../utils/sendSuccess');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function updateOfferController(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return sendBusinessError(res, 'INVALID_OFFER_ID');
+  }
+
+  if (!req.user || req.user.role !== 'ADMIN') {
+    return sendBusinessError(res, 'FORBIDDEN');
+  }
+
+  let parsed;
   try {
-    if (!req.user || req.user.role !== 'ADMIN') {
-      return res.status(403).json({
-        status: 'error',
-        data: null,
-        errors: ['Forbidden'],
-        meta: {}
-      });
-    }
-
-    const id = Number(req.params.id);
-    if (!id || isNaN(id) || id <= 0) {
-      return res.status(400).json({
-        status: 'error',
-        data: null,
-        errors: ['Invalid offer ID'],
-        meta: {}
-      });
-    }
-
-    const payload = req.validated ?? updateOfferSchema.parse({
+    parsed = OfferUpdateSchema.parse({
       ...req.body,
       eventId: req.body?.eventId ? Number(req.body.eventId) : undefined
     });
-
-    const updated = await updateOfferService(id, payload);
-
-    if (!updated) {
-      return res.status(404).json({
-        status: 'error',
-        data: null,
-        errors: ['Offer not found'],
-        meta: {}
-      });
-    }
-
-    return res.status(200).json({
-      status: 'success',
-      data: updated,
-      errors: [],
-      meta: { message: 'Offer updated successfully' }
-    });
   } catch (err) {
-    logger.error(`[OFFER CONTROLLER] Update failed for ${req.params.id}: ${err.message}`);
+    logger.warn('[OFFER CONTROLLER] Validation échouée', { issues: err.issues });
+    return sendBusinessError(res, 'INVALID_OFFER_DATA', err.issues?.map(i => i.message));
+  }
 
-    if (err?.name === 'ZodError') {
-      return res.status(400).json({
-        status: 'error',
-        data: null,
-        errors: err.issues?.map(i => i.message) ?? [err.message],
-        meta: {}
-      });
+  const { id: ignored, ...safePayload } = parsed;
+
+  const timer = monitor.timer('offer_update').start();
+  try {
+    const offer = await updateOfferService(id, safePayload);
+    timer.stop();
+
+    if (!offer) {
+      return sendBusinessError(res, 'OFFER_NOT_FOUND');
     }
 
-    if (err.statusCode === 404 || err.message === 'Offer not found') {
-      return res.status(404).json({
-        status: 'error',
-        data: null,
-        errors: ['Offer not found'],
-        meta: {}
-      });
-    }
-
-    return res.status(err.statusCode || 500).json({
-      status: 'error',
-      data: null,
-      errors: [err.message || 'Internal server error'],
-      meta: {}
-    });
+    logger.info('[OFFER CONTROLLER] Offer mise à jour', { offerId: id });
+    return sendBusinessSuccess(res, 'UPDATE_OFFER', offer, { message: 'Offer updated successfully' });
+  } catch (error) {
+    timer.stop();
+    logger.error('[OFFER CONTROLLER] Erreur update offer', { error: error.message });
+    const code = error.message && error.message in ERROR_STATUS
+      ? error.message
+      : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code);
   }
 }
 

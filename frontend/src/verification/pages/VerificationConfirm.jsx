@@ -47,6 +47,7 @@ export default function VerificationConfirm() {
       setLoading(true);
       try {
         const res = await confirmVerification(qrPayload);
+        // ✅ START verification : entrée VALID -> sortie USED seulement si signature ok
         if (res?.data?.status !== 'USED') {
           navigate(`/verification/failed?ticketId=${qrPayload.ticketId}`);
         }

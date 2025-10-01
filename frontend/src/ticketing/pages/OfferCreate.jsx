@@ -1,4 +1,3 @@
-// src/ticketing/pages/OfferCreate.jsx
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import OfferForm from '../components/OfferForm';
@@ -19,7 +18,8 @@ export default function OfferCreate() {
 
   const handleSubmit = async (values) => {
     const newOffer = await createOffer(values);
-    const id = newOffer?.data?.id ?? newOffer?.id;
+    // ⚠️ le back renvoie { data: { offerId: ... } }
+    const id = newOffer?.data?.offerId ?? newOffer?.id;
     if (id) navigate(`/offer/${id}`);
   };
 

@@ -28,16 +28,14 @@ async function decodeQRCode(dataUrl) {
   });
 }
 
-export default function VerificationForm({ onVerify, onCancel, loading }) {
+export default function StartVerificationForm({ onVerify, onCancel, loading }) {
   const [form, setForm] = useState({
     ticketId: '',
-    eventId: '',
     userId: '',
-    zone: '',
-    price: '',
-    issuedAt: '',
     signature: ''
+    // status: 'VALID' 🔹 facultatif, utilisé en backend pour update, pas modifiable ici
   });
+
   const [error, setError] = useState('');
 
   const handleChange = (field, value) =>
@@ -55,12 +53,9 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
 
         setForm({
           ticketId: qrPayload.ticketId ?? '',
-          eventId: qrPayload.eventId ?? '',
           userId: qrPayload.userId ?? '',
-          zone: qrPayload.zone ?? '',
-          price: qrPayload.price ?? '',
-          issuedAt: qrPayload.issuedAt ?? new Date().toISOString(),
           signature: qrPayload.signature ?? ''
+          // 🔹 status non récupéré du QR, géré backend
         });
       } catch (err) {
         setError(err.message);
@@ -76,25 +71,21 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const { ticketId, eventId, userId, price, zone, issuedAt, signature } = form;
+    const { ticketId, userId, signature } = form;
 
-    // Validation complète
-    if (!ticketId || !eventId || !userId || !price || !zone || !issuedAt || !signature) {
-      setError('Veuillez remplir tous les champs (QR ou manuel).');
+    if (!ticketId || !userId || !signature) {
+      setError('Veuillez remplir tous les champs requis (QR ou manuel).');
       return;
     }
 
     const payload = {
       ticketId: Number(ticketId),
-      eventId: Number(eventId),
       userId: Number(userId),
-      zone,
-      price: Number(price),
-      issuedAt,
       signature
+      // status: 'VALID' 🔹 backend gère la transition
     };
 
-    if ([payload.ticketId, payload.eventId, payload.userId, payload.price].some(Number.isNaN)) {
+    if ([payload.ticketId, payload.userId].some(Number.isNaN)) {
       setError('Champs numériques invalides.');
       return;
     }
@@ -105,7 +96,7 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
   return (
     <div className="verification-form">
       <p className="verification-text">
-        Importez un QR code pour préremplir automatiquement les champs, ou saisissez-les manuellement.
+        Importez un QR code pour préremplir les champs requis ou saisissez-les manuellement.
       </p>
 
       {error && <div className="alert alert-warning">{error}</div>}
@@ -117,12 +108,9 @@ export default function VerificationForm({ onVerify, onCancel, loading }) {
 
       <form className="form-fields" onSubmit={handleSubmit}>
         <label>ID du ticket<input type="text" value={form.ticketId} onChange={e => handleChange('ticketId', e.target.value)} /></label>
-        <label>ID de l'événement<input type="text" value={form.eventId} onChange={e => handleChange('eventId', e.target.value)} /></label>
         <label>ID utilisateur<input type="text" value={form.userId} onChange={e => handleChange('userId', e.target.value)} /></label>
-        <label>Zone<input type="text" value={form.zone} onChange={e => handleChange('zone', e.target.value)} /></label>
-        <label>Prix<input type="number" value={form.price} onChange={e => handleChange('price', e.target.value)} /></label>
-        <label>Date émission (ISO)<input type="text" value={form.issuedAt} onChange={e => handleChange('issuedAt', e.target.value)} /></label>
         <label>Signature HMAC<input type="text" value={form.signature} onChange={e => handleChange('signature', e.target.value)} /></label>
+        {/* <label>Status<input type="text" value={form.status} readOnly /></label> 🔹 géré backend */}
 
         <div className="actions-bar">
           <button type="submit" className="btn btn--primary" disabled={loading}>
