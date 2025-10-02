@@ -42,7 +42,6 @@ async function startVerificationService(payload, authHeader = null) {
       .update(payloadToSign)
       .digest('hex');
 
-    // 👉 Logs détaillés
     console.log('>>> [SIGNATURE CHECK]');
     console.log('Payload utilisé pour signer :', payloadToSign);
     console.log('Signature attendue (server) :', expectedSignature);
@@ -53,7 +52,7 @@ async function startVerificationService(payload, authHeader = null) {
       return error(['INVALID_SIGNATURE']);
     }
 
-    // 🔹 Réponse immédiate au front (sans status)
+    // 🔹 Réponse immédiate au front
     const response = success({ ticketId: numericId });
     logger.info('[VERIFICATION SERVICE] Ticket validé', { ticketId: numericId });
 
@@ -66,33 +65,38 @@ async function startVerificationService(payload, authHeader = null) {
     }).catch(err => logger.warn('Kafka publish failed', { error: err.message }));
 
     // 🔹 Mise à jour asynchrone côté Ticket → passage en USED
-    axios.post(
-      `${process.env.TICKET_URL}/verify`,
-      { ticketId: Number(numericId) },
-      {
-        headers: {
-          ...(authHeader ? { Authorization: authHeader } : {}),
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-    .then(res => {
-      logger.info('[VERIFICATION SERVICE] Ticket marqué USED côté Ticket Service', {
-        ticketId: numericId,
-        response: res.data
-      });
-    })
-    .catch(err => {
-      logger.error('[VERIFICATION SERVICE] Ticket update failed', {
-        ticketId: numericId,
-        error: err.message,
-        status: err.response?.status,
-        data: err.response?.data
-      });
+    console.log('>>> [VERIF SERVICE] Envoi PUT vers Ticket Service pour marquer USED', {
+      url: `${process.env.TICKET_URL}/${numericId}`,
+      body: { status: 'USED' },
+      headers: { ...(authHeader ? { Authorization: authHeader } : {}) }
     });
 
-    return response;
+    axios({
+      method: 'put',
+      url: `${process.env.TICKET_URL}/${numericId}`,
+      data: { status: 'USED' },
+      headers: {
+        ...(authHeader ? { Authorization: authHeader } : {}),
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        logger.info('[VERIFICATION SERVICE] Ticket marqué USED côté Ticket Service', {
+          ticketId: numericId,
+          response: res.data
+        });
+      })
+      .catch(err => {
+        logger.error('[VERIFICATION SERVICE] Ticket update failed', {
+          ticketId: numericId,
+          error: err.message,
+          status: err.response?.status,
+          headers: err.response?.headers,
+          data: err.response?.data
+        });
+      });
 
+    return response;
   } catch (err) {
     logger.error('[VERIFICATION SERVICE] Erreur startVerification', { error: err.message });
     return error([err.message], err.statusCode || 500);

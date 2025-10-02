@@ -1,3 +1,18 @@
+/**
+ * Ticket Routes
+ * -------------
+ * Ce fichier définit toutes les routes REST liées aux tickets :
+ *   - CRUD (create, read, update, delete, list)
+ *   - Validation (via Payment)
+ *   - Vérification sur site (Agent / Employee / Admin)
+ *
+ * Points clés :
+ *   - Auth obligatoire sur toutes les routes
+ *   - Validation des schémas avec Joi (TicketCreateSchema, TicketUpdateSchema)
+ *   - Logs détaillés pour chaque appel
+ *   - Vérification stricte des contrôleurs importés
+ */
+
 const express = require('express');
 const router = express.Router();
 
@@ -18,7 +33,7 @@ const { listTicketsController }    = require('../controllers/ticket/listTickets.
 const { validateTicketController } = require('../controllers/ticket/validateTicket.controller');
 const { verifyTicketController }   = require('../controllers/ticket/verifyTicket.controller');
 
-// Vérification stricte des contrôleurs
+// Vérification stricte des contrôleurs importés
 [
   ['createTicketController', createTicketController],
   ['readTicketController', readTicketController],
@@ -33,7 +48,7 @@ const { verifyTicketController }   = require('../controllers/ticket/verifyTicket
   }
 });
 
-// Middleware de log compact global
+// Middleware de log compact global (toutes les requêtes sur /ticket/*)
 router.use((req, res, next) => {
   logger.debug(
     `[TICKET ROUTES] ${req.method} ${req.originalUrl} | params=${JSON.stringify(req.params)} | query=${JSON.stringify(req.query)} | body=${JSON.stringify(req.body)}`
@@ -43,6 +58,7 @@ router.use((req, res, next) => {
 
 // ----------- ROUTES -----------
 
+// CREATE
 router.post(
   '/',
   authenticate,
@@ -54,8 +70,9 @@ router.post(
   createTicketController
 );
 
+// READ ONE (⚠️ regex numérique pour éviter conflit avec /verify, /validate, etc.)
 router.get(
-  '/:id',
+  '/:id(\\d+)',
   authenticate,
   (req, res, next) => {
     logger.info('[TICKET ROUTES][GET /:id] → readTicketController');
@@ -64,8 +81,9 @@ router.get(
   readTicketController
 );
 
+// UPDATE
 router.put(
-  '/:id',
+  '/:id(\\d+)',
   authenticate,
   validateRequest(TicketUpdateSchema),
   (req, res, next) => {
@@ -75,8 +93,9 @@ router.put(
   updateTicketController
 );
 
+// DELETE
 router.delete(
-  '/:id',
+  '/:id(\\d+)',
   authenticate,
   (req, res, next) => {
     logger.info('[TICKET ROUTES][DELETE /:id] → deleteTicketController');
@@ -85,6 +104,7 @@ router.delete(
   deleteTicketController
 );
 
+// LIST
 router.get(
   '/',
   authenticate,
@@ -95,10 +115,7 @@ router.get(
   listTicketsController
 );
 
-// ✅ Endpoint pour validation par Payment
-//    - Auth obligatoire
-//    - Rôle PAYMENT vérifié dans le contrôleur
-//    - Appelle validateTicketController qui met à jour la DB et émet Kafka
+// VALIDATE (via Payment)
 router.post(
   '/validate',
   authenticate,
@@ -109,10 +126,7 @@ router.post(
   validateTicketController
 );
 
-// ✅ Endpoint pour vérification sur site (AGENT / EMPLOYEE / ADMIN)
-//    - Auth obligatoire
-//    - Rôle vérifié dans le contrôleur
-//    - Appelle verifyTicketController qui met à jour le statut (USED) et émet Kafka
+// VERIFY (contrôle sur site)
 router.post(
   '/verify',
   authenticate,

@@ -7,6 +7,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const jwt = require('jsonwebtoken');
 
 const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
@@ -53,7 +54,6 @@ app.use(
   )
 );
 
-
 // 🆔 ID unique pour chaque requête
 app.use(requestId);
 
@@ -62,6 +62,48 @@ app.use((req, res, next) => {
   logger.debug(`[APP][REQ] ${formatLogContext(req)}`);
   next();
 });
+
+// 🔎 Logger global pour traquer toutes les requêtes entrantes + décoder JWT
+app.use((req, res, next) => {
+  const auth = req.headers['authorization'];
+  let decoded = null;
+
+  if (auth && auth.startsWith('Bearer ')) {
+    try {
+      const token = auth.split(' ')[1];
+      decoded = jwt.decode(token); // decode sans vérification de signature
+    } catch (e) {
+      decoded = { error: 'JWT decode failed', message: e.message };
+    }
+  }
+
+  console.log('>>> [GLOBAL INCOMING REQUEST]', {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
+    body: req.body,
+    jwt: decoded
+  });
+
+  next();
+});
+
+// 🚫 Hack anti-GET parasite sur /ticket/verify
+app.use((req, res, next) => {
+  if (req.path === '/ticket/verify' && req.method === 'GET') {
+    console.warn('⚠️ GET parasite intercepté → transformé en POST');
+    req.method = 'POST';
+
+    // Si jamais le ticketId est passé en query, on le mappe dans le body
+    if (req.query.ticketId && !req.body.ticketId) {
+      req.body.ticketId = req.query.ticketId;
+    }
+  }
+  next();
+});
+
+
 
 // 🚏 Montage des routes via index
 app.use('/', mainRoutes);

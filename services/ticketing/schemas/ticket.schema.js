@@ -6,7 +6,7 @@ const { z } = require('zod');
  * - eventId et offerId peuvent être null ou absents (nullable().optional())
  * - zone obligatoire (min 1 caractère)
  * - price >= 0 (y compris billets gratuits)
- * - status optionnel dans un ensemble fixé (pas de AVAILABLE ici)
+ * - status optionnel dans un ensemble fixé
  */
 const TicketCreateSchema = z.object({
   userId: z.number().min(1, { message: 'userId doit être un nombre positif' }),
@@ -31,12 +31,11 @@ const TicketCreateSchema = z.object({
 /**
  * Schéma pour la mise à jour partielle d'un ticket.
  * - Tous les champs de création sont optionnels
- * - Ajoute un id obligatoire, passé en string numérique et transformé en nombre
+ * - On n’exige plus d’`id` dans le body (il est déjà dans l’URL)
+ * - On autorise explicitement la mise à jour du champ `status`
  */
 const TicketUpdateSchema = TicketCreateSchema.partial().extend({
-  id: z.string()
-    .regex(/^\d+$/, { message: 'id doit être une chaîne numérique' })
-    .transform(Number)
+  status: z.enum(['RESERVED', 'VALID', 'USED', 'CANCELLED', 'EXPIRED']).optional()
 });
 
 /**
