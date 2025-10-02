@@ -5,6 +5,11 @@ const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
+/**
+ * Contrôleur unique : expose ou non secretKey selon query param
+ * - Front : /ticket/:id
+ * - Interne (Verification Service) : /ticket/:id?includeSecret=true
+ */
 async function readTicketController(req, res) {
   const { id } = req.params;
   const numId = Number(id);
@@ -15,7 +20,9 @@ async function readTicketController(req, res) {
 
   const timer = monitor.timer('ticket_read').start();
   try {
-    const ticket = await readTicketService(numId, req.headers.authorization);
+    const includeSecret = req.query.includeSecret === 'true'; // 🔹 flag dans la query
+    const ticket = await readTicketService(numId, req.headers.authorization, { includeSecret });
+
     timer.stop();
 
     if (!ticket) {

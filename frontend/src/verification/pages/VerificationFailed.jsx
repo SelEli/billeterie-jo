@@ -13,10 +13,9 @@ export default function VerificationFailed() {
 
   return (
     <PageLayout title="Vérification échouée" titleClassName="page-title is-centered">
-      <div className="alert alert-warning mb-2">
-        ⚠️ La vérification du ticket <strong>#{ticketId}</strong> a échoué.  
-        Seuls les tickets avec statut <code>VALID</code> peuvent être vérifiés,  
-        et ils passent ensuite en <code>USED</code>.
+      <div className="alert alert-danger mb-2">
+        ❌ La vérification du ticket <strong>#{ticketId}</strong> a échoué.  
+        Seuls les tickets avec statut <code>VALID</code> peuvent être vérifiés.
       </div>
       <div className="actions-bar centered gap-md">
         <Link to={`/verification/start?ticketId=${ticketId}`} className="btn btn--primary">Réessayer</Link>

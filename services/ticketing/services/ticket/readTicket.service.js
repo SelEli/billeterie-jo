@@ -11,8 +11,9 @@ const axios = require('axios');
  * @param {string} authHeader - Authorization header pour vérifier l'utilisateur
  * @param {object} [options] - Options
  * @param {boolean} [options.noCache=false] - Si true, ignore le cache et lit directement la BDD
+ * @param {boolean} [options.includeSecret=false] - Si true, inclut secretKey (usage interne uniquement)
  */
-async function readTicketService(id, authHeader, { noCache = false } = {}) {
+async function readTicketService(id, authHeader, { noCache = false, includeSecret = false } = {}) {
   const t = timer('readTicketService').start();
 
   const numericId = parseInt(id, 10);
@@ -23,8 +24,8 @@ async function readTicketService(id, authHeader, { noCache = false } = {}) {
   }
 
   try {
-    // 1. Lecture cache (sauf si noCache)
-    if (!noCache) {
+    // 1. Lecture cache (sauf si noCache ou si includeSecret)
+    if (!noCache && !includeSecret) {
       const cached = await getCachedTicket(numericId);
       if (cached) {
         logger.info(`[cache] Ticket ${numericId} trouvé en cache`);
@@ -48,7 +49,8 @@ async function readTicketService(id, authHeader, { noCache = false } = {}) {
         offerId: true,
         signature: true,
         event: true,
-        offer: true
+        offer: true,
+        ...(includeSecret ? { secretKey: true } : {}) // 🔹 secretKey seulement si demandé
       }
     });
 
@@ -70,9 +72,11 @@ async function readTicketService(id, authHeader, { noCache = false } = {}) {
       logger.warn(`[TICKET SERVICE] Auth check failed: ${err.message}`);
     }
 
-    // 4. Mise en cache
-    await cacheTicket(ticket);
-    logger.info(`[cache] Ticket ${numericId} mis en cache`);
+    // 4. Mise en cache (seulement si pas includeSecret)
+    if (!includeSecret) {
+      await cacheTicket(ticket);
+      logger.info(`[cache] Ticket ${numericId} mis en cache`);
+    }
 
     t.success();
     return ticket;

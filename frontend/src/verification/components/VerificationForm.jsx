@@ -31,9 +31,7 @@ async function decodeQRCode(dataUrl) {
 export default function StartVerificationForm({ onVerify, onCancel, loading }) {
   const [form, setForm] = useState({
     ticketId: '',
-    userId: '',
-    signature: '',
-    status: '' // statut vide, sera rempli uniquement si QR contient la valeur
+    signature: ''
   });
 
   const [error, setError] = useState('');
@@ -53,9 +51,7 @@ export default function StartVerificationForm({ onVerify, onCancel, loading }) {
 
         setForm({
           ticketId: qrPayload.ticketId ?? '',
-          userId: qrPayload.userId ?? '',
-          signature: qrPayload.signature ?? '',
-          status: qrPayload.status ?? '' // ne rien forcer, juste récupérer si présent
+          signature: qrPayload.signature ?? ''
         });
       } catch (err) {
         setError(err.message);
@@ -71,25 +67,20 @@ export default function StartVerificationForm({ onVerify, onCancel, loading }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const { ticketId, userId, signature, status } = form;
+    const { ticketId, signature } = form;
 
-    if (!ticketId || !userId || !signature) {
+    if (!ticketId || !signature) {
       setError('Veuillez remplir tous les champs requis (QR ou manuel).');
       return;
     }
 
     const payload = {
       ticketId: Number(ticketId),
-      userId: Number(userId),
       signature
     };
 
-    if (status) {
-      payload.status = status; // n'ajoute status que s'il existe
-    }
-
-    if ([payload.ticketId, payload.userId].some(Number.isNaN)) {
-      setError('Champs numériques invalides.');
+    if (Number.isNaN(payload.ticketId)) {
+      setError('ID du ticket invalide.');
       return;
     }
 
@@ -110,9 +101,22 @@ export default function StartVerificationForm({ onVerify, onCancel, loading }) {
       </div>
 
       <form className="form-fields" onSubmit={handleSubmit}>
-        <label>ID du ticket<input type="text" value={form.ticketId} onChange={e => handleChange('ticketId', e.target.value)} /></label>
-        <label>ID utilisateur<input type="text" value={form.userId} onChange={e => handleChange('userId', e.target.value)} /></label>
-        <label>Signature HMAC<input type="text" value={form.signature} onChange={e => handleChange('signature', e.target.value)} /></label>
+        <label>
+          ID du ticket
+          <input
+            type="text"
+            value={form.ticketId}
+            onChange={e => handleChange('ticketId', e.target.value)}
+          />
+        </label>
+        <label>
+          Signature HMAC
+          <input
+            type="text"
+            value={form.signature}
+            onChange={e => handleChange('signature', e.target.value)}
+          />
+        </label>
 
         <div className="actions-bar">
           <button type="submit" className="btn btn--primary" disabled={loading}>

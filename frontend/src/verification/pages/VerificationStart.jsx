@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import VerificationForm from '../components/VerificationForm';
-import { verifyTicketDirect } from '../api/verification'; // nouveau helper direct vers /verify
+import { startVerification } from '../api/verification';
 import { getTicket } from '../../ticketing/api/ticket';
 import { useState, useEffect } from 'react';
 
@@ -22,13 +22,11 @@ export default function VerificationStart() {
   const handleVerify = async (qrPayload) => {
     const numericId = Number(qrPayload.ticketId || ticketId);
     if (Number.isNaN(numericId)) return navigate('/ticket');
-    
+
     setLoading(true);
     try {
-      const res = await verifyTicketDirect(qrPayload); // appel direct /verify
-      const status = res?.status || res?.data?.status;
-
-      if (status === 'USED') {
+      const res = await startVerification(qrPayload);
+      if (res?.status === 'success') {
         navigate(`/verification/confirm?ticketId=${numericId}`);
       } else {
         navigate(`/verification/failed?ticketId=${numericId}`);
