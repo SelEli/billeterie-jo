@@ -28,15 +28,15 @@ export default function Header() {
   const isAdmin = user?.role === 'ADMIN';
   const canVerify = ['ADMIN', 'AGENT', 'EMPLOYEE'].includes(user?.role);
 
+  // 👉 Correction ici : lien vers /verification/start
   const verificationLink = canVerify
-    ? { to: '/ticket', label: 'Vérification' }
+    ? { to: '/verification/start', label: 'Vérification' }
     : null;
 
   const adminLinks = isAdmin
     ? [
         { to: '/user', label: 'Utilisateurs' },
-        { to: '/role', label: 'Rôles' },
-        // ⚠️ On garde Événements et Offres visibles par tous en dehors du menu Admin
+        { to: '/role', label: 'Rôles' }
       ]
     : [];
 
@@ -70,7 +70,7 @@ export default function Header() {
     const extraClasses =
       link.to === '/ticket'
         ? ticketClasses
-        : link.to === '/verification/start' || link.to === '/ticket'
+        : link.to === '/verification/start'
         ? outlined
         : '';
 
@@ -133,11 +133,7 @@ export default function Header() {
         {/* Navigation */}
         <nav className={`header-jo__nav ${menuOpen ? 'open' : ''}`}>
           {renderLink({ to: '/', label: 'Accueil' })}
-
-          {/* Lien direct vers événements */}
           {renderLink({ to: '/event', label: 'Événements' })}
-
-          {/* Lien direct vers offres */}
           {renderLink({ to: '/offer', label: 'Offres' })}
 
           {/* Dropdown infos événements */}
