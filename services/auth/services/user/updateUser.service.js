@@ -5,32 +5,39 @@ const updateUserService = async (id, data) => {
   try {
     const userId = Number(id);
     if (!Number.isInteger(userId) || userId <= 0) {
-      logger.warn(`[USER][UPDATE] Invalid user ID: ${id}`);
+      logger.warn(`[USER][UPDATE] ID utilisateur invalide: ${id}`);
       return { error: 'INVALID_USER_ID' };
     }
 
     if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
-      logger.warn(`[USER][UPDATE] No data provided for update [id=${userId}]`);
+      logger.warn(`[USER][UPDATE] Aucun champ fourni pour la mise à jour [id=${userId}]`);
       return { error: 'MISSING_REQUIRED_FIELDS' };
     }
 
-    if (data.email) {
-      if (typeof data.email !== 'string' || !data.email.includes('@')) {
-        logger.warn(`[USER][UPDATE] Invalid email format for update [id=${userId}]`);
-        return { error: 'EMAIL_REQUIRED' };
+    // Filtrage des champs autorisés
+    const allowedFields = ['firstName', 'lastName', 'birthDate', 'email'];
+    const safeData = {};
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        if (key === 'email') {
+          if (typeof data.email !== 'string' || !data.email.includes('@')) {
+            logger.warn(`[USER][UPDATE] Format email invalide [id=${userId}]`);
+            return { error: 'EMAIL_REQUIRED' };
+          }
+          safeData.email = data.email.trim().toLowerCase();
+        } else if (key === 'birthDate') {
+          safeData.birthDate = new Date(data.birthDate);
+        } else {
+          safeData[key] = String(data[key]).trim();
+        }
       }
-      data.email = data.email.trim().toLowerCase();
     }
 
-    if (data.birthDate) {
-      data.birthDate = new Date(data.birthDate);
-    }
-
-    logger.debug(`[USER][UPDATE] Updating user [id=${userId}]`);
+    logger.debug(`[USER][UPDATE] Mise à jour utilisateur [id=${userId}]`);
 
     const existing = await prisma.user.findUnique({ where: { id: userId } });
     if (!existing) {
-      logger.warn(`[USER][UPDATE] User not found [id=${userId}]`);
+      logger.warn(`[USER][UPDATE] Utilisateur introuvable [id=${userId}]`);
       return null;
     }
 
@@ -38,7 +45,7 @@ const updateUserService = async (id, data) => {
     try {
       updated = await prisma.user.update({
         where: { id: userId },
-        data,
+        data: safeData,
         select: {
           id: true,
           email: true,
@@ -56,15 +63,15 @@ const updateUserService = async (id, data) => {
       });
     } catch (err) {
       if (err.code === 'P2002') {
-        logger.warn(`[USER][UPDATE] Unique constraint violation for email: ${data?.email}`);
+        logger.warn(`[USER][UPDATE] Contrainte unique violée pour email: ${data?.email}`);
         return { error: 'EMAIL_ALREADY_USED' };
       }
-      throw err;
+      logger.error('[USER][UPDATE] Erreur Prisma:', err);
+      return { error: 'INTERNAL_SERVER_ERROR' };
     }
 
-    logger.info(`[USER][UPDATE] User updated [id=${updated.id}]`);
+    logger.info(`[USER][UPDATE] Utilisateur mis à jour [id=${updated.id}]`);
 
-    // Kafka non bloquant
     try {
       await publishKafkaEvent('user', {
         type: 'UserUpdated',
@@ -75,15 +82,15 @@ const updateUserService = async (id, data) => {
         role: updated.role,
         invisibleKey: updated.invisibleKey
       });
-      logger.debug('[USER][UPDATE] Kafka event published');
+      logger.debug('[USER][UPDATE] Événement Kafka publié');
     } catch (err) {
-      logger.warn(`[USER][UPDATE] Kafka publish skipped: ${err.message}`);
+      logger.warn(`[USER][UPDATE] Kafka non publié: ${err.message}`);
     }
 
     return updated;
   } catch (err) {
-    logger.error(`[USER][UPDATE] Service error: ${err.message}`);
-    throw err;
+    logger.error('[USER][UPDATE] Erreur service:', err);
+    return { error: 'INTERNAL_SERVER_ERROR' };
   }
 };
 

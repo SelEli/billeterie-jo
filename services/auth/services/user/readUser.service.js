@@ -5,11 +5,11 @@ const readUserService = async (id) => {
   try {
     const userId = Number(id);
     if (!Number.isInteger(userId) || userId <= 0) {
-      logger.warn(`[USER][READ] Invalid user ID: ${id}`);
+      logger.warn(`[USER][READ] ID utilisateur invalide: ${id}`);
       return { error: 'INVALID_USER_ID' };
     }
 
-    logger.debug(`[USER][READ] Fetching user [id=${userId}]`);
+    logger.debug(`[USER][READ] Lecture utilisateur [id=${userId}]`);
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -30,15 +30,15 @@ const readUserService = async (id) => {
     });
 
     if (!user) {
-      logger.warn(`[USER][READ] User not found [id=${userId}]`);
+      logger.warn(`[USER][READ] Utilisateur introuvable [id=${userId}]`);
       return null;
     }
 
-    logger.info(`[USER][READ] Found user [id=${user.id}]`);
+    logger.info(`[USER][READ] Utilisateur trouvé [id=${user.id}]`);
     return user;
   } catch (err) {
-    logger.error(`[USER][READ] Service error: ${err.message}`);
-    throw err;
+    logger.error('[USER][READ] Erreur service:', err);
+    return { error: 'INTERNAL_SERVER_ERROR' };
   }
 };
 

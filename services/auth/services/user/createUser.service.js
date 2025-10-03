@@ -1,10 +1,10 @@
 // services/user/createUser.service.js
-const { prisma, logger, publishKafkaEvent } = require('../../utils');
+const { prisma, logger, publishKafkaEvent, generateInvisibleKey } = require('../../utils');
 const bcrypt = require('bcrypt');
 
 const createUserService = async (data) => {
   try {
-    logger.debug('[USER][CREATE] Creating new user', { email: data?.email });
+    logger.debug('[USER][CREATE] Création d’un nouvel utilisateur', { email: data?.email });
 
     if (!data?.email || typeof data.email !== 'string' || !data.email.includes('@')) {
       return { error: 'EMAIL_REQUIRED' };
@@ -29,8 +29,8 @@ const createUserService = async (data) => {
           firstName: data.firstName?.trim() || null,
           lastName: data.lastName?.trim() || null,
           birthDate: data.birthDate ? new Date(data.birthDate) : null,
-          role: data.role || 'VISITOR',
-          invisibleKey: `key-${Date.now()}`
+          role: 'VISITOR', // rôle forcé
+          invisibleKey: generateInvisibleKey()
         },
         select: {
           id: true,
@@ -49,10 +49,11 @@ const createUserService = async (data) => {
       });
     } catch (err) {
       if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
-      throw err;
+      logger.error('[USER][CREATE] Erreur Prisma:', err);
+      return { error: 'INTERNAL_SERVER_ERROR' };
     }
 
-    logger.info(`[USER][CREATE] User created [id=${user.id}]`);
+    logger.info(`[USER][CREATE] Utilisateur créé [id=${user.id}]`);
 
     try {
       await publishKafkaEvent('user', {
@@ -64,15 +65,15 @@ const createUserService = async (data) => {
         role: user.role,
         invisibleKey: user.invisibleKey
       });
-      logger.debug('[USER][CREATE] Kafka event published');
+      logger.debug('[USER][CREATE] Événement Kafka publié');
     } catch (err) {
-      logger.warn(`[USER][CREATE] Kafka publish skipped: ${err.message}`);
+      logger.warn(`[USER][CREATE] Kafka non publié: ${err.message}`);
     }
 
     return user;
   } catch (err) {
-    logger.error(`[USER][CREATE] Service error: ${err.message}`);
-    throw err;
+    logger.error('[USER][CREATE] Erreur service:', err);
+    return { error: 'INTERNAL_SERVER_ERROR' };
   }
 };
 

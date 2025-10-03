@@ -4,18 +4,17 @@ const jwt = require('jsonwebtoken');
 
 const TOKEN_EXPIRATION = '1h';
 
-async function registerUserService({ firstName, lastName, email, password, birthDate, role }) {
+async function registerUserService({ firstName, lastName, email, password, birthDate }) {
   try {
-    logger.debug('[AUTH][REGISTER] Preparing to register new user', {
+    logger.debug('[AUTH][REGISTER] Tentative d’enregistrement utilisateur', {
       firstName,
       lastName,
       email,
-      birthDate,
-      role
+      birthDate
     });
 
     if (!email || !password || !firstName || !lastName || !birthDate) {
-      logger.warn('[AUTH][REGISTER] Missing required fields');
+      logger.warn('[AUTH][REGISTER] Champs requis manquants');
       return { error: 'MISSING_REQUIRED_FIELDS' };
     }
 
@@ -23,7 +22,7 @@ async function registerUserService({ firstName, lastName, email, password, birth
 
     const existing = await prisma.user.findUnique({ where: { email: emailClean } });
     if (existing) {
-      logger.warn(`[AUTH][REGISTER] Email already registered: ${emailClean}`);
+      logger.warn(`[AUTH][REGISTER] Email déjà utilisé: ${emailClean}`);
       return { error: 'EMAIL_ALREADY_USED' };
     }
 
@@ -34,13 +33,13 @@ async function registerUserService({ firstName, lastName, email, password, birth
     try {
       user = await prisma.user.create({
         data: {
-          firstName,
-          lastName,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           email: emailClean,
           hash,
           birthDate: new Date(birthDate),
           invisibleKey,
-          role: role || 'VISITOR',
+          role: 'VISITOR',
           lastLogin: null,
           isBlacklisted: false,
           blacklistReason: null
@@ -48,11 +47,15 @@ async function registerUserService({ firstName, lastName, email, password, birth
       });
     } catch (err) {
       if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
+      logger.error('[AUTH][REGISTER] Erreur Prisma:', err);
       return { error: 'INTERNAL_SERVER_ERROR' };
     }
 
     const secret = process.env.JWT_SECRET;
-    if (!secret) return { error: 'SERVER_MISCONFIGURATION' };
+    if (!secret || secret.length < 32) {
+      logger.error('[AUTH][REGISTER] JWT_SECRET manquant ou trop faible');
+      return { error: 'SERVER_MISCONFIGURATION' };
+    }
 
     let token;
     try {
@@ -61,17 +64,17 @@ async function registerUserService({ firstName, lastName, email, password, birth
           userId: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role,
-          invisibleKey: user.invisibleKey
+          role: user.role
         },
         secret,
         { expiresIn: TOKEN_EXPIRATION }
       );
-    } catch {
+    } catch (err) {
+      logger.error('[AUTH][REGISTER] Erreur génération JWT:', err);
       return { error: 'TOKEN_GENERATION_FAILED' };
     }
 
-    logger.info(`[AUTH][REGISTER] User registered: ${user.email} (id=${user.id})`);
+    logger.info(`[AUTH][REGISTER] Utilisateur enregistré: ${user.email} (id=${user.id})`);
 
     try {
       await publishKafkaEvent('user', {
@@ -83,9 +86,9 @@ async function registerUserService({ firstName, lastName, email, password, birth
         role: user.role,
         invisibleKey: user.invisibleKey
       });
-      logger.debug('[AUTH][REGISTER] Kafka event published');
+      logger.debug('[AUTH][REGISTER] Événement Kafka publié');
     } catch (err) {
-      logger.warn(`[AUTH][REGISTER] Kafka publish skipped: ${err.message}`);
+      logger.warn(`[AUTH][REGISTER] Kafka non publié: ${err.message}`);
     }
 
     return {
@@ -95,10 +98,11 @@ async function registerUserService({ firstName, lastName, email, password, birth
       firstName: user.firstName,
       lastName: user.lastName,
       birthDate: user.birthDate,
+      invisibleKey: user.invisibleKey,
       token
     };
   } catch (err) {
-    logger.error('[AUTH][REGISTER] Service error:', err);
+    logger.error('[AUTH][REGISTER] Erreur service:', err);
     return { error: 'INTERNAL_SERVER_ERROR' };
   }
 }
