@@ -14,8 +14,9 @@ const createUserSchema = z.object({
     const d = new Date(val);
     return !isNaN(d) && /^\d{4}-\d{2}-\d{2}$/.test(val) && d <= new Date();
   }, { message: 'Date de naissance invalide ou future. Format attendu : YYYY-MM-DD' }),
-  role: z.enum(validRoles, { errorMap: () => ({ message: 'Rôle invalide' }) })
+  role: z.enum(validRoles, { errorMap: () => ({ message: 'Rôle invalide' }) }).optional() // ✅ optionnel
 }).strict();
+
 
 // DELETE
 const deleteUserSchema = z.object({ id: idSchema }).strict();
