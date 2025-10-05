@@ -17,13 +17,13 @@ const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID || 'app-service';
 (async () => {
   try {
     await initRedis({ host: REDIS_HOST, port: REDIS_PORT });
-    logger.info(`✅ Redis connecté à ${REDIS_HOST}:${REDIS_PORT}`);
-
     await initKafka({ brokers: KAFKA_BROKERS, clientId: KAFKA_CLIENT_ID });
-    logger.info(`✅ Kafka connecté à ${KAFKA_BROKERS.join(', ')}`);
 
     app.listen(PORT, HOST, () => {
-      logger.info(`🚀 Server ready at http://${HOST}:${PORT}`);
+      // 🔒 Log de sécurité unique
+      logger.info(
+        `✅ Application initialisée : Redis@${REDIS_HOST}:${REDIS_PORT}, Kafka@${KAFKA_BROKERS.join(', ')}, serveur http://${HOST}:${PORT}`
+      );
     });
 
   } catch (err) {

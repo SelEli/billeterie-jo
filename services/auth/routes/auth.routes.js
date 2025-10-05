@@ -13,7 +13,7 @@ const {
   logoutSchema
 } = require('../schemas/auth');
 
-// ✅ Contrôleurs depuis index controllers/auth
+// ✅ Contrôleurs depuis index controllers/auth (désormais unique)
 const {
   registerUserController,
   loginController,
@@ -21,7 +21,7 @@ const {
   updateProfileController,
   deleteProfileController,
   logoutController
-} = require('../controllers/auth');
+} = require('../controllers/auth.controller');
 
 // Vérification stricte
 [

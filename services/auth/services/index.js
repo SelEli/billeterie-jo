@@ -1,11 +1,11 @@
 // ===== AUTH =====
-const authServices = require('./auth');
+const authServices = require('./auth.service');
 
 // ===== USER =====
-const userServices = require('./user');
+const userServices = require('./user.service');
 
 // ===== ROLE =====
-const roleServices = require('./role');
+const roleServices = require('./role.service');
 
 const { logger } = require('../utils');
 
@@ -17,12 +17,16 @@ const services = {
 };
 
 // Vérification stricte : toutes les valeurs doivent être des fonctions
-Object.entries(services).forEach(([name, fn]) => {
-  if (typeof fn !== 'function') {
+const invalid = Object.entries(services).filter(([_, fn]) => typeof fn !== 'function');
+
+if (invalid.length > 0) {
+  invalid.forEach(([name]) => {
     logger.error(`❌ Service ${name} est undefined ou mal exporté`);
-    throw new Error(`❌ Service ${name} est undefined ou mal exporté`);
-  }
-  logger.debug(`✅ Service ${name} chargé`);
-});
+  });
+  throw new Error(`❌ ${invalid.length} service(s) invalides détectés`);
+}
+
+// ✅ Log unique de sécurité
+logger.info(`✅ Tous les services (${Object.keys(services).length}) ont été chargés et validés`);
 
 module.exports = services;

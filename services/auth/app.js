@@ -27,21 +27,14 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    // Autoriser si pas d'origine (Postman, curl)
-    if (!origin) return callback(null, true);
-
-    // Autoriser si liste vide (aucune restriction)
+    if (!origin) return callback(null, true); // Postman, curl
     if (CORS_ORIGINS.length === 0) return callback(null, true);
-
-    // Autoriser si l'origine est dans la liste
     if (CORS_ORIGINS.includes(origin)) return callback(null, true);
-
-    // Sinon, bloquer
     return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // si tu veux envoyer cookies / Authorization
+  credentials: true
 }));
 
 app.use(express.json());
@@ -77,5 +70,8 @@ app.use((err, req, res, next) => {
   const code = err.statusCode || 500;
   res.status(code).json(error([err.message || 'Internal server error.']));
 });
+
+// 🔒 Log de sécurité unique après initialisation
+logger.info(`✅ Application initialisée avec ${CORS_ORIGINS.length} origine(s) CORS autorisée(s)`);
 
 module.exports = app;

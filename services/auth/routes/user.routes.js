@@ -1,10 +1,10 @@
-// routes/user.routes.js
 const express = require('express');
 const router = express.Router();
 
 const { authenticate, validateRequest } = require('../middlewares');
 const { logger, requestId, formatLogContext } = require('../utils');
 
+// ✅ Schémas depuis index schemas/user
 const {
   createUserSchema,
   readUserSchema,
@@ -13,15 +13,14 @@ const {
   deleteUserSchema
 } = require('../schemas/user');
 
+// ✅ Contrôleurs depuis index controllers/user
 const {
   createUserController,
   readUserController,
   listUsersController,
   updateUserController,
   deleteUserController
-} = require('../controllers/user');
-
-const { updateRoleController } = require('../controllers/role');
+} = require('../controllers/user.controller');
 
 // Vérification stricte des exports
 [
@@ -29,8 +28,7 @@ const { updateRoleController } = require('../controllers/role');
   ['readUserController', readUserController],
   ['listUsersController', listUsersController],
   ['updateUserController', updateUserController],
-  ['deleteUserController', deleteUserController],
-  ['updateRoleController', updateRoleController]
+  ['deleteUserController', deleteUserController]
 ].forEach(([name, fn]) => {
   if (typeof fn !== 'function') {
     logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
@@ -105,18 +103,5 @@ router.delete(
   },
   deleteUserController
 );
-
-// UPDATE ROLE — format officiel
-router.put(
-  '/:id/role',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[USER][PUT /:id/role] → updateRoleController');
-    next();
-  },
-  updateRoleController
-);
-
-
 
 module.exports = router;
