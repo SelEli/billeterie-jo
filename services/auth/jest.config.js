@@ -1,12 +1,10 @@
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
   collectCoverage: true,
   coverageDirectory: './coverage',
   coverageReporters: ['text', 'html', 'lcov'],
   testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.test.ts'
+    '**/tests/**/*.test.js'
   ],
-  moduleFileExtensions: ['ts', 'js', 'json', 'node']
+  moduleFileExtensions: ['js', 'json', 'node']
 };

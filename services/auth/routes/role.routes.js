@@ -1,4 +1,3 @@
-// routes/role.routes.js
 const express = require('express');
 const router = express.Router();
 
@@ -11,7 +10,7 @@ const {
   listRolesSchema,
   updateRoleSchema,
   deleteRoleSchema
-} = require('../schemas/role');
+} = require('../schemas/role.schema');
 
 const {
   createRoleController,
@@ -19,22 +18,23 @@ const {
   listRolesController,
   updateRoleController,
   deleteRoleController
-} = require('../controllers/role');
+} = require('../controllers/role.controller');
 
-// Vérification stricte des exports
-[
-  ['createRoleController', createRoleController],
-  ['getRoleController', getRoleController],
-  ['listRolesController', listRolesController],
-  ['updateRoleController', updateRoleController],
-  ['deleteRoleController', deleteRoleController]
-].forEach(([name, fn]) => {
-  if (typeof fn !== 'function') {
-    logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
-    throw new Error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
-  }
-  logger.debug(`✅ Contrôleur ${name} chargé`);
-});
+// Vérification stricte + log unique
+const controllers = {
+  createRoleController,
+  getRoleController,
+  listRolesController,
+  updateRoleController,
+  deleteRoleController
+};
+
+const invalid = Object.entries(controllers).filter(([name, fn]) => typeof fn !== 'function');
+if (invalid.length > 0) {
+  invalid.forEach(([name]) => logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`));
+  throw new Error(`❌ ${invalid.length} contrôleur(s) ROLE invalides détectés`);
+}
+logger.info(`✅ Contrôleurs ROLE chargés : ${Object.keys(controllers).join(', ')}`);
 
 // Middleware global
 router.use(requestId);
@@ -44,63 +44,18 @@ router.use((req, res, next) => {
 });
 
 // CREATE
-router.post(
-  '/',
-  authenticate,
-  validateRequest(createRoleSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[ROLE][POST /] → createRoleController');
-    next();
-  },
-  createRoleController
-);
+router.post('/', authenticate, validateRequest(createRoleSchema, 'body'), createRoleController);
 
 // LIST
-router.get(
-  '/',
-  authenticate,
-  validateRequest(listRolesSchema, 'query'),
-  (req, res, next) => {
-    logger.info('[ROLE][GET /] → listRolesController');
-    next();
-  },
-  listRolesController
-);
+router.get('/', authenticate, validateRequest(listRolesSchema, 'query'), listRolesController);
 
 // GET ONE
-router.get(
-  '/:id',
-  authenticate,
-  validateRequest(getRoleSchema, 'params'),
-  (req, res, next) => {
-    logger.info('[ROLE][GET /:id] → getRoleController');
-    next();
-  },
-  getRoleController
-);
+router.get('/:id', authenticate, validateRequest(getRoleSchema, 'params'), getRoleController);
 
-// UPDATE — format attendu par les tests d’intégration
-router.put(
-  '/:id',
-  authenticate,
-  validateRequest(updateRoleSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[ROLE][PUT /:id] → updateRoleController');
-    next();
-  },
-  updateRoleController
-);
+// UPDATE
+router.put('/:id', authenticate, validateRequest(updateRoleSchema, 'body'), updateRoleController);
 
 // DELETE
-router.delete(
-  '/:id',
-  authenticate,
-  validateRequest(deleteRoleSchema, 'params'),
-  (req, res, next) => {
-    logger.info('[ROLE][DELETE /:id] → deleteRoleController');
-    next();
-  },
-  deleteRoleController
-);
+router.delete('/:id', authenticate, validateRequest(deleteRoleSchema, 'params'), deleteRoleController);
 
 module.exports = router;

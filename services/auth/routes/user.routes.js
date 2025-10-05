@@ -4,16 +4,16 @@ const router = express.Router();
 const { authenticate, validateRequest } = require('../middlewares');
 const { logger, requestId, formatLogContext } = require('../utils');
 
-// ✅ Schémas depuis index schemas/user
+// ✅ Schémas depuis schemas/user
 const {
   createUserSchema,
   readUserSchema,
   listUsersSchema,
   updateUserSchema,
   deleteUserSchema
-} = require('../schemas/user');
+} = require('../schemas/user.schema');
 
-// ✅ Contrôleurs depuis index controllers/user
+// ✅ Contrôleurs depuis controllers/user
 const {
   createUserController,
   readUserController,
@@ -22,20 +22,21 @@ const {
   deleteUserController
 } = require('../controllers/user.controller');
 
-// Vérification stricte des exports
-[
-  ['createUserController', createUserController],
-  ['readUserController', readUserController],
-  ['listUsersController', listUsersController],
-  ['updateUserController', updateUserController],
-  ['deleteUserController', deleteUserController]
-].forEach(([name, fn]) => {
-  if (typeof fn !== 'function') {
-    logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
-    throw new Error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
-  }
-  logger.debug(`✅ Contrôleur ${name} chargé`);
-});
+// Vérification stricte + log unique
+const controllers = {
+  createUserController,
+  readUserController,
+  listUsersController,
+  updateUserController,
+  deleteUserController
+};
+
+const invalid = Object.entries(controllers).filter(([name, fn]) => typeof fn !== 'function');
+if (invalid.length > 0) {
+  invalid.forEach(([name]) => logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`));
+  throw new Error(`❌ ${invalid.length} contrôleur(s) USER invalides détectés`);
+}
+logger.info(`✅ Contrôleurs USER chargés : ${Object.keys(controllers).join(', ')}`);
 
 // Middleware global
 router.use(requestId);
@@ -45,63 +46,18 @@ router.use((req, res, next) => {
 });
 
 // CREATE
-router.post(
-  '/',
-  authenticate,
-  validateRequest(createUserSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[USER][POST /] → createUserController');
-    next();
-  },
-  createUserController
-);
+router.post('/', authenticate, validateRequest(createUserSchema, 'body'), createUserController);
 
 // LIST
-router.get(
-  '/',
-  authenticate,
-  validateRequest(listUsersSchema, 'query'),
-  (req, res, next) => {
-    logger.info('[USER][GET /] → listUsersController');
-    next();
-  },
-  listUsersController
-);
+router.get('/', authenticate, validateRequest(listUsersSchema, 'query'), listUsersController);
 
 // READ ONE
-router.get(
-  '/:id',
-  authenticate,
-  validateRequest(readUserSchema, 'params'),
-  (req, res, next) => {
-    logger.info('[USER][GET /:id] → readUserController');
-    next();
-  },
-  readUserController
-);
+router.get('/:id', authenticate, validateRequest(readUserSchema, 'params'), readUserController);
 
 // UPDATE
-router.put(
-  '/:id',
-  authenticate,
-  validateRequest(updateUserSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[USER][PUT /:id] → updateUserController');
-    next();
-  },
-  updateUserController
-);
+router.put('/:id', authenticate, validateRequest(updateUserSchema, 'body'), updateUserController);
 
 // DELETE
-router.delete(
-  '/:id',
-  authenticate,
-  validateRequest(deleteUserSchema, 'params'),
-  (req, res, next) => {
-    logger.info('[USER][DELETE /:id] → deleteUserController');
-    next();
-  },
-  deleteUserController
-);
+router.delete('/:id', authenticate, validateRequest(deleteUserSchema, 'params'), deleteUserController);
 
 module.exports = router;

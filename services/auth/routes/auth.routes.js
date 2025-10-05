@@ -1,19 +1,18 @@
-// routes/auth.routes.js
 const express = require('express');
 const router = express.Router();
 
 const { authenticate, validateRequest } = require('../middlewares');
 const { logger, requestId, formatLogContext } = require('../utils');
 
-// ✅ Schémas depuis index schemas/auth
+// ✅ Schémas depuis schemas/auth
 const {
   registerUserSchema,
   updateProfileSchema,
   loginSchema,
   logoutSchema
-} = require('../schemas/auth');
+} = require('../schemas/auth.schema');
 
-// ✅ Contrôleurs depuis index controllers/auth (désormais unique)
+// ✅ Contrôleurs depuis controllers/auth
 const {
   registerUserController,
   loginController,
@@ -23,21 +22,22 @@ const {
   logoutController
 } = require('../controllers/auth.controller');
 
-// Vérification stricte
-[
-  ['registerUserController', registerUserController],
-  ['loginController', loginController],
-  ['getProfileController', getProfileController],
-  ['updateProfileController', updateProfileController],
-  ['deleteProfileController', deleteProfileController],
-  ['logoutController', logoutController]
-].forEach(([name, fn]) => {
-  if (typeof fn !== 'function') {
-    logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
-    throw new Error(`❌ Contrôleur ${name} est undefined ou mal exporté`);
-  }
-  logger.debug(`✅ Contrôleur ${name} chargé`);
-});
+// Vérification stricte + log unique
+const controllers = {
+  registerUserController,
+  loginController,
+  getProfileController,
+  updateProfileController,
+  deleteProfileController,
+  logoutController
+};
+
+const invalid = Object.entries(controllers).filter(([name, fn]) => typeof fn !== 'function');
+if (invalid.length > 0) {
+  invalid.forEach(([name]) => logger.error(`❌ Contrôleur ${name} est undefined ou mal exporté`));
+  throw new Error(`❌ ${invalid.length} contrôleur(s) AUTH invalides détectés`);
+}
+logger.info(`✅ Contrôleurs AUTH chargés : ${Object.keys(controllers).join(', ')}`);
 
 // Middleware global
 router.use(requestId);
@@ -47,71 +47,21 @@ router.use((req, res, next) => {
 });
 
 // REGISTER
-router.post(
-  '/register',
-  validateRequest(registerUserSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[AUTH][POST /register] → registerUserController');
-    next();
-  },
-  registerUserController
-);
+router.post('/register', validateRequest(registerUserSchema, 'body'), registerUserController);
 
 // LOGIN
-router.post(
-  '/login',
-  validateRequest(loginSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[AUTH][POST /login] → loginController');
-    next();
-  },
-  loginController
-);
+router.post('/login', validateRequest(loginSchema, 'body'), loginController);
 
 // LOGOUT
-router.post(
-  '/logout',
-  authenticate,
-  validateRequest(logoutSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[AUTH][POST /logout] → logoutController');
-    next();
-  },
-  logoutController
-);
+router.post('/logout', authenticate, validateRequest(logoutSchema, 'body'), logoutController);
 
 // GET PROFILE
-router.get(
-  '/profile',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[AUTH][GET /profile] → getProfileController');
-    next();
-  },
-  getProfileController
-);
+router.get('/profile', authenticate, getProfileController);
 
 // UPDATE PROFILE
-router.put(
-  '/profile',
-  authenticate,
-  validateRequest(updateProfileSchema, 'body'),
-  (req, res, next) => {
-    logger.info('[AUTH][PUT /profile] → updateProfileController');
-    next();
-  },
-  updateProfileController
-);
+router.put('/profile', authenticate, validateRequest(updateProfileSchema, 'body'), updateProfileController);
 
 // DELETE PROFILE
-router.delete(
-  '/profile',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[AUTH][DELETE /profile] → deleteProfileController');
-    next();
-  },
-  deleteProfileController
-);
+router.delete('/profile', authenticate, deleteProfileController);
 
 module.exports = router;

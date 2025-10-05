@@ -1,8 +1,0 @@
-// deleteUser.schema.js
-const { z } = require('zod');
-
-const deleteUserSchema = z.object({
-  id: z.coerce.number().int().positive({ message: 'INVALID_USER_ID' })
-}).strict();
-
-module.exports = deleteUserSchema;

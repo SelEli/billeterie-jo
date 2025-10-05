@@ -1,5 +1,8 @@
 const { prisma, logger, safePublish, validateId } = require('./core.service');
 
+// NEW: centralisation des rôles valides
+const VALID_ROLES = ['ADMIN', 'AGENT', 'USER', 'VISITOR', 'EMPLOYEE'];
+
 // CREATE ROLE
 async function createRoleService({ userId, role }) {
   logger.debug(`[ROLE][CREATE] Assigning role ${role} to user ${userId}`);
@@ -8,25 +11,33 @@ async function createRoleService({ userId, role }) {
   if (!parsedId) return { error: 'INVALID_ROLE_ID' };
   if (!role) return { error: 'ROLE_REQUIRED' };
 
-  const validRoles = ['ADMIN', 'AGENT', 'USER', 'VISITOR', 'EMPLOYEE'];
-  if (typeof role === 'string' && !validRoles.includes(role.toUpperCase())) {
+  // NEW: normalisation et validation robuste
+  const roleValue = String(role).toUpperCase();
+  if (!VALID_ROLES.includes(roleValue)) {
     return { error: 'INVALID_ROLE' };
   }
 
   const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
-  if (!existingUser) return { error: 'USER_NOT_FOUND' };
+  if (!existingUser) return { error: 'USER_NOT_FOUND' }; // cohérent côté service
 
   let updated;
   try {
     updated = await prisma.user.update({
       where: { id: parsedId },
-      data: { role: role.toUpperCase() }
+      data: { role: roleValue }
     });
   } catch (err) {
+    // NEW: priorité au code Prisma si disponible
+    if (err.code === 'P2003' || err.code === 'P2000') return { error: 'INVALID_ROLE' };
+    if (err.code === 'P2002') return { error: 'INVALID_ROLE' };
+    // fallback initial
     if (err.message?.includes('Invalid enum value')) return { error: 'INVALID_ROLE' };
     if (err.message?.includes('Required')) return { error: 'ROLE_REQUIRED' };
     throw err;
   }
+
+  // NEW: audit explicite
+  logger.info(`[ROLE][CREATE] User ${parsedId}: role set to ${roleValue}`);
 
   await safePublish('user', {
     type: 'UserUpdated',
@@ -49,12 +60,15 @@ async function deleteRoleService(userId) {
   if (!parsedId) return { error: 'INVALID_ROLE_ID' };
 
   const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
-  if (!existingUser) return null;
+  if (!existingUser) return null; // on garde le flow existant (NOT_FOUND via controller)
 
   const updated = await prisma.user.update({
     where: { id: parsedId },
     data: { role: 'VISITOR' }
   });
+
+  // NEW: audit explicite
+  logger.info(`[ROLE][DELETE] User ${parsedId}: role reset to VISITOR`);
 
   await safePublish('user', {
     type: 'UserUpdated',
@@ -81,7 +95,7 @@ async function getRoleService(userId) {
     select: { role: true }
   });
 
-  if (!user) return null;
+  if (!user) return null; // on garde le flow existant (NOT_FOUND via controller)
   return { id: parsedId, role: user.role };
 }
 
@@ -106,25 +120,34 @@ async function updateRoleService(userId, newRole) {
   if (!parsedId) return { error: 'INVALID_ROLE_ID' };
   if (!newRole) return { error: 'ROLE_REQUIRED' };
 
-  const validRoles = ['ADMIN', 'AGENT', 'USER', 'VISITOR', 'EMPLOYEE'];
-  if (typeof newRole === 'string' && !validRoles.includes(newRole.toUpperCase())) {
+  // NEW: normalisation + validation
+  const roleValue = String(newRole).toUpperCase();
+  if (!VALID_ROLES.includes(roleValue)) {
     return { error: 'INVALID_ROLE' };
   }
 
   const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
-  if (!existingUser) return null;
+  if (!existingUser) return null; // on garde le flow existant (NOT_FOUND via controller)
 
+  const oldRole = existingUser.role;
   let updated;
   try {
     updated = await prisma.user.update({
       where: { id: parsedId },
-      data: { role: newRole.toUpperCase() }
+      data: { role: roleValue }
     });
   } catch (err) {
+    // NEW: priorité au code Prisma si disponible
+    if (err.code === 'P2003' || err.code === 'P2000') return { error: 'INVALID_ROLE' };
+    if (err.code === 'P2002') return { error: 'INVALID_ROLE' };
+    // fallback initial
     if (err.message?.includes('Invalid enum value')) return { error: 'INVALID_ROLE' };
     if (err.message?.includes('Required')) return { error: 'ROLE_REQUIRED' };
     throw err;
   }
+
+  // NEW: audit explicite transition
+  logger.info(`[ROLE][UPDATE] User ${parsedId}: ${oldRole} → ${roleValue}`);
 
   await safePublish('user', {
     type: 'UserUpdated',

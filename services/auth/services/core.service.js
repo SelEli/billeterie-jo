@@ -19,12 +19,27 @@ const validateId = (id, ctx) => {
   return parsed;
 };
 
+// NEW: sanitisation minimale pour éviter de logger des secrets
+const sanitizePayload = (payload) => {
+  if (!payload || typeof payload !== 'object') return payload;
+  const clone = { ...payload };
+  if (clone.password) clone.password = '***';
+  if (clone.token) clone.token = '***';
+  if (clone.refreshToken) clone.refreshToken = '***';
+  if (clone.invisibleKey) clone.invisibleKey = '***';
+  return clone;
+};
+
 const safePublish = async (topic, payload, ctx) => {
   try {
     await publishKafkaEvent(topic, payload);
-    logger.debug(`[${ctx}] Kafka published`);
+    logger.debug(`[${ctx}] Kafka published`, { topic });
   } catch (err) {
-    logger.warn(`[${ctx}] Kafka skipped: ${err.message}`);
+    // NEW: log structuré + payload masqué
+    logger.warn(`[${ctx}] Kafka skipped: ${err.message}`, {
+      topic,
+      payload: sanitizePayload(payload)
+    });
   }
 };
 
@@ -32,7 +47,7 @@ const makeDelete = (ctx, eventType) => async (id) => {
   const parsed = validateId(id, ctx);
   if (!parsed) return { error: 'INVALID_USER_ID' };
   const existing = await prisma.user.findUnique({ where: { id: parsed } });
-  if (!existing) return null;
+  if (!existing) return null; // on garde: NOT_FOUND côté controller
   await prisma.user.delete({ where: { id: parsed } });
   logger.info(`[${ctx}] Deleted [id=${parsed}]`);
   await safePublish('user', { type: eventType, userId: parsed }, ctx);
@@ -45,7 +60,7 @@ const makeRead = (ctx) => async (id) => {
   const user = await prisma.user.findUnique({ where: { id: parsed }, select: USER_SELECT });
   if (!user) {
     logger.warn(`[${ctx}] Not found [id=${parsed}]`);
-    return null;
+    return null; // on garde: NOT_FOUND côté controller
   }
   logger.info(`[${ctx}] Found [id=${user.id}]`);
   return user;
@@ -73,7 +88,9 @@ const makeList = (ctx, select) => async (filters = {}) => {
     prisma.user.count({ where })
   ]);
 
-  logger.info(`[${ctx}] Retrieved ${users.length} user(s) on page ${page}`);
+  logger.info(`[${ctx}] Retrieved ${users.length} user(s) on page ${page}`, {
+    pagination: { page, limit, total }
+  });
   return { users, pagination: { page, limit, total } };
 };
 
