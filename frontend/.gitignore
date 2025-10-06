@@ -59,3 +59,5 @@ Thumbs.db
 # ───────────────────────────────
 # Divers
 *.local
+
+frontend/vite.config.js
