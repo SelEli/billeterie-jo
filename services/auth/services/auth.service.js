@@ -1,25 +1,23 @@
-// services/auth.service.js
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const {
   prisma, logger, generateInvisibleKey,
   USER_SELECT, normalizeEmail, toDateSafe,
-  validateId, safePublish, makeDelete, makeRead
+  validateId, safePublish, makeDelete, makeRead,
+  encryptInvisibleKey
 } = require('./core.service');
-const { redis } = require('../utils'); // ⚠️ suppose que tu as déjà init Redis dans utils
+const { redis } = require('../utils');
 
 const TOKEN_EXPIRATION = '1h';
 const REVOKED_SET = 'revoked_tokens';
 
-// Helper pour révoquer un token
 async function revokeToken(token, expSeconds) {
   try {
     if (!token) return;
-    // On stocke le token dans Redis avec TTL = durée restante
     await redis.setex(`${REVOKED_SET}:${token}`, expSeconds, '1');
-    logger.info(`[SECURITY][JWT] Token révoqué pour ${expSeconds}s`);
+    logger.info('[SECURITY][JWT] Token révoqué');
   } catch (err) {
-    logger.error('[SECURITY][JWT] Erreur lors de la révocation du token', { error: err.message });
+    logger.error('[SECURITY][JWT] Erreur révocation', { error: err.message });
   }
 }
 
@@ -43,7 +41,7 @@ async function registerUserService({ firstName, lastName, email, password, birth
         email: emailClean,
         hash,
         birthDate: toDateSafe(birthDate),
-        invisibleKey: generateInvisibleKey(),
+        invisibleKey: encryptInvisibleKey(generateInvisibleKey()), // 🔒
         role: 'VISITOR',
         lastLogin: null,
         isBlacklisted: false,
@@ -71,15 +69,14 @@ async function registerUserService({ firstName, lastName, email, password, birth
     return { error: 'TOKEN_GENERATION_FAILED' };
   }
 
-  logger.info(`[SECURITY][REGISTER] Nouvel utilisateur id=${user.id}, email=${user.email}`);
+  logger.info(`[SECURITY][REGISTER] Nouvel utilisateur id=${user.id}`);
   await safePublish('user', {
     type: 'UserCreated',
     userId: user.id,
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    role: user.role,
-    invisibleKey: user.invisibleKey
+    role: user.role
   }, 'AUTH.REGISTER');
 
   return { ...user, token };
@@ -110,11 +107,11 @@ async function loginService({ email, password }) {
     return { error: 'TOKEN_GENERATION_FAILED' };
   }
 
-  logger.info(`[SECURITY][LOGIN] Connexion réussie id=${user.id}, email=${user.email}`);
+  logger.info(`[SECURITY][LOGIN] Connexion réussie id=${user.id}`);
   return { ...user, token };
 }
 
-// GET PROFILE / DELETE PROFILE via core patterns
+// GET PROFILE / DELETE PROFILE
 const getProfileService = makeRead('AUTH.GET_PROFILE');
 const deleteProfileService = makeDelete('AUTH.DELETE_PROFILE', 'UserDeleted');
 
@@ -134,8 +131,7 @@ async function updateProfileService(userId, payload) {
     email: updated.email,
     firstName: updated.firstName,
     lastName: updated.lastName,
-    role: updated.role,
-    invisibleKey: updated.invisibleKey
+    role: updated.role
   }, 'AUTH.UPDATE_PROFILE');
 
   return updated;
@@ -146,7 +142,6 @@ async function logoutService(user, token) {
   const userId = validateId(user?.id, 'AUTH.LOGOUT');
   if (!userId) return { error: 'INVALID_USER_ID' };
 
-  // Révoquer le token courant
   try {
     const decoded = jwt.decode(token);
     if (decoded?.exp) {
@@ -154,7 +149,7 @@ async function logoutService(user, token) {
       if (ttl > 0) await revokeToken(token, ttl);
     }
   } catch (err) {
-    logger.error('[SECURITY][LOGOUT] Erreur lors de la révocation du token', { error: err.message });
+    logger.error('[SECURITY][LOGOUT] Erreur révocation', { error: err.message });
   }
 
   logger.info(`[SECURITY][LOGOUT] Déconnexion utilisateur id=${userId}`);

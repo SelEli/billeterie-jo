@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { prisma, logger, publishKafkaEvent, generateInvisibleKey } = require('../utils');
 
 const USER_SELECT = {
@@ -18,6 +19,30 @@ const validateId = (id, ctx) => {
   }
   return parsed;
 };
+
+// 🔒 Chiffrement invisibleKey centralisé
+const ENC_ALGO = 'aes-256-gcm';
+const ENC_KEY = Buffer.from(process.env.INVISIBLE_KEY_SECRET, 'hex'); // 32 bytes hex
+const IV_LENGTH = 16;
+
+function encryptInvisibleKey(value) {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ENC_ALGO, ENC_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return iv.toString('hex') + ':' + tag.toString('hex') + ':' + encrypted.toString('hex');
+}
+
+function decryptInvisibleKey(enc) {
+  const [ivHex, tagHex, dataHex] = enc.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  const tag = Buffer.from(tagHex, 'hex');
+  const encrypted = Buffer.from(dataHex, 'hex');
+  const decipher = crypto.createDecipheriv(ENC_ALGO, ENC_KEY, iv);
+  decipher.setAuthTag(tag);
+  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+  return decrypted.toString('utf8');
+}
 
 // Masquage des payloads sensibles
 const sanitizePayload = (payload) => {
@@ -87,14 +112,13 @@ const makeList = (ctx, select) => async (filters = {}) => {
     prisma.user.count({ where })
   ]);
 
-  logger.info(`[SECURITY][${ctx}] Retrieved ${users.length} user(s)`, {
-    pagination: { page, limit, total }
-  });
+  logger.info(`[SECURITY][${ctx}] Retrieved ${users.length} user(s)`);
   return { users, pagination: { page, limit, total } };
 };
 
 module.exports = {
   prisma, logger, generateInvisibleKey,
   USER_SELECT, normalizeEmail, toDateSafe,
-  validateId, safePublish, makeDelete, makeRead, makeList
+  validateId, safePublish, makeDelete, makeRead, makeList,
+  encryptInvisibleKey, decryptInvisibleKey
 };

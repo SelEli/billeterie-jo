@@ -2,7 +2,8 @@ const bcrypt = require('bcrypt');
 const {
   prisma, logger, generateInvisibleKey,
   USER_SELECT, normalizeEmail, toDateSafe,
-  validateId, safePublish, makeDelete, makeRead, makeList
+  validateId, safePublish, makeDelete, makeRead, makeList,
+  encryptInvisibleKey
 } = require('./core.service');
 
 // CREATE
@@ -25,7 +26,7 @@ async function createUserService(data) {
         lastName: data.lastName?.trim() || null,
         birthDate: toDateSafe(data.birthDate),
         role: 'VISITOR',
-        invisibleKey: generateInvisibleKey()
+        invisibleKey: encryptInvisibleKey(generateInvisibleKey()) // 🔒 chiffrée
       },
       select: USER_SELECT
     });
