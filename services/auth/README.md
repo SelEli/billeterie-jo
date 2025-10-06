@@ -1,134 +1,119 @@
-📦 Service Auth — Billetterie JO
+📦 Service Auth — Billetterie JO  
 Service backend Node.js / Express pour l’authentification, la gestion des profils et des rôles utilisateurs, avec Prisma (base de données), Zod (validation), Redis (cache optionnel) et Kafka (événements).
 
-✨ Fonctionnalités
-🔒 Authentification JWT (login/register)
+✨ Fonctionnalités  
+🔒 Authentification JWT (login/register)  
+👤 Gestion de profil utilisateur (CRUD partiel)  
+🧑‍💼 Gestion complète des utilisateurs par rôle ADMIN  
+🛡️ Validation stricte des payloads avec Zod  
+🧪 Tests unitaires (services, contrôleurs) et intégration Jest  
+📜 Logs unifiés avec Winston  
+📢 Événements Kafka sur certaines actions  
+💾 (Optionnel) Cache Redis pour certaines ressources  
 
-👤 Gestion de profil utilisateur (CRUD partiel)
+🗂 Architecture  
+app.js : app Express, middlewares globaux, montage des routes agrégées  
+server.js : démarrage serveur, init éventuels (Redis/Kafka)  
+routes/ : routeurs Express par domaine (auth.routes.js, user.routes.js, role.routes.js, health.js)  
+controllers/ : logique HTTP par domaine (auth, user, role)  
+services/ : logique métier + Prisma + Kafka  
+schemas/ : schémas Zod stricts  
+middlewares/ : middlewares réutilisables (authenticate, validateRequest)  
+tests/ : unitaires et intégration par domaine  
+utils/ : prismaClient, redisClient, logger, kafkaClient, etc.  
 
-🧑‍💼 Gestion complète des utilisateurs par rôle ADMIN
+⚙️ Configuration  
+Créer un fichier .env à partir de .env.example :
 
-🛡️ Validation stricte des payloads avec Zod
-
-🧪 Tests unitaires (services, contrôleurs) et intégration Jest
-
-📜 Logs unifiés avec Winston
-
-📢 Événements Kafka sur certaines actions
-
-(Optionnel) Cache Redis pour certaines ressources
-
-🗂 Architecture
-app.js : app Express, middlewares globaux, montage des routes agrégées
-
-server.js : démarrage serveur, init éventuels (Redis/Kafka)
-
-routes/ : routeurs Express par domaine (auth.routes.js, user.routes.js, role.routes.js, health.js)
-
-controllers/ : logique HTTP par domaine (auth, user, role)
-
-services/ : logique métier + Prisma + Kafka
-
-schemas/ : schémas Zod stricts
-
-middlewares/ : middlewares réutilisables (authenticate, validateRequest)
-
-tests/ : unitaires et intégration par domaine
-
-utils/ : prismaClient, redisClient, logger, kafkaClient, etc.
-
-⚙️ Configuration
-Créer un fichier .env à partir de .env.example :
-
-env
-JWT_SECRET=your_jwt_secret
-DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
-REDIS_URL=redis://localhost:6379          # optionnel
-KAFKA_BROKERS=localhost:9092              # optionnel
+JWT_SECRET=your_jwt_secret  
+DATABASE_URL=postgresql://user:pass@localhost:5432/dbname  
+REDIS_URL=redis://localhost:6379          # optionnel  
+KAFKA_BROKERS=localhost:9092              # optionnel  
 PORT=3000
-🚀 Installation & Lancement
-bash
-npm install
-npx prisma generate        # génère le client Prisma
-npm run dev                # mode dev
-npm start                  # mode production
-npm test                   # exécute tous les tests
-Healthcheck : GET /health → 200 OK
 
-📋 Endpoints API
-Authentification
-Méthode	Endpoint	Description	Protection
-POST	/auth/register	Inscription utilisateur	❌
-POST	/auth/login	Connexion + JWT	❌
-GET	/auth/profile	Récupérer son profil	✅ authenticate
-PUT	/auth/profile	Modifier son profil	✅ authenticate + validateRequest(updateProfileSchema)
-DELETE	/auth/profile	Supprimer son compte	✅ authenticate
-Utilisateurs (ADMIN)
-Méthode	Endpoint	Description	Protection
-POST	/user	Créer un utilisateur	✅ authenticate (ADMIN) + validateRequest(createUserSchema)
-GET	/user/:id	Lire infos utilisateur	✅ authenticate
-PUT	/user/:id	Modifier utilisateur	✅ authenticate (ADMIN) + validateRequest(updateUserSchema)
-DELETE	/user/:id	Supprimer utilisateur	✅ authenticate (ADMIN)
-PUT	/user/:id/role	Modifier le rôle utilisateur	✅ authenticate (ADMIN) + validateRequest(updateUserRoleSchema)
-📦 Schémas Zod
-Tous stricts et testés :
+🚀 Installation & Lancement  
 
-registerUserSchema
+npm install  
+npx prisma generate        # génère le client Prisma  
+npm run dev                # mode dev  
+npm start                  # mode production  
+npm test                   # exécute tous les tests  
 
-loginUserSchema
+Healthcheck : GET /health → 200 OK  
 
-updateProfileSchema (utilisateur connecté)
+📋 Endpoints API  
 
-createUserSchema, updateUserSchema (ADMIN)
+Authentification  
 
-updateUserRoleSchema (ADMIN)
+| Méthode | Endpoint            | Description                   | Protection |  
+|---------|---------------------|-------------------------------|------------|  
+| POST    | /auth/register      | Inscription utilisateur       | ❌         |  
+| POST    | /auth/login         | Connexion + JWT               | ❌         |  
+| GET     | /auth/profile       | Récupérer son profil          | ✅ authenticate |  
+| PUT     | /auth/profile       | Modifier son profil           | ✅ authenticate + validateRequest(updateProfileSchema) |  
+| DELETE  | /auth/profile       | Supprimer son compte          | ✅ authenticate |  
 
-🛠 Middlewares
-authenticate → décode le JWT et injecte req.user
+Utilisateurs (ADMIN)  
 
-validateRequest(schema) → valide le corps avec Zod, rejette en 400 si invalide
+| Méthode | Endpoint            | Description                   | Protection |  
+|---------|---------------------|-------------------------------|------------|  
+| POST    | /user               | Créer un utilisateur          | ✅ authenticate (ADMIN) + validateRequest(createUserSchema) |  
+| GET     | /user/:id           | Lire infos utilisateur        | ✅ authenticate |  
+| PUT     | /user/:id           | Modifier utilisateur          | ✅ authenticate (ADMIN) + validateRequest(updateUserSchema) |  
+| DELETE  | /user/:id           | Supprimer utilisateur         | ✅ authenticate (ADMIN) |  
+| PUT     | /user/:id/role      | Modifier le rôle              | ✅ authenticate (ADMIN) + validateRequest(updateUserRoleSchema) |  
 
-🧱 Contrôleurs
-Auth : registerUser, loginUser, getProfile, updateProfile, deleteProfile
+📦 Schémas Zod  
 
-User : createUser, readUser, updateUser, deleteUser
+- registerUserSchema  
+- loginUserSchema  
+- updateProfileSchema (utilisateur connecté)  
+- createUserSchema, updateUserSchema (ADMIN)  
+- updateUserRoleSchema (ADMIN)  
 
-Role : updateUserRole
+🛠 Middlewares  
 
-Gèrent :
+- authenticate → décode le JWT et injecte req.user  
+- validateRequest(schema) → valide le corps avec Zod, rejette en 400 si invalide  
 
-Codes HTTP (201, 200, 204, 400, 401, 403, 404, 409, 500)
+🧱 Contrôleurs  
 
-Format de réponse JSON strict :
+- Auth : registerUser, loginUser, getProfile, updateProfile, deleteProfile  
+- User : createUser, readUser, updateUser, deleteUser  
+- Role : updateUserRole  
 
-json
+Format de réponse JSON strict :
+
 {
   "status": "success|error",
   "data": {},
   "errors": [],
   "meta": {}
 }
-Logs clairs et contextualisés
 
-🧪 Tests
-Unitaires : contrôleurs et services mockés
+🧪 Tests  
 
-Intégration : endpoints réels via Supertest, DB isolée
+- Unitaires : contrôleurs et services mockés  
+- Intégration : endpoints réels via Supertest, DB isolée  
+- Helpers communs : expectErrorShape, resetDb  
 
-Helpers communs : expectErrorShape, resetDb
+Lancer les tests  
 
-Lancer tous les tests :
+npm test  
+npm run test:watch   # mode watch  
 
-bash
-npm test
-npm run test:watch   # mode watch
-📚 Bonnes pratiques appliquées
-Séparation stricte validation → contrôleur → service
+📊 Rapport de couverture  
 
-Vérification des exports de contrôleurs dans chaque route
+Pour générer un rapport de couverture :
 
-Imports centralisés via index.js dans middlewares/, controllers/, services/
+npm test -- --coverage
 
-Couverture des cas d’erreur dans les tests
+Un dossier coverage/ sera créé avec un rapport HTML détaillé. Ouvre coverage/lcov-report/index.html dans ton navigateur pour visualiser la couverture par fichier.
 
-Préfixes de logs homogènes ([AUTH ROUTES], [USER ROUTES], [ROLE ROUTES], [APP])
+📚 Bonnes pratiques appliquées  
+
+- Séparation stricte validation → contrôleur → service  
+- Vérification des exports de contrôleurs dans chaque route  
+- Imports centralisés via index.js dans middlewares/, controllers/, services/  
+- Couverture des cas d’erreur dans les tests  
+- Préfixes de logs homogènes ([AUTH ROUTES], [USER ROUTES], [ROLE ROUTES], [APP])  
