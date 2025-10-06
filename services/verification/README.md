@@ -23,8 +23,49 @@ utils/ : logger, helpers d'erreur et de succès
 Créer un fichier `.env` à partir de `.env.example` :
 
 ```
-JWT_SECRET=your_jwt_secret
-PORT=3000
+# Port et host
+PORT=8080
+HOST=127.0.0.1
+
+# Base de données fictive
+DATABASE_URL=postgresql://user:password@fake-db:5432/fakeauth
+
+# JWT bidon
+JWT_SECRET=SuperSecretKey123!
+JWT_EXPIRES_IN=2h
+REFRESH_TOKEN_SECRET=AnotherSecretKey456!
+REFRESH_TOKEN_EXPIRES_IN=14d
+
+# Redis bidon
+REDIS_URL=redis://fake-redis:6380
+
+# Kafka bidon
+KAFKA_BROKER=fake-kafka:9093
+
+# Service
+SERVICE_NAME=auth-fake-service
+NODE_ENV=development
+LOG_LEVEL=debug
+
+# Endpoints fictifs
+AUTH_URL=http://fake-gateway/auth
+TICKETING_URL=http://fake-gateway/ticketing
+PAYMENT_URL=http://fake-gateway/payment
+VERIFICATION_URL=http://fake-gateway/verification
+
+# Callback fictif
+VERIFY_CALLBACK_URL=http://fake-gateway/verify-callback
+
+# Switch global Adapters
+ADAPTER_MODE=test
+PAYMENT_MODE=mock
+VERIFICATION_MODE=stub
+KAFKA_MODE=disabled
+
+# Choix endpoint vs logique interne
+USE_EXTERNAL_PAYMENT=false
+USE_EXTERNAL_VERIFICATION=true
+
 ```
 
 🚀 Installation & Lancement
