@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const { strongPasswordRegex } = require('./core.schema');
+const { strongPasswordRegex, dateSchema } = require('./core.schema');
 const logger = require('../utils/logger');
 
 // LOGIN
@@ -21,19 +21,14 @@ const registerUserSchema = z.object({
   }),
   firstName: z.string().trim().min(1).max(50).optional(),
   lastName: z.string().trim().min(1).max(50).optional(),
-  birthDate: z.string().refine((val) => {
-    const d = new Date(val);
-    return !isNaN(d) && d <= new Date();
-  }, { message: 'Date de naissance invalide ou future' }).optional()
+  birthDate: dateSchema.optional()
 }).strict();
 
 // UPDATE PROFILE
 const updateProfileSchema = z.object({
   firstName: z.string().trim().min(1).max(50).optional(),
   lastName: z.string().trim().min(1).max(50).optional(),
-  birthDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'Date de naissance invalide'
-  }).optional()
+  birthDate: dateSchema.optional()
 }).strict();
 
 const schemas = { loginSchema, logoutSchema, registerUserSchema, updateProfileSchema };
