@@ -1,24 +1,17 @@
 const { prisma, logger, safePublish, validateId } = require('./core.service');
 
-// NEW: centralisation des rôles valides
 const VALID_ROLES = ['ADMIN', 'AGENT', 'USER', 'VISITOR', 'EMPLOYEE'];
 
-// CREATE ROLE
 async function createRoleService({ userId, role }) {
-  logger.debug(`[ROLE][CREATE] Assigning role ${role} to user ${userId}`);
-
   const parsedId = validateId(userId, 'ROLE.CREATE');
   if (!parsedId) return { error: 'INVALID_ROLE_ID' };
   if (!role) return { error: 'ROLE_REQUIRED' };
 
-  // NEW: normalisation et validation robuste
   const roleValue = String(role).toUpperCase();
-  if (!VALID_ROLES.includes(roleValue)) {
-    return { error: 'INVALID_ROLE' };
-  }
+  if (!VALID_ROLES.includes(roleValue)) return { error: 'INVALID_ROLE' };
 
   const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
-  if (!existingUser) return { error: 'USER_NOT_FOUND' }; // cohérent côté service
+  if (!existingUser) return { error: 'USER_NOT_FOUND' };
 
   let updated;
   try {
@@ -26,19 +19,11 @@ async function createRoleService({ userId, role }) {
       where: { id: parsedId },
       data: { role: roleValue }
     });
-  } catch (err) {
-    // NEW: priorité au code Prisma si disponible
-    if (err.code === 'P2003' || err.code === 'P2000') return { error: 'INVALID_ROLE' };
-    if (err.code === 'P2002') return { error: 'INVALID_ROLE' };
-    // fallback initial
-    if (err.message?.includes('Invalid enum value')) return { error: 'INVALID_ROLE' };
-    if (err.message?.includes('Required')) return { error: 'ROLE_REQUIRED' };
-    throw err;
+  } catch {
+    return { error: 'INVALID_ROLE' };
   }
 
-  // NEW: audit explicite
-  logger.info(`[ROLE][CREATE] User ${parsedId}: role set to ${roleValue}`);
-
+  logger.info(`[SECURITY][ROLE][CREATE] User ${parsedId}: role set to ${roleValue}`);
   await safePublish('user', {
     type: 'UserUpdated',
     userId: updated.id,
@@ -52,24 +37,19 @@ async function createRoleService({ userId, role }) {
   return updated;
 }
 
-// DELETE ROLE
 async function deleteRoleService(userId) {
-  logger.debug(`[ROLE][DELETE] Resetting role for user id=${userId}`);
-
   const parsedId = validateId(userId, 'ROLE.DELETE');
   if (!parsedId) return { error: 'INVALID_ROLE_ID' };
 
   const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
-  if (!existingUser) return null; // on garde le flow existant (NOT_FOUND via controller)
+  if (!existingUser) return null;
 
   const updated = await prisma.user.update({
     where: { id: parsedId },
     data: { role: 'VISITOR' }
   });
 
-  // NEW: audit explicite
-  logger.info(`[ROLE][DELETE] User ${parsedId}: role reset to VISITOR`);
-
+  logger.info(`[SECURITY][ROLE][DELETE] User ${parsedId}: role reset to VISITOR`);
   await safePublish('user', {
     type: 'UserUpdated',
     userId: updated.id,
@@ -83,10 +63,7 @@ async function deleteRoleService(userId) {
   return updated;
 }
 
-// GET ROLE
 async function getRoleService(userId) {
-  logger.debug(`[ROLE][GET] Fetching role for user id=${userId}`);
-
   const parsedId = validateId(userId, 'ROLE.GET');
   if (!parsedId) return { error: 'INVALID_ROLE_ID' };
 
@@ -95,14 +72,11 @@ async function getRoleService(userId) {
     select: { role: true }
   });
 
-  if (!user) return null; // on garde le flow existant (NOT_FOUND via controller)
+  if (!user) return null;
   return { id: parsedId, role: user.role };
 }
 
-// LIST ROLES
 async function listRolesService() {
-  logger.debug('[ROLE][LIST] Listing distinct roles from users');
-
   const roles = await prisma.user.findMany({
     distinct: ['role'],
     select: { role: true }
@@ -112,22 +86,16 @@ async function listRolesService() {
   return roles.map(r => r.role);
 }
 
-// UPDATE ROLE
 async function updateRoleService(userId, newRole) {
-  logger.debug(`[ROLE][UPDATE] Updating role for user id=${userId}`);
-
   const parsedId = validateId(userId, 'ROLE.UPDATE');
   if (!parsedId) return { error: 'INVALID_ROLE_ID' };
   if (!newRole) return { error: 'ROLE_REQUIRED' };
 
-  // NEW: normalisation + validation
   const roleValue = String(newRole).toUpperCase();
-  if (!VALID_ROLES.includes(roleValue)) {
-    return { error: 'INVALID_ROLE' };
-  }
+  if (!VALID_ROLES.includes(roleValue)) return { error: 'INVALID_ROLE' };
 
   const existingUser = await prisma.user.findUnique({ where: { id: parsedId } });
-  if (!existingUser) return null; // on garde le flow existant (NOT_FOUND via controller)
+  if (!existingUser) return null;
 
   const oldRole = existingUser.role;
   let updated;
@@ -136,19 +104,11 @@ async function updateRoleService(userId, newRole) {
       where: { id: parsedId },
       data: { role: roleValue }
     });
-  } catch (err) {
-    // NEW: priorité au code Prisma si disponible
-    if (err.code === 'P2003' || err.code === 'P2000') return { error: 'INVALID_ROLE' };
-    if (err.code === 'P2002') return { error: 'INVALID_ROLE' };
-    // fallback initial
-    if (err.message?.includes('Invalid enum value')) return { error: 'INVALID_ROLE' };
-    if (err.message?.includes('Required')) return { error: 'ROLE_REQUIRED' };
-    throw err;
+  } catch {
+    return { error: 'INVALID_ROLE' };
   }
 
-  // NEW: audit explicite transition
-  logger.info(`[ROLE][UPDATE] User ${parsedId}: ${oldRole} → ${roleValue}`);
-
+  logger.info(`[SECURITY][ROLE][UPDATE] User ${parsedId}: ${oldRole} → ${roleValue}`);
   await safePublish('user', {
     type: 'UserUpdated',
     userId: updated.id,

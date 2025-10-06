@@ -6,12 +6,25 @@ const {
   USER_SELECT, normalizeEmail, toDateSafe,
   validateId, safePublish, makeDelete, makeRead
 } = require('./core.service');
+const { redis } = require('../utils'); // ⚠️ suppose que tu as déjà init Redis dans utils
 
 const TOKEN_EXPIRATION = '1h';
+const REVOKED_SET = 'revoked_tokens';
+
+// Helper pour révoquer un token
+async function revokeToken(token, expSeconds) {
+  try {
+    if (!token) return;
+    // On stocke le token dans Redis avec TTL = durée restante
+    await redis.setex(`${REVOKED_SET}:${token}`, expSeconds, '1');
+    logger.info(`[SECURITY][JWT] Token révoqué pour ${expSeconds}s`);
+  } catch (err) {
+    logger.error('[SECURITY][JWT] Erreur lors de la révocation du token', { error: err.message });
+  }
+}
 
 // REGISTER
 async function registerUserService({ firstName, lastName, email, password, birthDate }) {
-  logger.debug('[AUTH][REGISTER] Tentative enregistrement', { email });
   if (!email || !password || !firstName || !lastName || !birthDate) {
     return { error: 'MISSING_REQUIRED_FIELDS' };
   }
@@ -40,7 +53,7 @@ async function registerUserService({ firstName, lastName, email, password, birth
     });
   } catch (err) {
     if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
-    logger.error('[AUTH][REGISTER] Prisma error:', err);
+    logger.error('[SECURITY][REGISTER] Prisma error', { error: err.message });
     return { error: 'INTERNAL_SERVER_ERROR' };
   }
 
@@ -58,7 +71,7 @@ async function registerUserService({ firstName, lastName, email, password, birth
     return { error: 'TOKEN_GENERATION_FAILED' };
   }
 
-  logger.info(`[AUTH][REGISTER] User registered: ${user.email} (id=${user.id})`);
+  logger.info(`[SECURITY][REGISTER] Nouvel utilisateur id=${user.id}, email=${user.email}`);
   await safePublish('user', {
     type: 'UserCreated',
     userId: user.id,
@@ -74,7 +87,6 @@ async function registerUserService({ firstName, lastName, email, password, birth
 
 // LOGIN
 async function loginService({ email, password }) {
-  logger.debug('[AUTH][LOGIN] Tentative connexion');
   if (!email || !password) return { error: 'MISSING_CREDENTIALS' };
 
   const emailClean = normalizeEmail(email);
@@ -98,7 +110,7 @@ async function loginService({ email, password }) {
     return { error: 'TOKEN_GENERATION_FAILED' };
   }
 
-  logger.info(`[AUTH][LOGIN] Connexion réussie: ${user.email}`);
+  logger.info(`[SECURITY][LOGIN] Connexion réussie id=${user.id}, email=${user.email}`);
   return { ...user, token };
 }
 
@@ -114,7 +126,7 @@ async function updateProfileService(userId, payload) {
   if (payload.birthDate) payload.birthDate = toDateSafe(payload.birthDate);
 
   const updated = await prisma.user.update({ where: { id: parsed }, data: payload, select: USER_SELECT });
-  logger.info(`[AUTH][UPDATE_PROFILE] Updated [id=${parsed}]`);
+  logger.info(`[SECURITY][UPDATE_PROFILE] Profil mis à jour id=${parsed}`);
 
   await safePublish('user', {
     type: 'UserUpdated',
@@ -130,11 +142,22 @@ async function updateProfileService(userId, payload) {
 }
 
 // LOGOUT
-async function logoutService(user) {
+async function logoutService(user, token) {
   const userId = validateId(user?.id, 'AUTH.LOGOUT');
   if (!userId) return { error: 'INVALID_USER_ID' };
 
-  logger.info(`[AUTH][LOGOUT] User ${userId} logged out`);
+  // Révoquer le token courant
+  try {
+    const decoded = jwt.decode(token);
+    if (decoded?.exp) {
+      const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+      if (ttl > 0) await revokeToken(token, ttl);
+    }
+  } catch (err) {
+    logger.error('[SECURITY][LOGOUT] Erreur lors de la révocation du token', { error: err.message });
+  }
+
+  logger.info(`[SECURITY][LOGOUT] Déconnexion utilisateur id=${userId}`);
   await safePublish('user.logged_out', { userId }, 'AUTH.LOGOUT');
   return true;
 }

@@ -7,7 +7,6 @@ const {
 
 // CREATE
 async function createUserService(data) {
-  logger.debug('[USER][CREATE] Creating new user', { email: data?.email });
   if (!data?.email) return { error: 'EMAIL_REQUIRED' };
   if (!data?.password) return { error: 'PASSWORD_REQUIRED' };
 
@@ -32,16 +31,16 @@ async function createUserService(data) {
     });
   } catch (err) {
     if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
-    logger.error('[USER][CREATE] Prisma error:', err);
+    logger.error('[SECURITY][USER][CREATE] Prisma error', { error: err.message });
     return { error: 'INTERNAL_SERVER_ERROR' };
   }
 
-  logger.info(`[USER][CREATE] User created [id=${user.id}]`);
+  logger.info(`[SECURITY][USER][CREATE] User created [id=${user.id}]`);
   await safePublish('user', { type: 'UserCreated', userId: user.id, email: user.email }, 'USER.CREATE');
   return user;
 }
 
-// READ (pattern core)
+// READ
 const readUserService = makeRead('USER.READ');
 
 // UPDATE
@@ -63,19 +62,19 @@ async function updateUserService(id, data) {
     updated = await prisma.user.update({ where: { id: userId }, data: safeData, select: USER_SELECT });
   } catch (err) {
     if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
-    logger.error('[USER][UPDATE] Prisma error:', err);
+    logger.error('[SECURITY][USER][UPDATE] Prisma error', { error: err.message });
     return { error: 'INTERNAL_SERVER_ERROR' };
   }
 
-  logger.info(`[USER][UPDATE] User updated [id=${updated.id}]`);
+  logger.info(`[SECURITY][USER][UPDATE] User updated [id=${updated.id}]`);
   await safePublish('user', { type: 'UserUpdated', userId: updated.id }, 'USER.UPDATE');
   return updated;
 }
 
-// DELETE (pattern core)
+// DELETE
 const deleteUserService = makeDelete('USER.DELETE', 'UserDeleted');
 
-// LIST (pattern core)
+// LIST
 const listUsersService = makeList('USER.LIST', USER_SELECT);
 
 module.exports = {

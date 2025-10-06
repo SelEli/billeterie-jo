@@ -13,13 +13,13 @@ const toDateSafe = (date) => (date ? new Date(date) : null);
 const validateId = (id, ctx) => {
   const parsed = Number(id);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    logger.warn(`[${ctx}] Invalid ID: ${id}`);
+    logger.warn(`[SECURITY][${ctx}] Invalid ID: ${id}`);
     return null;
   }
   return parsed;
 };
 
-// NEW: sanitisation minimale pour éviter de logger des secrets
+// Masquage des payloads sensibles
 const sanitizePayload = (payload) => {
   if (!payload || typeof payload !== 'object') return payload;
   const clone = { ...payload };
@@ -33,11 +33,11 @@ const sanitizePayload = (payload) => {
 const safePublish = async (topic, payload, ctx) => {
   try {
     await publishKafkaEvent(topic, payload);
-    logger.debug(`[${ctx}] Kafka published`, { topic });
+    logger.info(`[SECURITY][${ctx}] Kafka published`, { topic });
   } catch (err) {
-    // NEW: log structuré + payload masqué
-    logger.warn(`[${ctx}] Kafka skipped: ${err.message}`, {
+    logger.error(`[SECURITY][${ctx}] Kafka publish failed`, {
       topic,
+      error: err.message,
       payload: sanitizePayload(payload)
     });
   }
@@ -47,9 +47,9 @@ const makeDelete = (ctx, eventType) => async (id) => {
   const parsed = validateId(id, ctx);
   if (!parsed) return { error: 'INVALID_USER_ID' };
   const existing = await prisma.user.findUnique({ where: { id: parsed } });
-  if (!existing) return null; // on garde: NOT_FOUND côté controller
+  if (!existing) return null;
   await prisma.user.delete({ where: { id: parsed } });
-  logger.info(`[${ctx}] Deleted [id=${parsed}]`);
+  logger.info(`[SECURITY][${ctx}] Deleted [id=${parsed}]`);
   await safePublish('user', { type: eventType, userId: parsed }, ctx);
   return true;
 };
@@ -59,14 +59,13 @@ const makeRead = (ctx) => async (id) => {
   if (!parsed) return { error: 'INVALID_USER_ID' };
   const user = await prisma.user.findUnique({ where: { id: parsed }, select: USER_SELECT });
   if (!user) {
-    logger.warn(`[${ctx}] Not found [id=${parsed}]`);
-    return null; // on garde: NOT_FOUND côté controller
+    logger.warn(`[SECURITY][${ctx}] Not found [id=${parsed}]`);
+    return null;
   }
-  logger.info(`[${ctx}] Found [id=${user.id}]`);
+  logger.info(`[SECURITY][${ctx}] Found [id=${user.id}]`);
   return user;
 };
 
-// 🔥 Ajout de makeList
 const makeList = (ctx, select) => async (filters = {}) => {
   const where = {};
   if (filters.email) {
@@ -88,7 +87,7 @@ const makeList = (ctx, select) => async (filters = {}) => {
     prisma.user.count({ where })
   ]);
 
-  logger.info(`[${ctx}] Retrieved ${users.length} user(s) on page ${page}`, {
+  logger.info(`[SECURITY][${ctx}] Retrieved ${users.length} user(s)`, {
     pagination: { page, limit, total }
   });
   return { users, pagination: { page, limit, total } };
@@ -97,5 +96,5 @@ const makeList = (ctx, select) => async (filters = {}) => {
 module.exports = {
   prisma, logger, generateInvisibleKey,
   USER_SELECT, normalizeEmail, toDateSafe,
-  validateId, safePublish, makeDelete, makeRead, makeList // ✅ on exporte makeList
+  validateId, safePublish, makeDelete, makeRead, makeList
 };
