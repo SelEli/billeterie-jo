@@ -60,4 +60,4 @@ Thumbs.db
 # Divers
 *.local
 
-frontend/vite.config.js
+vite.config.js
