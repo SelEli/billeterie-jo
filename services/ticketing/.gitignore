@@ -24,3 +24,9 @@ pnpm-debug.log*
 .vscode
 .idea
 .DS_Store
+
+# Données de seed
+**/seed/
+**/fixtures/
+**/mocks/
+**/tests/
