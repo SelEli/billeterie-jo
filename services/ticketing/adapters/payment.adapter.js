@@ -1,14 +1,14 @@
 // adapters/payment.adapter.js
 // 💳 Adapter Payment (validate)
 // - mode: 'mock' | 'live'
-// - live: POST PAYMENT_URL { ticketId } (JWT attendu dans Authorization)
+// - live: POST PAYMENT_URL { ticketId } (cookie attendu)
 // - mock: renvoie un succès formaté (VALID)
 
 const axios = require('axios');
 const logger = require('../utils/logger');
 
 module.exports = function createPaymentAdapter({ mode = 'live' } = {}) {
-  async function requestTicketValidation(ticketId, authHeader) {
+  async function requestTicketValidation(ticketId, cookie) {
     if (mode === 'mock') {
       logger.debug('[PAYMENT ADAPTER] Mock mode');
       return {
@@ -25,7 +25,10 @@ module.exports = function createPaymentAdapter({ mode = 'live' } = {}) {
     const res = await axios.post(
       url,
       { ticketId },
-      { headers: { Authorization: authHeader } }
+      {
+        headers: cookie ? { cookie } : {},
+        withCredentials: true
+      }
     );
 
     // On normalise au format interne si besoin

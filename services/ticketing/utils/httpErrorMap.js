@@ -24,7 +24,6 @@ const ERROR_STATUS = {
   PAYMENT_NOT_CONFIRMED:       400,
   TICKET_ALREADY_USED:         400, // contrôle d’accès
   TICKET_NOT_VALID:            400, // pas encore VALID
-  USER_KEY_NOT_FOUND:          400, // clé invisible manquante
   INVALID_SIGNATURE:           400, // signature QR invalide
 
   // --- Vérification ---
@@ -36,6 +35,7 @@ const ERROR_STATUS = {
   UNAUTHORIZED:                401,
   TOKEN_MISSING_OR_MALFORMED:  401,
   FORBIDDEN:                   403,
+  USER_KEY_NOT_FOUND:          403, // 👈 déplacé ici, plus logique
 
   // --- Ressources non trouvées ---
   USER_NOT_FOUND:              404,

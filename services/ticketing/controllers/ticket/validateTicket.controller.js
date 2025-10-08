@@ -1,4 +1,3 @@
-// controllers/ticket/validateTicket.controller.js
 const { createAdapters } = require('../../adapters');
 const { validateTicketService } = require('../../services/ticket/validateTicket.service');
 const { sendBusinessError } = require('../../utils/sendError');
@@ -6,7 +5,6 @@ const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 
 async function validateTicketController(req, res) {
-  // 🔎 LOG DEBUG INCOMING REQUEST
   logger.info('[VALIDATE CTRL] Incoming request details', {
     method: req.method,
     url: req.originalUrl,
@@ -14,6 +12,10 @@ async function validateTicketController(req, res) {
     body: req.body,
     query: req.query
   });
+
+  if (!req.user) {
+    return sendBusinessError(res, 'FORBIDDEN');
+  }
 
   try {
     const { ticketId } = req.body;
@@ -25,7 +27,7 @@ async function validateTicketController(req, res) {
     logger.info('[VALIDATE CTRL] Validation ticket', { ticketId: ticketIdNum });
 
     // 1️⃣ Valider le ticket localement (avec signature)
-    const updated = await validateTicketService(ticketIdNum, req.headers.authorization);
+    const updated = await validateTicketService(ticketIdNum, req.user);
 
     if (!updated) {
       return sendBusinessError(res, 'TICKET_NOT_FOUND');
@@ -35,10 +37,13 @@ async function validateTicketController(req, res) {
     if ((process.env.USE_EXTERNAL_PAYMENT || '').toLowerCase() === 'true') {
       const adapters = createAdapters();
       try {
-        await adapters.payment.notifyPaymentConfirmed(ticketIdNum, req.headers.authorization);
+        await adapters.payment.notifyPaymentConfirmed(ticketIdNum, req.user);
         logger.info('[VALIDATE CTRL] Notification envoyée à Payment', { ticketId: ticketIdNum });
       } catch (err) {
-        logger.warn('[VALIDATE CTRL] Échec notification Payment', { ticketId: ticketIdNum, error: err.message });
+        logger.warn('[VALIDATE CTRL] Échec notification Payment', {
+          ticketId: ticketIdNum,
+          error: err.message
+        });
         // On ne bloque pas la réponse au client
       }
     }
@@ -47,10 +52,7 @@ async function validateTicketController(req, res) {
 
   } catch (err) {
     logger.error('[VALIDATE CTRL] Error', { message: err.message });
-    const code =
-      err && err.statusCode
-        ? err.statusCode
-        : 'INTERNAL_SERVER_ERROR';
+    const code = err && err.message ? err.message : 'INTERNAL_SERVER_ERROR';
     return sendBusinessError(res, code);
   }
 }

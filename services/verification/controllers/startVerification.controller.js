@@ -1,4 +1,3 @@
-// controllers/startVerification.controller.js
 const { startVerificationService } = require('../services/startVerification.service');
 const { sendBusinessError } = require('../utils/sendError');
 const { sendBusinessSuccess } = require('../utils/sendSuccess');
@@ -29,8 +28,8 @@ async function startVerificationController(req, res) {
       return sendBusinessError(res, 'MISSING_SIGNATURE');
     }
 
-    // 🔹 Service de vérification
-    const result = await startVerificationService({ ticketId, signature }, req.headers.authorization);
+    // 🔹 Service de vérification (on passe req.user complet)
+    const result = await startVerificationService({ ticketId, signature }, req.user);
 
     if (result.status === 'error') {
       return sendBusinessError(res, result.errors?.[0] || 'VERIFY_FAILED');

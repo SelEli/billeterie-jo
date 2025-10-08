@@ -3,47 +3,43 @@ const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const axios = require('axios');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
-async function validateTicketService(ticketId, authHeader) {
+async function validateTicketService(ticketId, user) {
   logger.info('[TICKET SERVICE] Ticket validation called', { ticketId });
 
   const numericId = Number(ticketId);
   if (!numericId) {
-    const err = new Error('INVALID_TICKET_ID');
-    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
-    throw err;
+    throw new Error('INVALID_TICKET_ID');
   }
 
   const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
   if (!ticket) {
-    const err = new Error('TICKET_NOT_FOUND');
-    err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
-    throw err;
+    throw new Error('TICKET_NOT_FOUND');
   }
 
   if (ticket.status !== 'RESERVED') {
-    const err = new Error('INVALID_TICKET_STATUS');
-    err.statusCode = ERROR_STATUS.INVALID_TICKET_STATUS;
-    throw err;
+    throw new Error('INVALID_TICKET_STATUS');
   }
 
-  // 🔹 Récupération de la clé utilisateur
+  // 🔹 Récupération de la clé utilisateur via User Service
   let invisibleKey;
   try {
     const res = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
-      headers: authHeader ? { Authorization: authHeader } : {}
+      headers: {
+        ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+        ...(user?.cookie ? { cookie: user.cookie } : {})
+      },
+      withCredentials: true
     });
     invisibleKey = res.data?.data?.invisibleKey;
+    logger.info('[TICKET SERVICE] Réponse User Service', res.data);
   } catch (err) {
     logger.warn(`[TICKET SERVICE] Impossible de récupérer invisibleKey: ${err.message}`, { ticketId });
   }
 
   if (!invisibleKey) {
-    const err = new Error('USER_KEY_NOT_FOUND');
-    err.statusCode = ERROR_STATUS.USER_KEY_NOT_FOUND;
-    throw err;
+    throw new Error('USER_KEY_NOT_FOUND');
   }
 
   // 🔹 Signature calculée uniquement avec les deux clés

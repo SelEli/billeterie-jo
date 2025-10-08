@@ -1,11 +1,10 @@
-//
 const axios = require('axios');
 const { publishKafkaEvent } = require('../utils/kafkaClient');
 const logger = require('../utils/logger');
 const { ERROR_STATUS } = require('../utils/httpErrorMap');
 const { getPaymentData, clearPaymentData } = require('../utils/paymentCache');
 
-async function confirmPaymentService(ticketId, authHeader = null, isMock = false) {
+async function confirmPaymentService(ticketId, user, isMock = false) {
   const numericId = Number(ticketId);
   if (!numericId) {
     const err = new Error('INVALID_TICKET_ID');
@@ -20,15 +19,19 @@ async function confirmPaymentService(ticketId, authHeader = null, isMock = false
   const amount = paymentInfo?.amount ?? null;
   const mode = paymentInfo?.mode ?? (isMock ? 'mock' : 'live');
 
-  // 🔹 Validation directe du ticket via POST
+  // 🔑 Utilisation du middleware : req.user.token et req.user.cookie
+  const headers = {
+    ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+    ...(user?.cookie ? { cookie: user.cookie } : {})
+  };
+
   const url = `${process.env.TICKET_URL}/validate`;
   const body = { ticketId: numericId };
-  const headers = authHeader ? { Authorization: authHeader } : {};
 
   logger.info('[PAYMENT SERVICE] Préparation requête validate', { url, body, headers });
 
   try {
-    const resp = await axios.post(url, body, { headers });
+    const resp = await axios.post(url, body, { headers, withCredentials: true });
 
     logger.info('[PAYMENT SERVICE] Réponse brute validate', {
       status: resp.status,

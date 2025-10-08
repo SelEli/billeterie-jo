@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { error } = require('../utils/response');
+const logger = require('../utils/logger'); // ⚠️ ajoute ton logger
 
 const authenticate = (req, res, next) => {
   const secret = process.env.JWT_SECRET;
@@ -11,6 +12,14 @@ const authenticate = (req, res, next) => {
     (req.headers.authorization?.startsWith('Bearer ')
       ? req.headers.authorization.split(' ')[1]
       : null);
+
+  // 🔎 Log complet pour debug
+  logger.info('[AUTH] Vérification des infos reçues', {
+    rawCookieHeader: req.headers.cookie || null,
+    parsedCookies: req.cookies || null,
+    authorizationHeader: req.headers.authorization || null,
+    extractedToken: token ? token.substring(0, 20) + '...' : null
+  });
 
   if (!token) {
     return res.status(401).json(error(['TOKEN_MISSING_OR_MALFORMED'], 401));
@@ -28,7 +37,22 @@ const authenticate = (req, res, next) => {
       return res.status(401).json(error(['USER_ID_INVALID'], 401));
     }
 
-    req.user = { ...decoded, userId: userIdNum };
+    // 🔹 On enrichit req.user avec le token et le cookie brut
+    req.user = {
+      ...decoded,
+      userId: userIdNum,
+      token,
+      cookie: req.headers.cookie || null
+    };
+
+    logger.info('[AUTH] req.user enrichi', {
+      userId: req.user.userId,
+      tokenSnippet: req.user.token.substring(0, 20) + '...',
+      cookieSnippet: req.user.cookie
+        ? req.user.cookie.substring(0, 50) + '...'
+        : null
+    });
+
     next();
   } catch (err) {
     return res.status(401).json(error(['TOKEN_INVALID'], 401));

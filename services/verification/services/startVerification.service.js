@@ -7,9 +7,9 @@ const { success, error } = require('../utils/response');
 /**
  * Démarre la vérification d'un ticket
  * @param {object} payload - { ticketId, signature }
- * @param {string|null} authHeader
+ * @param {object} user - req.user enrichi par le middleware (token + cookie)
  */
-async function startVerificationService(payload, authHeader = null) {
+async function startVerificationService(payload, user) {
   const { ticketId, signature } = payload;
   const numericId = Number(ticketId);
 
@@ -20,7 +20,13 @@ async function startVerificationService(payload, authHeader = null) {
     // 🔹 Lecture ticket complet depuis le Ticket Service (avec includeSecret=true)
     const ticketRes = await axios.get(
       `${process.env.TICKET_URL}/${numericId}?includeSecret=true`,
-      { headers: authHeader ? { Authorization: authHeader } : {} }
+      {
+        headers: {
+          ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+          ...(user?.cookie ? { cookie: user.cookie } : {})
+        },
+        withCredentials: true
+      }
     );
     const ticket = ticketRes.data?.data;
 
@@ -30,7 +36,11 @@ async function startVerificationService(payload, authHeader = null) {
 
     // 🔹 Récupération clé invisible de l’utilisateur
     const userRes = await axios.get(`${process.env.USER_URL}/${ticket.userId}`, {
-      headers: authHeader ? { Authorization: authHeader } : {}
+      headers: {
+        ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+        ...(user?.cookie ? { cookie: user.cookie } : {})
+      },
+      withCredentials: true
     });
     const invisibleKey = userRes.data?.data?.invisibleKey;
     if (!invisibleKey) return error(['USER_KEY_NOT_FOUND']);
@@ -67,8 +77,7 @@ async function startVerificationService(payload, authHeader = null) {
     // 🔹 Mise à jour asynchrone côté Ticket → passage en USED
     console.log('>>> [VERIF SERVICE] Envoi PUT vers Ticket Service pour marquer USED', {
       url: `${process.env.TICKET_URL}/${numericId}`,
-      body: { status: 'USED' },
-      headers: { ...(authHeader ? { Authorization: authHeader } : {}) }
+      body: { status: 'USED' }
     });
 
     axios({
@@ -76,9 +85,11 @@ async function startVerificationService(payload, authHeader = null) {
       url: `${process.env.TICKET_URL}/${numericId}`,
       data: { status: 'USED' },
       headers: {
-        ...(authHeader ? { Authorization: authHeader } : {}),
+        ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+        ...(user?.cookie ? { cookie: user.cookie } : {}),
         'Content-Type': 'application/json'
-      }
+      },
+      withCredentials: true
     })
       .then(res => {
         logger.info('[VERIFICATION SERVICE] Ticket marqué USED côté Ticket Service', {

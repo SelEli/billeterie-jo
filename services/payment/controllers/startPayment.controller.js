@@ -11,6 +11,10 @@ async function startPaymentController(req, res) {
     user: req.user || null
   });
 
+  if (!req.user) {
+    return sendBusinessError(res, 'FORBIDDEN', 403);
+  }
+
   try {
     const isMock = (process.env.USE_MOCK_PAYMENT || '').toLowerCase() === 'true';
 
@@ -19,10 +23,8 @@ async function startPaymentController(req, res) {
       isMock
     });
 
-    // Passe le header d’auth si présent (propriétaire du ticket)
-    const authHeader = req.headers.authorization || null;
-
-    const result = await startPaymentService(ticketId, authHeader, isMock);
+    // 👉 On passe directement req.user au service
+    const result = await startPaymentService(ticketId, req.user, isMock);
 
     logger.info('[START PAYMENT CTRL] Paiement démarré avec succès', {
       ticketId: result.ticketId,

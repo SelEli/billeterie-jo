@@ -1,7 +1,7 @@
 // adapters/verification.adapter.js
 // 🛡️ Adapter Verification (on-site check)
 // - mode: 'mock' | 'live'
-// - live: POST VERIFICATION_URL { ticketId } (JWT attendu)
+// - live: POST VERIFICATION_URL { ticketId } (cookie attendu)
 // - mock: renvoie un succès formaté (USED)
 // - inclut aussi la notification post-vérification (callback) avec VERIFY_CALLBACK_URL ou mock
 
@@ -9,7 +9,7 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 
 module.exports = function createVerificationAdapter({ mode = 'live' } = {}) {
-  async function requestTicketVerification(ticketId, authHeader) {
+  async function requestTicketVerification(ticketId, cookie) {
     if (mode === 'mock') {
       logger.debug('[VERIFICATION ADAPTER] Mock verification', { ticketId });
       return {
@@ -29,7 +29,10 @@ module.exports = function createVerificationAdapter({ mode = 'live' } = {}) {
     const res = await axios.post(
       url,
       { ticketId },
-      { headers: { Authorization: authHeader } }
+      {
+        headers: cookie ? { cookie } : {},
+        withCredentials: true
+      }
     );
     return res.data;
   }

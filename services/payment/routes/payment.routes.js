@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const validateRequest = require('../middlewares/validateRequest.middleware');
+const authenticate = require('../middlewares/auth.middleware'); // 🔑 importe ton middleware
 const { z } = require('zod');
 
 const { startPaymentController } = require('../controllers/startPayment.controller');
@@ -14,6 +15,7 @@ const PaymentSchema = z.object({
 // START
 router.post(
   '/start',
+  authenticate,                 // 👈 ajoute ici
   validateRequest(PaymentSchema),
   startPaymentController
 );
@@ -21,6 +23,7 @@ router.post(
 // CONFIRM
 router.post(
   '/confirm',
+  authenticate,                 // 👈 et ici aussi
   validateRequest(PaymentSchema),
   confirmPaymentController
 );

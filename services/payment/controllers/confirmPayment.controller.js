@@ -11,14 +11,17 @@ async function confirmPaymentController(req, res) {
     user: req.user || null
   });
 
+  if (!req.user) {
+    return sendBusinessError(res, 'FORBIDDEN', 403);
+  }
+
   try {
     const isMock = (process.env.USE_MOCK_PAYMENT || '').toLowerCase() === 'true';
-    const authHeader = req.headers.authorization || null;
 
     logger.debug('[CONFIRM PAYMENT CTRL] Appel du service confirmPaymentService', { ticketId, isMock });
 
-    // 🔹 Passer le Bearer du propriétaire directement au service
-    const result = await confirmPaymentService(ticketId, authHeader, isMock);
+    // 👉 On passe directement req.user
+    const result = await confirmPaymentService(ticketId, req.user, isMock);
 
     logger.info('[CONFIRM PAYMENT CTRL] Paiement confirmé avec succès', {
       ticketId: result.ticketId,
