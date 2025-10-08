@@ -2,27 +2,23 @@
 const jwt = require('jsonwebtoken');
 
 const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
   const secret = process.env.JWT_SECRET;
 
   // Ignore pre-flight
   if (req.method === 'OPTIONS') return next();
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({
-      status: 'error',
-      data: null,
-      errors: ['Token manquant ou mal formé'],
-      meta: {}
-    });
-  }
+  // 🔑 Récupération du token : cookie d'abord, puis header Authorization
+  const token =
+    req.cookies?.access_token ||
+    (req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.split(' ')[1]
+      : null);
 
-  const token = authHeader.split(' ')[1];
   if (!token) {
     return res.status(401).json({
       status: 'error',
       data: null,
-      errors: ['Token vide'],
+      errors: ['Token manquant ou mal formé'],
       meta: {}
     });
   }

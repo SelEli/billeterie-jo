@@ -43,7 +43,7 @@ const makeController = ({ name, validate, service, successType, successMsg, succ
       }
 
       // Service
-      const result = await service(req);
+      const result = await service(req, res);
 
       if (result?.error) {
         logger.warn(`[CORE][${name}] Service returned error: ${result.error}`, {

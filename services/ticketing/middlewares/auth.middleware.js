@@ -1,39 +1,23 @@
-// middlewares/auth.middleware.js
 const jwt = require('jsonwebtoken');
+const { error } = require('../utils/response');
 
 const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
   const secret = process.env.JWT_SECRET;
-
-  // Ignore pre-flight
   if (req.method === 'OPTIONS') return next();
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({
-      status: 'error',
-      data: null,
-      errors: ['Token manquant ou mal formé'],
-      meta: {}
-    });
-  }
+  // 🔑 Récupération du token depuis le cookie ou l'en-tête
+  const token =
+    req.cookies?.access_token ||
+    (req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.split(' ')[1]
+      : null);
 
-  const token = authHeader.split(' ')[1];
   if (!token) {
-    return res.status(401).json({
-      status: 'error',
-      data: null,
-      errors: ['Token vide'],
-      meta: {}
-    });
+    return res.status(401).json(error(['TOKEN_MISSING_OR_MALFORMED'], 401));
   }
 
   if (!secret) {
-    return res.status(500).json({
-      status: 'error',
-      data: null,
-      errors: ['JWT_SECRET non défini'],
-      meta: {}
-    });
+    return res.status(500).json(error(['JWT_SECRET_NOT_DEFINED'], 500));
   }
 
   try {
@@ -41,23 +25,13 @@ const authenticate = (req, res, next) => {
     const userIdNum = Number(decoded.userId);
 
     if (!Number.isInteger(userIdNum) || userIdNum <= 0) {
-      return res.status(401).json({
-        status: 'error',
-        data: null,
-        errors: ['userId invalide'],
-        meta: {}
-      });
+      return res.status(401).json(error(['USER_ID_INVALID'], 401));
     }
 
     req.user = { ...decoded, userId: userIdNum };
     next();
   } catch (err) {
-    return res.status(401).json({
-      status: 'error',
-      data: null,
-      errors: ['Token invalide'],
-      meta: {}
-    });
+    return res.status(401).json(error(['TOKEN_INVALID'], 401));
   }
 };
 

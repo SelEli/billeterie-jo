@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser'); // 👈 ajout
 
 const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
@@ -32,7 +33,7 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // si tu veux autoriser cookies / Authorization
+  credentials: true // autorise cookies / Authorization
 };
 
 const app = express();
@@ -47,6 +48,8 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
+app.use(cookieParser()); // 👈 indispensable pour lire les cookies httpOnly
+
 app.use(
   morgan(
     process.env.MORGAN_FORMAT ||
@@ -102,8 +105,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-
 
 // 🚏 Montage des routes via index
 app.use('/', mainRoutes);

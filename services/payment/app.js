@@ -7,6 +7,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser'); // 👈 ajout
 
 const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
@@ -38,6 +39,7 @@ const app = express();
 // 🌍 Middlewares globaux
 app.use(helmet());
 app.use(express.json());
+app.use(cookieParser()); // 👈 indispensable pour lire les cookies httpOnly
 
 // CORS avant les routes
 app.use(cors(corsOptions));

@@ -1,11 +1,13 @@
-const logger = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
+const {
+  logger,
+  sendBusinessError,
+  sendBusinessSuccess,
+  publishKafkaEvent,
+  ERROR_STATUS,
+  prisma
+} = require('../../utils');
 const { createTicketService } = require('../../services/ticket/createTicket.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { publishKafkaEvent } = require('../../utils/kafkaClient');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
-const prisma = require('../../utils/prismaClient'); // pour vérifier capacité
 
 async function createTicketController(req, res) {
   logger.debug('[TICKET CONTROLLER] Requête création ticket reçue', {
@@ -37,7 +39,7 @@ async function createTicketController(req, res) {
   // ⚡ Vérification capacité
   const event = await prisma.event.findUnique({
     where: { id: req.body.eventId },
-    include: { tickets: true } // récupère tous les tickets existants
+    include: { tickets: true }
   });
 
   if (!event) {
@@ -45,7 +47,7 @@ async function createTicketController(req, res) {
   }
 
   if (event.capacity != null && event.tickets.length >= event.capacity) {
-    return sendBusinessError(res, 'EVENT_FULL'); // ou code/message adapté pour frontend
+    return sendBusinessError(res, 'EVENT_FULL');
   }
 
   const timer = monitor.timer('ticket_create').start();
@@ -58,7 +60,8 @@ async function createTicketController(req, res) {
     };
 
     logger.debug('[TICKET CONTROLLER] Appel service createTicketService', payload);
-    const ticket = await createTicketService(payload, req.headers.authorization);
+    // 👉 On passe directement req.user au service
+    const ticket = await createTicketService(payload, req.user);
 
     // Publication Kafka vers payment-service
     try {

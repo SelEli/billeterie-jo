@@ -61,15 +61,17 @@ export async function apiFetch(path, options = {}) {
   console.log(`✅ URL finale:`, url);
 
   // Préparation des headers
-  const token = localStorage.getItem('token');
   const finalHeaders = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(headers || {}),
   };
   console.log(`📦 Headers finaux:`, finalHeaders);
 
-  const opts = { method, headers: finalHeaders };
+  const opts = {
+    method,
+    headers: finalHeaders,
+    credentials: 'include', // 👈 crucial pour envoyer le cookie httpOnly
+  };
 
   // Sérialisation du body
   if (body && typeof body === 'object') {
@@ -107,10 +109,18 @@ export async function apiFetch(path, options = {}) {
 
   // Gestion de l’expiration de session
   if (res.status === 401) {
-    console.warn(`🔒 Session expirée`);
-    localStorage.removeItem('token');
-    if (typeof window !== 'undefined') window.location.href = '/login';
+    console.warn(`🔒 401 Unauthorized sur ${path}`);
     console.groupEnd();
+
+    // Cas particulier : /auth/profile → simple visiteur
+    if (path.startsWith('/auth/profile')) {
+      throw new Error('VISITOR'); // ton AuthContext interprète ça comme "pas connecté"
+    }
+
+    // Autres routes protégées → redirection login
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
     throw new Error('Session expirée, veuillez vous reconnecter');
   }
 

@@ -2,18 +2,18 @@ const jwt = require('jsonwebtoken');
 const { error } = require('../utils/response');
 
 const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
   const secret = process.env.JWT_SECRET;
-
   if (req.method === 'OPTIONS') return next();
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json(error(['TOKEN_MISSING_OR_MALFORMED'], 401));
-  }
+  // 🔑 Récupération du token depuis le cookie ou l'en-tête
+  const token =
+    req.cookies?.access_token ||
+    (req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.split(' ')[1]
+      : null);
 
-  const token = authHeader.split(' ')[1];
   if (!token) {
-    return res.status(401).json(error(['TOKEN_EMPTY'], 401));
+    return res.status(401).json(error(['TOKEN_MISSING_OR_MALFORMED'], 401));
   }
 
   if (!secret) {
@@ -30,7 +30,7 @@ const authenticate = (req, res, next) => {
 
     req.user = { ...decoded, userId: userIdNum };
     next();
-  } catch {
+  } catch (err) {
     return res.status(401).json(error(['TOKEN_INVALID'], 401));
   }
 };

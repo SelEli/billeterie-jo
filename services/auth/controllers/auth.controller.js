@@ -30,7 +30,22 @@ const authController = {
       const { email, password } = req.body || {};
       if (!email || !password) return 'MISSING_CREDENTIALS';
     },
-    service: (req) => loginService(req.body),
+    // ⚡️ On pose le cookie httpOnly + Secure ici
+    service: async (req, res) => {
+      const result = await loginService(req.body);
+      if (result?.error) return result;
+
+      const { token, ...user } = result;
+
+      res.cookie('access_token', token, {
+        httpOnly: true,
+        secure: true,       // Railway force HTTPS
+        sameSite: 'none',    // ou 'strict' selon ton besoin
+        maxAge: 1000 * 60 * 60 // 1h
+      });
+
+      return user; // on ne renvoie plus le token dans le body
+    },
     successType: 'LOGIN',
     successMsg: 'Login successful'
   }),
@@ -38,8 +53,12 @@ const authController = {
   logoutUser: makeController({
     name: 'logoutUser',
     validate: (req) => (!req.user?.userId ? 'UNAUTHORIZED' : null),
-    service: (req) =>
-      logoutService(req.user).then(() => ({ message: 'Logged out successfully' })),
+    // ⚡️ On supprime le cookie httpOnly ici
+    service: async (req, res) => {
+      await logoutService(req.user);
+      res.clearCookie('access_token');
+      return { message: 'Logged out successfully' };
+    },
     successType: 'LOGOUT',
     successMsg: 'Logged out successfully'
   }),

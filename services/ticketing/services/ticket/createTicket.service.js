@@ -1,13 +1,12 @@
 const crypto = require('crypto');
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
-const axios = require('axios');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 
 async function createTicketService(
   { price, zone, eventId, status, userId, role, offerId = null },
-  authHeader
+  user // 👉 on reçoit directement req.user
 ) {
   logger.debug('[TICKET][CREATE] Payload reçu', { price, zone, userId, role, eventId, status, offerId });
 
@@ -41,24 +40,8 @@ async function createTicketService(
     throw err;
   }
 
-  let found = null;
-  try {
-    if (['ADMIN', 'AGENT', 'EMPLOYEE'].includes(role)) {
-      const url = `${process.env.USER_URL}/${userId}`;
-      logger.debug(`[TICKET][CREATE] Vérif utilisateur interne via ${url}`);
-      const res = await axios.get(url, { headers: { Authorization: authHeader } });
-      if (res.data?.data) found = res.data.data;
-    } else {
-      const url = `${process.env.AUTH_URL}/profile`;
-      logger.debug(`[TICKET][CREATE] Vérif utilisateur public via ${url}`);
-      const res = await axios.get(url, { headers: { Authorization: authHeader } });
-      if (res.data?.data) found = res.data.data;
-    }
-  } catch (err) {
-    logger.warn(`[TICKET SERVICE] User check failed: ${err.message}`);
-  }
-
-  if (!found) {
+  // ✅ Vérification utilisateur via req.user (middleware)
+  if (!user || !user.userId || user.userId !== userId) {
     const e = new Error('USER_NOT_FOUND');
     e.statusCode = ERROR_STATUS.USER_NOT_FOUND;
     throw e;
@@ -110,7 +93,7 @@ async function createTicketService(
     throw err;
   }
 
-  // Invalidation cache (au cas où un cache de liste ou de détail existe déjà)
+  // Invalidation cache
   await invalidateCachedTicket(ticket.id);
 
   logger.info(`[TICKET] Created: ${ticket.id}`);
