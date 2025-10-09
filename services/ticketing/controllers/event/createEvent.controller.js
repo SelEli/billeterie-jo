@@ -13,6 +13,7 @@ async function createEventController(req, res) {
   });
 
   if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
+    logger.warn('[EVENT CONTROLLER] Accès refusé', { user: req.user });
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
@@ -20,9 +21,19 @@ async function createEventController(req, res) {
   let parsed;
   try {
     parsed = EventCreateSchema.parse(req.body);
+    logger.debug('[EVENT CONTROLLER] Validation réussie', parsed);
   } catch (err) {
-    logger.warn('[EVENT CONTROLLER] Validation échouée', { issues: err.issues });
-    return sendBusinessError(res, 'INVALID_EVENT_DATA', err.issues?.map(i => i.message));
+    logger.warn('[EVENT CONTROLLER] Validation échouée', {
+      issues: err.issues?.map(i => ({
+        path: i.path,
+        message: i.message
+      }))
+    });
+    return sendBusinessError(
+      res,
+      'INVALID_EVENT_DATA',
+      err.issues?.map(i => i.message)
+    );
   }
 
   // Nettoyage payload
@@ -41,9 +52,12 @@ async function createEventController(req, res) {
     });
   } catch (error) {
     timer.stop();
-    logger.error('[EVENT CONTROLLER] Erreur création event', { error: error.message });
+    logger.error('[EVENT CONTROLLER] Erreur création event', {
+      error: error.message,
+      stack: error.stack
+    });
     const code =
-      error.message && error.message in ERROR_STATUS
+      error.message && ERROR_STATUS && ERROR_STATUS[error.message]
         ? error.message
         : 'INTERNAL_SERVER_ERROR';
     return sendBusinessError(res, code);

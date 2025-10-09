@@ -1,25 +1,30 @@
 const { z } = require('zod');
 
-// Schéma de base pour un événement
 const EventBaseSchema = z.object({
   label: z.string()
     .min(3, { message: 'Le titre doit contenir au moins 3 caractères' })
     .max(200, { message: 'Le titre ne peut pas dépasser 200 caractères' }),
 
-  date: z.coerce.date(), // on valide la logique métier plus bas
+  date: z.string()
+    .refine(val => !isNaN(Date.parse(val)), { message: 'Date invalide' })
+    .transform(val => new Date(val)),
 
   location: z.string()
     .min(3, { message: 'Le lieu doit contenir au moins 3 caractères' })
     .max(200, { message: 'Le lieu ne peut pas dépasser 200 caractères' }),
 
   category: z.string().max(50).optional(),
-  capacity: z.number().int().positive().optional(),
+  capacity: z.coerce.number().int().positive().optional(),
   status: z.enum(['DRAFT', 'PUBLISHED', 'SOLD_OUT', 'CANCELLED']).optional(),
   description: z.string().max(1000).optional(),
-  imageUrl: z.string().url().optional()
+
+  // plus flexible : accepte undefined, null, ou string vide
+  imageUrl: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string().url().optional()
+  )
 });
 
-// Création : tous les champs obligatoires de base + règle métier sur la date
 const EventCreateSchema = EventBaseSchema.superRefine((data, ctx) => {
   if (data.date && data.date <= new Date()) {
     ctx.addIssue({
@@ -30,9 +35,12 @@ const EventCreateSchema = EventBaseSchema.superRefine((data, ctx) => {
   }
 });
 
-// Mise à jour : tous les champs optionnels + id obligatoire + règle métier sur la date
 const EventUpdateSchema = EventBaseSchema.partial().extend({
-  id: z.string().regex(/^\d+$/, { message: 'id doit être une chaîne numérique' }).transform(Number)
+  // accepte string ou number, converti en number
+  id: z.preprocess(
+    (val) => Number(val),
+    z.number().int().positive()
+  )
 }).superRefine((data, ctx) => {
   if (data.date && data.date <= new Date()) {
     ctx.addIssue({
