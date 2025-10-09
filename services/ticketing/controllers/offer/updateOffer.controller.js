@@ -1,3 +1,4 @@
+// src/ticketing/controllers/offer/updateOffer.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { OfferUpdateSchema } = require('../../schemas/offer.schema');
@@ -13,24 +14,33 @@ async function updateOfferController(req, res) {
   }
 
   if (!req.user || req.user.role !== 'ADMIN') {
+    logger.warn('[OFFER CONTROLLER] Accès refusé', { user: req.user });
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
   let parsed;
   try {
-    parsed = OfferUpdateSchema.parse({
-      ...req.body,
-      eventId: req.body?.eventId ? Number(req.body.eventId) : undefined
-    });
+    parsed = OfferUpdateSchema.parse(req.body);
+    logger.debug('[OFFER CONTROLLER] Validation réussie', parsed);
   } catch (err) {
-    logger.warn('[OFFER CONTROLLER] Validation échouée', { issues: err.issues });
-    return sendBusinessError(res, 'INVALID_OFFER_DATA', err.issues?.map(i => i.message));
+    logger.warn('[OFFER CONTROLLER] Validation échouée', {
+      issues: err.issues?.map(i => ({
+        path: i.path,
+        message: i.message
+      }))
+    });
+    return sendBusinessError(
+      res,
+      'INVALID_OFFER_DATA',
+      err.issues?.map(i => i.message)
+    );
   }
 
   const { id: ignored, ...safePayload } = parsed;
 
   const timer = monitor.timer('offer_update').start();
   try {
+    logger.debug('[OFFER CONTROLLER] Appel service updateOfferService', { id, ...safePayload });
     const offer = await updateOfferService(id, safePayload);
     timer.stop();
 
@@ -39,13 +49,19 @@ async function updateOfferController(req, res) {
     }
 
     logger.info('[OFFER CONTROLLER] Offer mise à jour', { offerId: id });
-    return sendBusinessSuccess(res, 'UPDATE_OFFER', offer, { message: 'Offer updated successfully' });
+    return sendBusinessSuccess(res, 'UPDATE_OFFER', offer, {
+      message: 'Offer updated successfully'
+    });
   } catch (error) {
     timer.stop();
-    logger.error('[OFFER CONTROLLER] Erreur update offer', { error: error.message });
-    const code = error.message && error.message in ERROR_STATUS
-      ? error.message
-      : 'INTERNAL_SERVER_ERROR';
+    logger.error('[OFFER CONTROLLER] Erreur update offer', {
+      error: error.message,
+      stack: error.stack
+    });
+    const code =
+      error.message && ERROR_STATUS && ERROR_STATUS[error.message]
+        ? error.message
+        : 'INTERNAL_SERVER_ERROR';
     return sendBusinessError(res, code);
   }
 }

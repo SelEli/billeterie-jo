@@ -1,3 +1,4 @@
+// src/ticketing/controllers/offer/createOffer.controller.js
 const logger = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
 const { OfferCreateSchema } = require('../../schemas/offer.schema');
@@ -13,6 +14,7 @@ async function createOfferController(req, res) {
   });
 
   if (!req.user || !['ADMIN', 'AGENT'].includes(req.user.role)) {
+    logger.warn('[OFFER CONTROLLER] Accès refusé', { user: req.user });
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
@@ -20,9 +22,19 @@ async function createOfferController(req, res) {
   let parsed;
   try {
     parsed = OfferCreateSchema.parse(req.body);
+    logger.debug('[OFFER CONTROLLER] Validation réussie', parsed);
   } catch (err) {
-    logger.warn('[OFFER CONTROLLER] Validation échouée', { issues: err.issues });
-    return sendBusinessError(res, 'INVALID_OFFER_DATA', err.issues?.map(i => i.message));
+    logger.warn('[OFFER CONTROLLER] Validation échouée', {
+      issues: err.issues?.map(i => ({
+        path: i.path,
+        message: i.message
+      }))
+    });
+    return sendBusinessError(
+      res,
+      'INVALID_OFFER_DATA',
+      err.issues?.map(i => i.message)
+    );
   }
 
   // Nettoyage payload
@@ -41,9 +53,12 @@ async function createOfferController(req, res) {
     });
   } catch (error) {
     timer.stop();
-    logger.error('[OFFER CONTROLLER] Erreur création offer', { error: error.message });
+    logger.error('[OFFER CONTROLLER] Erreur création offer', {
+      error: error.message,
+      stack: error.stack
+    });
     const code =
-      error.message && error.message in ERROR_STATUS
+      error.message && ERROR_STATUS && ERROR_STATUS[error.message]
         ? error.message
         : 'INTERNAL_SERVER_ERROR';
     return sendBusinessError(res, code);

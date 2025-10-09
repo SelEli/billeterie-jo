@@ -5,6 +5,7 @@ const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { TicketUpdateSchema } = require('../../schemas/ticket.schema'); // 🔹 import
 
 async function updateTicketController(req, res) {
   const id = Number(req.params.id);
@@ -12,14 +13,36 @@ async function updateTicketController(req, res) {
     return sendBusinessError(res, 'INVALID_TICKET_ID');
   }
 
+  // ✅ Validation Zod
+  let parsed;
+  try {
+    parsed = TicketUpdateSchema.parse({ ...req.body, id });
+    logger.debug('[TICKET][UPDATE] Validation réussie', parsed);
+  } catch (err) {
+    logger.warn('[TICKET][UPDATE] Validation échouée', {
+      issues: err.issues?.map(i => ({
+        path: i.path,
+        message: i.message
+      }))
+    });
+    return sendBusinessError(
+      res,
+      'INVALID_TICKET_DATA',
+      err.issues?.map(i => i.message)
+    );
+  }
+
+  // Interdiction métier : ne pas forcer un ticket en VALID
+  if (parsed.status && parsed.status === 'VALID') {
+    return sendBusinessError(res, 'INVALID_TICKET_STATUS');
+  }
+
+  const { id: ignored, ...safePayload } = parsed;
+
   const timer = monitor.timer('ticket_update').start();
   try {
-    if (req.body.status && req.body.status === 'VALID') {
-      return sendBusinessError(res, 'INVALID_TICKET_STATUS');
-    }
-
-    const updates = { ...req.body };
-    const ticket  = await updateTicketService(id, updates);
+    logger.debug('[TICKET][UPDATE] Appel service updateTicketService', { id, safePayload });
+    const ticket = await updateTicketService(id, safePayload);
     timer.stop();
 
     if (!ticket) {
@@ -42,13 +65,16 @@ async function updateTicketController(req, res) {
     }
 
     const { secretKey, ...safeTicket } = ticket;
-    return sendBusinessSuccess(res, 'UPDATE_TICKET', safeTicket, { message: 'Ticket updated successfully' });
+    return sendBusinessSuccess(res, 'UPDATE_TICKET', safeTicket, {
+      message: 'Ticket updated successfully'
+    });
   } catch (error) {
     timer.stop();
-    logger.error('Error updating ticket', error);
-    const code = error.message && error.message in ERROR_STATUS
-      ? error.message
-      : 'INTERNAL_SERVER_ERROR';
+    logger.error('[TICKET][UPDATE] Erreur update ticket', { error: error.message });
+    const code =
+      error.message && error.message in ERROR_STATUS
+        ? error.message
+        : 'INTERNAL_SERVER_ERROR';
     return sendBusinessError(res, code);
   }
 }

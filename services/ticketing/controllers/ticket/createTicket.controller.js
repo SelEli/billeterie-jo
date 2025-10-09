@@ -5,10 +5,10 @@ const {
   sendBusinessSuccess,
   publishKafkaEvent,
   ERROR_STATUS,
-  SUCCESS_STATUS,
   prisma
 } = require('../../utils');
 const { createTicketService } = require('../../services/ticket/createTicket.service');
+const { TicketCreateSchema } = require('../../schemas/ticket.schema'); // 🔹 import du schéma
 
 async function createTicketController(req, res) {
   logger.info('[CTRL][CREATE] Entrée', { user: req.user, body: req.body });
@@ -18,46 +18,49 @@ async function createTicketController(req, res) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
-  const missing = [];
-  if (req.body.price == null) missing.push('price');
-  if (!req.body.zone) missing.push('zone');
-  if (req.body.eventId == null) missing.push('eventId');
-  if (!req.body.status) missing.push('status');
-  if (missing.length) {
-    logger.warn('[CTRL][CREATE] Champs manquants', { missing });
-    return sendBusinessError(res, 'MISSING_REQUIRED_FIELDS');
+  // ✅ Validation Zod
+  let parsed;
+  try {
+    parsed = TicketCreateSchema.parse(req.body);
+    logger.debug('[CTRL][CREATE] Validation réussie', parsed);
+  } catch (err) {
+    logger.warn('[CTRL][CREATE] Validation échouée', {
+      issues: err.issues?.map(i => ({
+        path: i.path,
+        message: i.message
+      }))
+    });
+    return sendBusinessError(
+      res,
+      'INVALID_TICKET_DATA',
+      err.issues?.map(i => i.message)
+    );
   }
 
-  if (typeof req.body.price !== 'number' || req.body.price <= 0) {
-    return sendBusinessError(res, 'INVALID_TICKET_DATA');
-  }
-  if (!Number.isInteger(Number(req.body.eventId)) || Number(req.body.eventId) <= 0) {
-    return sendBusinessError(res, 'INVALID_EVENT_ID');
-  }
-
-  logger.debug('[CTRL][CREATE] Vérif event capacity', { eventId: req.body.eventId });
+  // Vérif capacité event
+  logger.debug('[CTRL][CREATE] Vérif event capacity', { eventId: parsed.eventId });
   const event = await prisma.event.findUnique({
-    where: { id: req.body.eventId },
+    where: { id: parsed.eventId },
     include: { tickets: true }
   });
 
   if (!event) {
-    logger.warn('[CTRL][CREATE] EVENT_NOT_FOUND', { eventId: req.body.eventId });
+    logger.warn('[CTRL][CREATE] EVENT_NOT_FOUND', { eventId: parsed.eventId });
     return sendBusinessError(res, 'EVENT_NOT_FOUND');
   }
 
   if (event.capacity != null && event.tickets.length >= event.capacity) {
-    logger.warn('[CTRL][CREATE] EVENT_FULL', { eventId: req.body.eventId });
+    logger.warn('[CTRL][CREATE] EVENT_FULL', { eventId: parsed.eventId });
     return sendBusinessError(res, 'EVENT_FULL');
   }
 
   const timer = monitor.timer('ticket_create').start();
   try {
     const payload = {
-      ...req.body,
+      ...parsed,
       userId: req.user.userId,
       role: req.user.role,
-      status: 'RESERVED'
+      status: 'RESERVED' // forcé côté back
     };
 
     logger.debug('[CTRL][CREATE] Appel service createTicketService', { payload });
@@ -73,6 +76,7 @@ async function createTicketController(req, res) {
       message: 'Ticket created successfully'
     });
 
+    // Kafka events
     publishKafkaEvent('payment', {
       type: 'PaymentRequested',
       ticketId: ticket.id,

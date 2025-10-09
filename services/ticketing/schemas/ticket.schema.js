@@ -1,49 +1,53 @@
 const { z } = require('zod');
 
-/**
- * Schéma pour la création d'un ticket.
- * - userId obligatoire et > 0
- * - eventId et offerId peuvent être null ou absents (nullable().optional())
- * - zone obligatoire (min 1 caractère)
- * - price >= 0 (y compris billets gratuits)
- * - status optionnel dans un ensemble fixé
- */
-const TicketCreateSchema = z.object({
-  userId: z.number().min(1, { message: 'userId doit être un nombre positif' }),
+// Enum aligné sur Prisma
+const ticketStatuses = ['RESERVED', 'VALID', 'USED', 'CANCELLED', 'EXPIRED'];
 
-  eventId: z.number()
-    .min(1, { message: 'eventId doit être un nombre positif' })
-    .nullable()
-    .optional(),
+// Schéma de base
+const TicketBaseSchema = z.object({
+  price: z.coerce.number()
+    .positive({ message: 'Le prix doit être un nombre positif' }),
 
-  zone: z.string().min(1, { message: 'zone ne peut pas être vide' }),
+  zone: z.string().max(100).optional(),
 
-  price: z.number().nonnegative({ message: 'price doit être >= 0' }),
+  status: z.enum(ticketStatuses).optional(), // par défaut RESERVED côté Prisma
 
-  status: z.enum(['RESERVED', 'VALID', 'USED', 'CANCELLED', 'EXPIRED']).optional(),
+  userId: z.coerce.number()
+    .int()
+    .positive({ message: 'userId doit être un entier positif' }),
 
-  offerId: z.number()
-    .min(1, { message: 'offerId doit être un nombre positif' })
-    .nullable()
-    .optional()
+  eventId: z.coerce.number().int().positive().optional(),
+  offerId: z.coerce.number().int().positive().optional(),
+
+  // secretKey et signature sont générés côté service → pas dans le create
 });
 
-/**
- * Schéma pour la mise à jour partielle d'un ticket.
- * - Tous les champs de création sont optionnels
- * - On n’exige plus d’`id` dans le body (il est déjà dans l’URL)
- * - On autorise explicitement la mise à jour du champ `status`
- */
-const TicketUpdateSchema = TicketCreateSchema.partial().extend({
-  status: z.enum(['RESERVED', 'VALID', 'USED', 'CANCELLED', 'EXPIRED']).optional()
+// Création
+const TicketCreateSchema = TicketBaseSchema.superRefine((data, ctx) => {
+  // Exemple de règle métier : un ticket doit être lié à un event
+  if (!data.eventId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Un ticket doit être lié à un événement',
+      path: ['eventId']
+    });
+  }
 });
 
-/**
- * Schéma pour la validation d'un ticket.
- * - ticketId obligatoire, entier > 0
- */
+// Mise à jour (tous champs optionnels + id obligatoire)
+const TicketUpdateSchema = TicketBaseSchema.partial().extend({
+  id: z.preprocess(
+    (val) => Number(val),
+    z.number().int().positive()
+  )
+});
+
+// Validation (juste ticketId obligatoire)
 const TicketValidateSchema = z.object({
-  ticketId: z.number().min(1, { message: 'ticketId doit être un entier positif' })
+  ticketId: z.preprocess(
+    (val) => Number(val),
+    z.number().int().positive({ message: 'ticketId doit être un entier positif' })
+  )
 });
 
 module.exports = {

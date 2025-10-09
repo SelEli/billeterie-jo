@@ -3,37 +3,55 @@ const { validateTicketService } = require('../../services/ticket/validateTicket.
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
+const prisma = require('../../utils/prismaClient');
+const { publishKafkaEvent } = require('../../utils/kafkaClient');
+const { TicketValidateSchema } = require('../../schemas/ticket.schema');
 
 async function validateTicketController(req, res) {
-  logger.info('[VALIDATE CTRL] Incoming request details', {
+  logger.info('[VALIDATE CTRL] Incoming request', {
     method: req.method,
     url: req.originalUrl,
-    headers: req.headers,
     body: req.body,
-    query: req.query
+    user: req.user
   });
 
   if (!req.user) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
+  // ✅ Validation Zod
+  let parsed;
   try {
-    const { ticketId } = req.body;
-    const ticketIdNum = Number(ticketId);
-    if (!ticketId || isNaN(ticketIdNum)) {
-      return sendBusinessError(res, 'INVALID_TICKET_ID');
-    }
+    parsed = TicketValidateSchema.parse(req.body);
+    logger.debug('[VALIDATE CTRL] Validation réussie', parsed);
+  } catch (err) {
+    logger.warn('[VALIDATE CTRL] Validation échouée', {
+      issues: err.issues?.map(i => ({ path: i.path, message: i.message }))
+    });
+    return sendBusinessError(
+      res,
+      'INVALID_TICKET_DATA',
+      err.issues?.map(i => i.message)
+    );
+  }
 
-    logger.info('[VALIDATE CTRL] Validation ticket', { ticketId: ticketIdNum });
+  const ticketIdNum = parsed.ticketId;
 
-    // 1️⃣ Valider le ticket localement (avec signature)
-    const updated = await validateTicketService(ticketIdNum, req.user);
-
-    if (!updated) {
+  try {
+    // 1️⃣ Validation locale (signature, etc.)
+    const validated = await validateTicketService(ticketIdNum, req.user);
+    if (!validated) {
       return sendBusinessError(res, 'TICKET_NOT_FOUND');
     }
 
-    // 2️⃣ Si paiement externe, notifier Payment que c’est validé
+    // 2️⃣ Passage en VALID
+    const updated = await prisma.ticket.update({
+      where: { id: ticketIdNum },
+      data: { status: 'VALID' }
+    });
+    logger.info('[VALIDATE CTRL] Ticket passé en VALID', { ticketId: updated.id });
+
+    // 3️⃣ Notifier Payment si activé
     if ((process.env.USE_EXTERNAL_PAYMENT || '').toLowerCase() === 'true') {
       const adapters = createAdapters();
       try {
@@ -44,11 +62,30 @@ async function validateTicketController(req, res) {
           ticketId: ticketIdNum,
           error: err.message
         });
-        // On ne bloque pas la réponse au client
       }
     }
 
-    return sendBusinessSuccess(res, 'VALIDATE_TICKET', updated);
+    // 4️⃣ Kafka event
+    try {
+      await publishKafkaEvent('ticketing', {
+        type: 'TicketValidated',
+        ticketId: updated.id,
+        userId: updated.userId,
+        eventId: updated.eventId,
+        offerId: updated.offerId,
+        price: updated.price,
+        zone: updated.zone,
+        status: updated.status
+      });
+    } catch (err) {
+      logger.warn(`[VALIDATE CTRL] Kafka publish skipped: ${err.message}`);
+    }
+
+    // 5️⃣ Réponse
+    const { secretKey, ...safeTicket } = updated;
+    return sendBusinessSuccess(res, 'VALIDATE_TICKET', safeTicket, {
+      message: 'Ticket validated successfully'
+    });
 
   } catch (err) {
     logger.error('[VALIDATE CTRL] Error', { message: err.message });

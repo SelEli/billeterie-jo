@@ -1,8 +1,5 @@
 const { z } = require('zod');
 
-// Rôles cibles possibles
-const roles = ['VISITOR', 'USER', 'ADMIN', 'EMPLOYEE', 'AGENT'];
-
 // Schéma de base
 const OfferBaseSchema = z.object({
   label: z.string()
@@ -13,20 +10,29 @@ const OfferBaseSchema = z.object({
     .min(0, { message: 'La réduction doit être >= 0' })
     .max(1, { message: 'La réduction doit être <= 1 (ex: 0.25 pour 25%)' }),
 
-  active: z.boolean().optional(),
-  targetRole: z.enum(roles).optional(),
+  // accepte "", null, undefined → ignoré ; sinon coercion en booléen
+  active: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.coerce.boolean().optional()
+  ),
 
   eventId: z.coerce.number().int().positive().optional(),
 
-  validFrom: z.string()
-    .refine(val => !isNaN(Date.parse(val)), { message: 'Date invalide' })
-    .transform(val => new Date(val))
-    .optional(),
+  validFrom: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string()
+      .refine(val => !isNaN(Date.parse(val)), { message: 'Date invalide' })
+      .transform(val => new Date(val))
+      .optional()
+  ),
 
-  validTo: z.string()
-    .refine(val => !isNaN(Date.parse(val)), { message: 'Date invalide' })
-    .transform(val => new Date(val))
-    .optional(),
+  validTo: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string()
+      .refine(val => !isNaN(Date.parse(val)), { message: 'Date invalide' })
+      .transform(val => new Date(val))
+      .optional()
+  ),
 
   quota: z.coerce.number().int().positive().optional()
 });
