@@ -5,17 +5,16 @@ const {
   sendBusinessSuccess,
   publishKafkaEvent,
   ERROR_STATUS,
+  SUCCESS_STATUS,
   prisma
 } = require('../../utils');
 const { createTicketService } = require('../../services/ticket/createTicket.service');
 
 async function createTicketController(req, res) {
-  logger.debug('[TICKET CONTROLLER] Requête création ticket reçue', {
-    user: req.user,
-    body: req.body
-  });
+  logger.info('[CTRL][CREATE] Entrée', { user: req.user, body: req.body });
 
   if (!req.user) {
+    logger.warn('[CTRL][CREATE] req.user absent → FORBIDDEN');
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
@@ -25,7 +24,7 @@ async function createTicketController(req, res) {
   if (req.body.eventId == null) missing.push('eventId');
   if (!req.body.status) missing.push('status');
   if (missing.length) {
-    logger.warn('[TICKET CONTROLLER] Champs manquants', { missing });
+    logger.warn('[CTRL][CREATE] Champs manquants', { missing });
     return sendBusinessError(res, 'MISSING_REQUIRED_FIELDS');
   }
 
@@ -36,17 +35,19 @@ async function createTicketController(req, res) {
     return sendBusinessError(res, 'INVALID_EVENT_ID');
   }
 
-  // ⚡ Vérification capacité
+  logger.debug('[CTRL][CREATE] Vérif event capacity', { eventId: req.body.eventId });
   const event = await prisma.event.findUnique({
     where: { id: req.body.eventId },
     include: { tickets: true }
   });
 
   if (!event) {
+    logger.warn('[CTRL][CREATE] EVENT_NOT_FOUND', { eventId: req.body.eventId });
     return sendBusinessError(res, 'EVENT_NOT_FOUND');
   }
 
   if (event.capacity != null && event.tickets.length >= event.capacity) {
+    logger.warn('[CTRL][CREATE] EVENT_FULL', { eventId: req.body.eventId });
     return sendBusinessError(res, 'EVENT_FULL');
   }
 
@@ -59,48 +60,43 @@ async function createTicketController(req, res) {
       status: 'RESERVED'
     };
 
-    logger.debug('[TICKET CONTROLLER] Appel service createTicketService', payload);
-    // 👉 On passe directement req.user au service
+    logger.debug('[CTRL][CREATE] Appel service createTicketService', { payload });
     const ticket = await createTicketService(payload, req.user);
 
-    // Publication Kafka vers payment-service
-    try {
-      await publishKafkaEvent('payment', {
-        type: 'PaymentRequested',
-        ticketId: ticket.id,
-        amount: ticket.price
-      });
-      logger.debug(`[TICKET CONTROLLER] PaymentRequested publié pour ticket ${ticket.id}`);
-    } catch (err) {
-      logger.warn(`[TICKET CONTROLLER] Kafka publish vers payment échoué: ${err.message}`);
-    }
-
-    // Publication Kafka interne sur "ticket"
-    try {
-      await publishKafkaEvent('ticket', {
-        type: 'TicketCreated',
-        ticketId: ticket.id,
-        userId: ticket.userId,
-        eventId: ticket.eventId,
-        offerId: ticket.offerId,
-        price: ticket.price,
-        zone: ticket.zone,
-        status: ticket.status
-      });
-    } catch (err) {
-      logger.warn(`[TICKET CONTROLLER] Kafka publish skipped: ${err.message}`);
-    }
-
     timer.stop();
-    logger.info('[TICKET CONTROLLER] Ticket créé avec succès', { ticketId: ticket.id });
+    logger.info('[CTRL][CREATE] Ticket créé', { ticketId: ticket.id });
 
     const { secretKey, ...safeTicket } = ticket;
-    return sendBusinessSuccess(res, 'CREATE_TICKET', safeTicket, {
+
+    logger.debug('[CTRL][CREATE] Envoi réponse au client', { safeTicket });
+    sendBusinessSuccess(res, 'CREATE_TICKET', safeTicket, {
       message: 'Ticket created successfully'
     });
+
+    publishKafkaEvent('payment', {
+      type: 'PaymentRequested',
+      ticketId: ticket.id,
+      amount: ticket.price
+    }).catch(err =>
+      logger.warn(`[CTRL][CREATE] Kafka publish vers payment échoué: ${err.message}`)
+    );
+
+    publishKafkaEvent('ticket', {
+      type: 'TicketCreated',
+      ticketId: ticket.id,
+      userId: ticket.userId,
+      eventId: ticket.eventId,
+      offerId: ticket.offerId,
+      price: ticket.price,
+      zone: ticket.zone,
+      status: ticket.status
+    }).catch(err =>
+      logger.warn(`[CTRL][CREATE] Kafka publish ticket échoué: ${err.message}`)
+    );
+
   } catch (error) {
     timer.stop();
-    logger.error('[TICKET CONTROLLER] Erreur création ticket', { error: error.message });
+    logger.error('[CTRL][CREATE] Erreur création ticket', { error: error.message });
     const code =
       error.message && error.message in ERROR_STATUS
         ? error.message

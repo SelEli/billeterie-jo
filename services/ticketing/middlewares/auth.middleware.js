@@ -1,19 +1,17 @@
 const jwt = require('jsonwebtoken');
 const { error } = require('../utils/response');
-const logger = require('../utils/logger'); // ⚠️ ajoute ton logger
+const logger = require('../utils/logger');
 
 const authenticate = (req, res, next) => {
   const secret = process.env.JWT_SECRET;
   if (req.method === 'OPTIONS') return next();
 
-  // 🔑 Récupération du token depuis le cookie ou l'en-tête
   const token =
     req.cookies?.access_token ||
     (req.headers.authorization?.startsWith('Bearer ')
       ? req.headers.authorization.split(' ')[1]
       : null);
 
-  // 🔎 Log complet pour debug
   logger.info('[AUTH] Vérification des infos reçues', {
     rawCookieHeader: req.headers.cookie || null,
     parsedCookies: req.cookies || null,
@@ -22,10 +20,12 @@ const authenticate = (req, res, next) => {
   });
 
   if (!token) {
+    logger.warn('[AUTH] Aucun token trouvé');
     return res.status(401).json(error(['TOKEN_MISSING_OR_MALFORMED'], 401));
   }
 
   if (!secret) {
+    logger.error('[AUTH] JWT_SECRET manquant');
     return res.status(500).json(error(['JWT_SECRET_NOT_DEFINED'], 500));
   }
 
@@ -34,10 +34,10 @@ const authenticate = (req, res, next) => {
     const userIdNum = Number(decoded.userId);
 
     if (!Number.isInteger(userIdNum) || userIdNum <= 0) {
+      logger.warn('[AUTH] userId invalide dans le token', decoded);
       return res.status(401).json(error(['USER_ID_INVALID'], 401));
     }
 
-    // 🔹 On enrichit req.user avec le token et le cookie brut
     req.user = {
       ...decoded,
       userId: userIdNum,
@@ -47,6 +47,7 @@ const authenticate = (req, res, next) => {
 
     logger.info('[AUTH] req.user enrichi', {
       userId: req.user.userId,
+      role: req.user.role,
       tokenSnippet: req.user.token.substring(0, 20) + '...',
       cookieSnippet: req.user.cookie
         ? req.user.cookie.substring(0, 50) + '...'
@@ -55,6 +56,7 @@ const authenticate = (req, res, next) => {
 
     next();
   } catch (err) {
+    logger.error('[AUTH] Erreur vérification JWT', { error: err.message });
     return res.status(401).json(error(['TOKEN_INVALID'], 401));
   }
 };

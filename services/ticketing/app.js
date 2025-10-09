@@ -8,7 +8,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser'); // 👈 ajout
+const cookieParser = require('cookie-parser');
 
 const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
@@ -32,7 +32,8 @@ const corsOptions = {
     return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], // 👈 ajout Cookie
+  exposedHeaders: ['Set-Cookie'], // 👈 expose Set-Cookie au client
   credentials: true // autorise cookies / Authorization
 };
 
@@ -86,7 +87,8 @@ app.use((req, res, next) => {
     ip: req.ip,
     userAgent: req.headers['user-agent'],
     body: req.body,
-    jwt: decoded
+    jwt: decoded,
+    cookieHeader: req.headers.cookie || null
   });
 
   next();

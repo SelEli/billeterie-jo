@@ -1,58 +1,41 @@
-// utils/index.js
-
-// 🔐 Keys management (ex-clefs.js)
-const keys = require('./keys');
-
-// 🔑 JWT utilities
+const { generateInvisibleKey, combineKeys, verifyKeys } = require('./keys');
 const jwtUtils = require('./jwt');
-
-// 📡 Kafka
-const { initKafka, publishKafkaEvent, kafka } = require('./kafkaClient');
-
-// 🪵 Logger
+const { initKafka, publishKafkaEvent, kafka, startKafkaConsumer } = require('./kafkaClient');
 const logger = require('./logger');
-
-// 🗄 Prisma
 const prisma = require('./prismaClient');
-
-// ⚡ Redis
 const { initRedis, getRedis } = require('./redisClient');
-
-// 🆔 Request ID middleware
 const requestId = require('./requestId');
-
-// 📦 Uniform JSON responses
 const { success, error } = require('./response');
+const { ERROR_STATUS, statusFrom } = require('./httpErrorMap');
+const { SUCCESS_STATUS, successFrom } = require('./httpSuccessMap');
+const { sendBusinessError } = require('./sendError');
+const { sendBusinessSuccess } = require('./sendSuccess');
+const { startConsumer, requestPayment, requestVerification } = require('./kafkaConsumer'); // 👈 ton fichier consumer
 
 module.exports = {
-  // Keys
-  generateInvisibleKey: keys.generateInvisibleKey,
-  combineKeys: keys.combineKeys,
-  verifyKeys: keys.verifyKeys,
-
-  // JWT
+  generateInvisibleKey,
+  combineKeys,
+  verifyKeys,
   ...jwtUtils,
-
-  // Kafka
   initKafka,
   publishKafkaEvent,
   kafka,
-
-  // Logger
+  startKafkaConsumer,
   logger,
   formatLogContext: logger.formatLogContext,
-
-  // Prisma
   prisma,
-
-  // Redis
   initRedis,
   getRedis,
-
-  // Request ID
   requestId,
-
-  // JSON responses
   success,
-  error
+  error,
+  ERROR_STATUS,
+  statusFrom,
+  SUCCESS_STATUS,
+  successFrom,
+  sendBusinessError,
+  sendBusinessSuccess,
+  startConsumer,
+  requestPayment,
+  requestVerification
 };
