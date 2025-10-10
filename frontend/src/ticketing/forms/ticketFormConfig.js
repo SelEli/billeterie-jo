@@ -1,5 +1,4 @@
-// src/ticketing/forms/ticketFormConfig.js
-
+//frontend/src/ticketing/forms/ticketFormConfig.js
 export const ticketFields = [
   { name: 'price', label: 'Prix (€)', type: 'number' },
 

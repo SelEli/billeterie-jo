@@ -7,29 +7,60 @@ const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 async function updateTicketService(id, data) {
   const numericId = typeof id === 'string' ? Number(id) : id;
 
+  logger.debug('[TICKET][UPDATE] Service appelé', { id, numericId, data });
+
   let ticket;
   try {
+    logger.debug('[TICKET][UPDATE] Appel Prisma.update', {
+      where: { id: numericId },
+      data
+    });
+
     ticket = await prisma.ticket.update({
       where: { id: numericId },
       data
     });
-  } catch {
-    const err = new Error('TICKET_NOT_FOUND');
-    err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
-    throw err;
+
+    logger.debug('[TICKET][UPDATE] Prisma a retourné', ticket);
+  } catch (err) {
+    logger.error('[TICKET][UPDATE] Prisma.update a levé une erreur', {
+      id: numericId,
+      data,
+      error: err.message,
+      stack: err.stack
+    });
+    const e = new Error('TICKET_NOT_FOUND');
+    e.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
+    throw e;
   }
 
   if (!ticket) {
-    const err = new Error('TICKET_NOT_FOUND');
-    err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
-    throw err;
+    logger.error('[TICKET][UPDATE] Aucun ticket retourné par Prisma', {
+      id: numericId,
+      data
+    });
+    const e = new Error('TICKET_NOT_FOUND');
+    e.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
+    throw e;
   }
 
-  logger.info(`[TICKET] Updated: ${ticket.id}`);
+  logger.info('[TICKET][UPDATE] Ticket mis à jour', {
+    id: ticket.id,
+    status: ticket.status
+  });
 
   // Invalidation cache
-  await invalidateCachedTicket(numericId);
+  try {
+    await invalidateCachedTicket(numericId);
+    logger.debug('[TICKET][UPDATE] Cache invalidé', { id: numericId });
+  } catch (err) {
+    logger.warn('[TICKET][UPDATE] Erreur lors de l’invalidation du cache', {
+      id: numericId,
+      error: err.message
+    });
+  }
 
+  // Publication Kafka
   try {
     await publishKafkaEvent('ticket', {
       type: 'TicketUpdated',
@@ -41,9 +72,12 @@ async function updateTicketService(id, data) {
       zone: ticket.zone,
       status: ticket.status
     });
-    logger.debug('[TICKET][UPDATE] Kafka event published');
+    logger.debug('[TICKET][UPDATE] Kafka event publié', { ticketId: ticket.id });
   } catch (err) {
-    logger.warn(`[TICKET][UPDATE] Kafka publish skipped: ${err.message}`);
+    logger.warn('[TICKET][UPDATE] Kafka publish skipped', {
+      id: numericId,
+      error: err.message
+    });
   }
 
   return ticket;

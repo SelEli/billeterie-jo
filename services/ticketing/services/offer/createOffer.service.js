@@ -9,10 +9,10 @@ async function createOfferService(data) {
   const t = timer('createOfferService').start();
 
   try {
-    // Whitelist des champs attendus par Prisma
+    // On laisse Zod transformer les dates, pas de new Date ici
     const safeData = {
-      label: data.label,
-      discount: data.discount,
+      label: data.label ?? null,
+      discount: data.discount ?? null,
       active: data.active ?? true,
       validFrom: data.validFrom ?? null,
       validTo: data.validTo ?? null,
@@ -37,6 +37,7 @@ async function createOfferService(data) {
     logger.info(`[OFFER] Created: ${offer.id}`);
     t.success();
     return offer;
+
   } catch (err) {
     logger.error(`[OFFER] Failed to create: ${err.message}`);
     t.fail(err);

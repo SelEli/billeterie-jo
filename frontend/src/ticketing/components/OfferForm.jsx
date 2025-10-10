@@ -1,4 +1,4 @@
-// src/offer/components/OfferForm.jsx
+// frontend/src/offer/components/OfferForm.jsx
 import GenericForm from '../../common/components/GenericForm';
 import { offerFields } from '../forms/offerFormConfig';
 import { useAuth } from '../../common/context/AuthContext';
@@ -10,7 +10,6 @@ export default function OfferForm({
   isEdit = false
 }) {
   const { user, hasRole } = useAuth();
-
   const canEdit = user && hasRole('ADMIN');
 
   return (

@@ -1,3 +1,4 @@
+// frontend/src/ticketing/pages/OfferCreate.jsx
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import OfferForm from '../components/OfferForm';

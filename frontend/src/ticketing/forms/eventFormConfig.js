@@ -1,3 +1,4 @@
+//frontend/src/ticketing/forms/eventFormConfig.js
 export const eventFields = [
   { name: 'label', label: 'Nom de l’événement', type: 'text' },
   { name: 'category', label: 'Catégorie', type: 'text' },

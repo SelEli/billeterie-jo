@@ -1,4 +1,3 @@
-// 📦 Charger les variables d'environnement uniquement en dev
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: '.env.development' });
 }
@@ -12,10 +11,9 @@ const cookieParser = require('cookie-parser');
 
 const { logger, requestId, formatLogContext } = require('./utils');
 const { error } = require('./utils/response');
-const mainRoutes = require('./routes'); // <-- index des routes
+const mainRoutes = require('./routes');
 
 // --- Config avec valeurs par défaut ---
-// On inclut Railway + localhost par défaut si CORS_ORIGINS n'est pas défini
 const allowedOrigins = (process.env.CORS_ORIGINS ||
   'http://localhost:5173,https://frontend-production-a1c6.up.railway.app'
 )
@@ -25,32 +23,44 @@ const allowedOrigins = (process.env.CORS_ORIGINS ||
 
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log('🌍 Origin reçue:', origin); // log pour debug
-    if (!origin) return callback(null, true); // Postman/curl
+    logger.debug('🌍 Origin reçue', { origin });
+    if (!origin) return callback(null, true);
     if (allowedOrigins.length === 0) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], // 👈 ajout Cookie
-  exposedHeaders: ['Set-Cookie'], // 👈 expose Set-Cookie au client
-  credentials: true // autorise cookies / Authorization
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
+  credentials: true
 };
 
 const app = express();
 
-// 🌍 Middlewares globaux
 app.use(helmet());
-
-// CORS doit être placé avant les routes
 app.use(cors(corsOptions));
-
-// Réponse aux préflights OPTIONS
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
-app.use(cookieParser()); // 👈 indispensable pour lire les cookies httpOnly
 
+// 🔎 Capture spécifique des erreurs du body parser
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    const fields = {
+      message: err.message,
+      stack: err.stack,
+      headers: req.headers,
+      rawBody: req.body
+    };
+    for (const [key, value] of Object.entries(fields)) {
+      logger.error(`[APP][BODY PARSER ERROR] ${key}:`, value);
+    }
+    return res.status(400).json(error(['INVALID_JSON']));
+  }
+  next(err);
+});
+
+app.use(cookieParser());
 app.use(
   morgan(
     process.env.MORGAN_FORMAT ||
@@ -58,12 +68,20 @@ app.use(
   )
 );
 
-// 🆔 ID unique pour chaque requête
 app.use(requestId);
 
 // 🪵 Logger compact global
 app.use((req, res, next) => {
-  logger.debug(`[APP][REQ] ${formatLogContext(req)}`);
+  const reqInfo = {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    headers: req.headers,
+    body: req.body
+  };
+  for (const [key, value] of Object.entries(reqInfo)) {
+    logger.info(`[APP][REQ] ${key}:`, value);
+  }
   next();
 });
 
@@ -75,13 +93,13 @@ app.use((req, res, next) => {
   if (auth && auth.startsWith('Bearer ')) {
     try {
       const token = auth.split(' ')[1];
-      decoded = jwt.decode(token); // decode sans vérification de signature
+      decoded = jwt.decode(token);
     } catch (e) {
       decoded = { error: 'JWT decode failed', message: e.message };
     }
   }
 
-  console.log('>>> [GLOBAL INCOMING REQUEST]', {
+  const globalInfo = {
     method: req.method,
     url: req.originalUrl,
     ip: req.ip,
@@ -89,7 +107,10 @@ app.use((req, res, next) => {
     body: req.body,
     jwt: decoded,
     cookieHeader: req.headers.cookie || null
-  });
+  };
+  for (const [key, value] of Object.entries(globalInfo)) {
+    logger.debug(`>>> [GLOBAL INCOMING REQUEST] ${key}:`, value);
+  }
 
   next();
 });
@@ -97,10 +118,8 @@ app.use((req, res, next) => {
 // 🚫 Hack anti-GET parasite sur /ticket/verify
 app.use((req, res, next) => {
   if (req.path === '/ticket/verify' && req.method === 'GET') {
-    console.warn('⚠️ GET parasite intercepté → transformé en POST');
+    logger.warn('⚠️ GET parasite intercepté → transformé en POST');
     req.method = 'POST';
-
-    // Si jamais le ticketId est passé en query, on le mappe dans le body
     if (req.query.ticketId && !req.body.ticketId) {
       req.body.ticketId = req.query.ticketId;
     }
@@ -119,16 +138,25 @@ app.get('/health', (req, res) => {
 
 // 🚫 404 — non trouvé
 app.use((req, res) => {
-  logger.warn(`[APP][404] Route not found: ${req.method} ${req.originalUrl}`);
+  logger.warn('[APP][404] Route not found', {
+    method: req.method,
+    url: req.originalUrl
+  });
   res.status(404).json(error(['Route not found.']));
 });
 
 // 🛑 Gestion globale des erreurs
 app.use((err, req, res, next) => {
-  logger.error('[APP][ERROR] Unhandled error object:', err);
-  logger.error('[APP][ERROR] Stack trace:', err && err.stack);
-  if (req.body && Object.keys(req.body).length) {
-    logger.error('[APP][ERROR] Request body at error time:', req.body);
+  const fields = {
+    name: err.name,
+    message: err.message,
+    stack: err.stack,
+    statusCode: err.statusCode,
+    headers: req.headers,
+    body: req.body
+  };
+  for (const [key, value] of Object.entries(fields)) {
+    logger.error(`[APP][ERROR] ${key}:`, value);
   }
   const code = err.statusCode || 500;
   res.status(code).json(error([err.message || 'Internal server error.']));

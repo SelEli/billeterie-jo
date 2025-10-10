@@ -5,7 +5,7 @@ const authenticate = require('../middlewares/auth.middleware');
 const validateRequest = require('../middlewares/validateRequest.middleware');
 const logger = require('../utils/logger');
 
-const { createOfferSchema, updateOfferSchema } = require('../validators/offer.validator');
+// const { createOfferSchema, updateOfferSchema } = require('../validators/offer.validator');
 
 const {
   createOfferController,
@@ -41,13 +41,15 @@ router.use((req, res, next) => {
 // ----------- ROUTES -----------
 
 // Création d’offre (protégé)
-router.post('/', authenticate, validateRequest(createOfferSchema), createOfferController);
+// router.post('/', authenticate, validateRequest(createOfferSchema), createOfferController);
+router.post('/', authenticate, /* validateRequest(createOfferSchema), */ createOfferController);
 
 // Lecture d’une offre par ID (public)
 router.get('/:id', readOfferController);
 
 // Mise à jour d’une offre (protégé)
-router.put('/:id', authenticate, validateRequest(updateOfferSchema), updateOfferController);
+// router.put('/:id', authenticate, validateRequest(updateOfferSchema), updateOfferController);
+router.put('/:id', authenticate, /* validateRequest(updateOfferSchema), */ updateOfferController);
 
 // Suppression d’une offre (protégé)
 router.delete('/:id', authenticate, deleteOfferController);

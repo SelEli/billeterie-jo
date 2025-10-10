@@ -1,3 +1,4 @@
+// frontend/src/ticketing/forms/offerFormConfig.js
 export const offerFields = [
   { name: 'label', label: 'Nom de l’offre', type: 'text' },
   { name: 'discount', label: 'Réduction (0–1)', type: 'number', step: '0.01' },
@@ -7,7 +8,5 @@ export const offerFields = [
   { name: 'quota', label: 'Quota max de tickets', type: 'number' },
   { name: 'eventId', label: 'ID Événement', type: 'number' },
 
-  // Lecture seule
-  { name: 'createdAt', label: 'Créé le', type: 'text', readOnly: true },
-  { name: 'updatedAt', label: 'Mis à jour le', type: 'text', readOnly: true }
+
 ];
