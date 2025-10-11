@@ -1,6 +1,6 @@
 const { z } = require('zod');
 
-const EventBaseSchema = z.object({
+const eventBaseSchema = z.object({
   label: z.string()
     .min(3, { message: 'Le titre doit contenir au moins 3 caractères' })
     .max(200, { message: 'Le titre ne peut pas dépasser 200 caractères' }),
@@ -18,14 +18,13 @@ const EventBaseSchema = z.object({
   status: z.enum(['DRAFT', 'PUBLISHED', 'SOLD_OUT', 'CANCELLED']).optional(),
   description: z.string().max(1000).optional(),
 
-  // plus flexible : accepte undefined, null, ou string vide
   imageUrl: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
     z.string().url().optional()
   )
 });
 
-const EventCreateSchema = EventBaseSchema.superRefine((data, ctx) => {
+const createEventSchema = eventBaseSchema.superRefine((data, ctx) => {
   if (data.date && data.date <= new Date()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -35,8 +34,7 @@ const EventCreateSchema = EventBaseSchema.superRefine((data, ctx) => {
   }
 });
 
-const EventUpdateSchema = EventBaseSchema.partial().extend({
-  // accepte string ou number, converti en number
+const updateEventSchema = eventBaseSchema.partial().extend({
   id: z.preprocess(
     (val) => Number(val),
     z.number().int().positive()
@@ -52,6 +50,6 @@ const EventUpdateSchema = EventBaseSchema.partial().extend({
 });
 
 module.exports = {
-  EventCreateSchema,
-  EventUpdateSchema
+  createEventSchema,
+  updateEventSchema
 };

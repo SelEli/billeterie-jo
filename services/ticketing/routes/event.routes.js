@@ -6,11 +6,11 @@ const authenticate = require('../middlewares/auth.middleware');
 const validateRequest = require('../middlewares/validateRequest.middleware');
 const logger = require('../utils/logger');
 
-// ⚠️ Import cohérent avec validators/event.validator.js
+// ⚠️ Import cohérent avec schemas/event.schema.js
 const {
   createEventSchema,
   updateEventSchema
-} = require('../validators/event.validator');
+} = require('../schemas/event.schema');
 
 // ⚠️ Imports destructurés des exports nommés dans controllers/event/index.js
 const {

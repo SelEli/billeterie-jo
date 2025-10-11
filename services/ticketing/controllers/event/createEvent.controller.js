@@ -1,6 +1,5 @@
 const logger = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { EventCreateSchema } = require('../../schemas/event.schema');
 const { createEventService } = require('../../services/event/createEvent.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
@@ -17,27 +16,8 @@ async function createEventController(req, res) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
-  // Validation Zod
-  let parsed;
-  try {
-    parsed = EventCreateSchema.parse(req.body);
-    logger.debug('[EVENT CONTROLLER] Validation réussie', parsed);
-  } catch (err) {
-    logger.warn('[EVENT CONTROLLER] Validation échouée', {
-      issues: err.issues?.map(i => ({
-        path: i.path,
-        message: i.message
-      }))
-    });
-    return sendBusinessError(
-      res,
-      'INVALID_EVENT_DATA',
-      err.issues?.map(i => i.message)
-    );
-  }
-
-  // Nettoyage payload
-  const { id, ...safePayload } = parsed;
+  // ✅ Données déjà validées et transformées par le middleware
+  const { id, ...safePayload } = req.validated;
 
   const timer = monitor.timer('event_create').start();
   try {

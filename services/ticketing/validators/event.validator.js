@@ -1,3 +1,4 @@
+// services/ticketing/validators/event.validator.js
 const { z } = require('zod');
 
 // Création : champs obligatoires
