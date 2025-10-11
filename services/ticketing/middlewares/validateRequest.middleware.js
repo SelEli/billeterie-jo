@@ -1,4 +1,5 @@
 const { ZodError } = require('zod');
+const { sendBusinessError } = require('../utils/sendError');
 
 /**
  * Middleware de validation Zod générique
@@ -12,12 +13,12 @@ const validateRequest = (schema, source = 'body') => (req, res, next) => {
     next();
   } catch (err) {
     if (err instanceof ZodError) {
-      return res.status(400).json({
-        status: 'error',
-        data: null,
-        errors: err.errors.map(e => e.message),
-        meta: {}
-      });
+      // On renvoie via ton helper, avec un code métier cohérent
+      return sendBusinessError(
+        res,
+        'INVALID_EVENT_DATA', // ou 'INVALID_OFFER_DATA' / 'INVALID_TICKET_DATA' selon le contexte
+        err.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+      );
     }
     next(err);
   }
