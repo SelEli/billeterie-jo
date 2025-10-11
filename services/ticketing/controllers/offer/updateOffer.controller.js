@@ -1,7 +1,5 @@
-// src/ticketing/controllers/offer/updateOffer.controller.js
 const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { OfferUpdateSchema } = require('../../schemas/offer.schema');
 const { updateOfferService } = require('../../services/offer/updateOffer.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
@@ -18,25 +16,8 @@ async function updateOfferController(req, res) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
-  let parsed;
-  try {
-    parsed = OfferUpdateSchema.parse(req.body);
-    logger.debug('[OFFER CONTROLLER] Validation réussie', parsed);
-  } catch (err) {
-    logger.warn('[OFFER CONTROLLER] Validation échouée', {
-      issues: err.issues?.map(i => ({
-        path: i.path,
-        message: i.message
-      }))
-    });
-    return sendBusinessError(
-      res,
-      'INVALID_OFFER_DATA',
-      err.issues?.map(i => i.message)
-    );
-  }
-
-  const { id: ignored, ...safePayload } = parsed;
+  // ✅ Données déjà validées et transformées par le middleware
+  const safePayload = req.validated;
 
   const timer = monitor.timer('offer_update').start();
   try {

@@ -1,6 +1,6 @@
 const { z } = require('zod');
 
-const OfferBaseSchema = z.object({
+const offerBaseSchema = z.object({
   label: z.string()
     .min(3, { message: 'Le nom doit contenir au moins 3 caractères' })
     .max(200, { message: 'Le nom ne peut pas dépasser 200 caractères' }),
@@ -16,11 +16,11 @@ const OfferBaseSchema = z.object({
     .positive({ message: 'ID Événement doit être positif' }),
 
   validFrom: z.string()
-    .refine(val => !isNaN(Date.parse(val)), { message: 'Date valideFrom invalide' })
+    .refine(val => !isNaN(Date.parse(val)), { message: 'Date validFrom invalide' })
     .transform(val => new Date(val)),
 
   validTo: z.string()
-    .refine(val => !isNaN(Date.parse(val)), { message: 'Date valideTo invalide' })
+    .refine(val => !isNaN(Date.parse(val)), { message: 'Date validTo invalide' })
     .transform(val => new Date(val)),
 
   quota: z.coerce.number()
@@ -28,8 +28,8 @@ const OfferBaseSchema = z.object({
     .positive({ message: 'Quota doit être positif' })
 });
 
-// Création
-const OfferCreateSchema = OfferBaseSchema.superRefine((data, ctx) => {
+// --- Création ---
+const createOfferSchema = offerBaseSchema.superRefine((data, ctx) => {
   if (data.validFrom >= data.validTo) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -39,22 +39,18 @@ const OfferCreateSchema = OfferBaseSchema.superRefine((data, ctx) => {
   }
 });
 
-// Mise à jour
-const OfferUpdateSchema = OfferBaseSchema.partial()
-  .extend({
-    id: z.coerce.number().int().positive({ message: 'ID doit être positif' })
-  })
-  .superRefine((data, ctx) => {
-    if (data.validFrom && data.validTo && data.validFrom >= data.validTo) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'validFrom doit être antérieur à validTo',
-        path: ['validFrom']
-      });
-    }
-  });
+// --- Mise à jour (tous les champs optionnels, pas d’id dans le body) ---
+const updateOfferSchema = offerBaseSchema.partial().superRefine((data, ctx) => {
+  if (data.validFrom && data.validTo && data.validFrom >= data.validTo) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'validFrom doit être antérieur à validTo',
+      path: ['validFrom']
+    });
+  }
+});
 
 module.exports = {
-  OfferCreateSchema,
-  OfferUpdateSchema
+  createOfferSchema,
+  updateOfferSchema
 };

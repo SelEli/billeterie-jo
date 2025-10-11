@@ -1,7 +1,5 @@
-// src/ticketing/controllers/offer/createOffer.controller.js
 const logger = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { OfferCreateSchema } = require('../../schemas/offer.schema'); // <-- Zod
 const { createOfferService } = require('../../services/offer/createOffer.service');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
@@ -18,31 +16,13 @@ async function createOfferController(req, res) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
-  // -----------------------------
-  // Validation Zod
-  // -----------------------------
-  let parsed;
-  try {
-    parsed = OfferCreateSchema.parse(req.body);
-    logger.debug('[OFFER CONTROLLER] Validation réussie', parsed);
-  } catch (err) {
-    logger.warn('[OFFER CONTROLLER] Validation échouée', {
-      issues: err.issues?.map(i => ({
-        path: i.path,
-        message: i.message
-      }))
-    });
-    return sendBusinessError(
-      res,
-      'INVALID_OFFER_DATA',
-      err.issues?.map(i => i.message)
-    );
-  }
+  // ✅ Données déjà validées et transformées par le middleware
+  const safePayload = req.validated;
 
   const timer = monitor.timer('offer_create').start();
   try {
-    logger.debug('[OFFER CONTROLLER] Appel service createOfferService', parsed);
-    const offer = await createOfferService(parsed);
+    logger.debug('[OFFER CONTROLLER] Appel service createOfferService', safePayload);
+    const offer = await createOfferService(safePayload);
 
     timer.stop();
     logger.info('[OFFER CONTROLLER] Offer créée avec succès', { offerId: offer.id });

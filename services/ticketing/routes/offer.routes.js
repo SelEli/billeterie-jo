@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 
 const authenticate = require('../middlewares/auth.middleware');
-// const validateRequest = require('../middlewares/validateRequest.middleware'); // ❌ désactivé
+const validateRequest = require('../middlewares/validateRequest.middleware');
 const logger = require('../utils/logger');
 
 // ⚡️ Import des schemas Zod depuis schemas/offer.schema.js
-// const { createOfferSchema, updateOfferSchema } = require('../schemas/offer.schema'); // ❌ désactivé
+const { createOfferSchema, updateOfferSchema } = require('../schemas/offer.schema');
 
 const {
   createOfferController,
@@ -42,15 +42,23 @@ router.use((req, res, next) => {
 // ----------- ROUTES -----------
 
 // Création d’offre (protégé)
-// router.post('/', authenticate, validateRequest(createOfferSchema), createOfferController);
-router.post('/', authenticate, createOfferController);
+router.post(
+  '/',
+  authenticate,
+  validateRequest(createOfferSchema, 'body', 'INVALID_OFFER_DATA'),
+  createOfferController
+);
 
 // Lecture d’une offre par ID (public)
 router.get('/:id', readOfferController);
 
 // Mise à jour d’une offre (protégé)
-// router.put('/:id', authenticate, validateRequest(updateOfferSchema), updateOfferController);
-router.put('/:id', authenticate, updateOfferController);
+router.put(
+  '/:id',
+  authenticate,
+  validateRequest(updateOfferSchema, 'body', 'INVALID_OFFER_DATA'),
+  updateOfferController
+);
 
 // Suppression d’une offre (protégé)
 router.delete('/:id', authenticate, deleteOfferController);
