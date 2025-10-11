@@ -15,7 +15,13 @@ const eventBaseSchema = z.object({
 
   category: z.string().max(50).optional(),
   capacity: z.coerce.number().int().positive().optional(),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'SOLD_OUT', 'CANCELLED']).optional(),
+
+  // 👇 accepte "" comme undefined
+  status: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.enum(['DRAFT', 'PUBLISHED', 'SOLD_OUT', 'CANCELLED']).optional()
+  ),
+
   description: z.string().max(1000).optional(),
 
   imageUrl: z.preprocess(
@@ -24,6 +30,7 @@ const eventBaseSchema = z.object({
   )
 });
 
+// --- Création ---
 const createEventSchema = eventBaseSchema.superRefine((data, ctx) => {
   if (data.date && data.date <= new Date()) {
     ctx.addIssue({
@@ -34,12 +41,8 @@ const createEventSchema = eventBaseSchema.superRefine((data, ctx) => {
   }
 });
 
-const updateEventSchema = eventBaseSchema.partial().extend({
-  id: z.preprocess(
-    (val) => Number(val),
-    z.number().int().positive()
-  )
-}).superRefine((data, ctx) => {
+// --- Mise à jour (tous les champs optionnels, pas d'id dans le body) ---
+const updateEventSchema = eventBaseSchema.partial().superRefine((data, ctx) => {
   if (data.date && data.date <= new Date()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
