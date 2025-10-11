@@ -1,4 +1,4 @@
-// frontend/src/ticketing/pages/OfferList.jsx
+// src/ticketing/pages/OfferList.jsx
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import List from '../../common/components/List';

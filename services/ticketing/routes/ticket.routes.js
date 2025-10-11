@@ -8,7 +8,7 @@
  *
  * Points clés :
  *   - Auth obligatoire sur toutes les routes
- *   - Validation des schémas avec Joi (TicketCreateSchema, TicketUpdateSchema)
+ *   - Validation des schémas avec Zod (createTicketSchema, updateTicketSchema, validateTicketSchema)
  *   - Logs détaillés pour chaque appel
  *   - Vérification stricte des contrôleurs importés
  */
@@ -21,8 +21,9 @@ const validateRequest = require('../middlewares/validateRequest.middleware');
 const logger = require('../utils/logger');
 
 const {
-  TicketCreateSchema,
-  TicketUpdateSchema
+  createTicketSchema,
+  updateTicketSchema,
+  validateTicketSchema
 } = require('../schemas/ticket.schema');
 
 const { createTicketController }   = require('../controllers/ticket/createTicket.controller');
@@ -62,7 +63,7 @@ router.use((req, res, next) => {
 router.post(
   '/',
   authenticate,
-  validateRequest(TicketCreateSchema),
+  validateRequest(createTicketSchema),
   (req, res, next) => {
     logger.info('[TICKET ROUTES][POST /] → createTicketController');
     next();
@@ -85,7 +86,7 @@ router.get(
 router.put(
   '/:id(\\d+)',
   authenticate,
-  validateRequest(TicketUpdateSchema),
+  validateRequest(updateTicketSchema),
   (req, res, next) => {
     logger.info('[TICKET ROUTES][PUT /:id] → updateTicketController');
     next();
@@ -119,6 +120,7 @@ router.get(
 router.post(
   '/validate',
   authenticate,
+  validateRequest(validateTicketSchema),
   (req, res, next) => {
     logger.info('[TICKET ROUTES][POST /validate] → validateTicketController (via Payment)');
     next();
@@ -127,7 +129,7 @@ router.post(
 );
 
 // VERIFY (contrôle sur site)
-router.post(
+/*router.post(
   '/verify',
   authenticate,
   (req, res, next) => {
@@ -135,6 +137,6 @@ router.post(
     next();
   },
   verifyTicketController
-);
+);*/
 
 module.exports = router;

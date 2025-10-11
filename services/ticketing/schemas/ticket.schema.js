@@ -4,27 +4,33 @@ const { z } = require('zod');
 const ticketStatuses = ['RESERVED', 'VALID', 'USED', 'CANCELLED', 'EXPIRED'];
 
 // Schéma de base
-const TicketBaseSchema = z.object({
+const ticketBaseSchema = z.object({
   price: z.coerce.number()
     .positive({ message: 'Le prix doit être un nombre positif' }),
 
+  // Zone rendue optionnelle
   zone: z.string().max(100).optional(),
 
-  status: z.enum(ticketStatuses).optional(), // par défaut RESERVED côté Prisma
+  // Status : optionnel, forcé côté back à RESERVED
+  status: z.enum(ticketStatuses).optional(),
 
+  // UserId : obligatoire, mais sera écrasé par req.user côté back
   userId: z.coerce.number()
     .int()
     .positive({ message: 'userId doit être un entier positif' }),
 
+  // EventId : obligatoire via superRefine
   eventId: z.coerce.number().int().positive().optional(),
+
+  // OfferId : optionnel
   offerId: z.coerce.number().int().positive().optional(),
 
   // secretKey et signature sont générés côté service → pas dans le create
 });
 
 // Création
-const TicketCreateSchema = TicketBaseSchema.superRefine((data, ctx) => {
-  // Exemple de règle métier : un ticket doit être lié à un event
+const createTicketSchema = ticketBaseSchema.superRefine((data, ctx) => {
+  // Règle métier : un ticket doit être lié à un event
   if (!data.eventId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -34,8 +40,8 @@ const TicketCreateSchema = TicketBaseSchema.superRefine((data, ctx) => {
   }
 });
 
-// Mise à jour (tous champs optionnels + id obligatoire)
-const TicketUpdateSchema = TicketBaseSchema.partial().extend({
+// Mise à jour (tous champs optionnels + id obligatoire dans body)
+const updateTicketSchema = ticketBaseSchema.partial().extend({
   id: z.preprocess(
     (val) => Number(val),
     z.number().int().positive()
@@ -43,7 +49,7 @@ const TicketUpdateSchema = TicketBaseSchema.partial().extend({
 });
 
 // Validation (juste ticketId obligatoire)
-const TicketValidateSchema = z.object({
+const validateTicketSchema = z.object({
   ticketId: z.preprocess(
     (val) => Number(val),
     z.number().int().positive({ message: 'ticketId doit être un entier positif' })
@@ -51,7 +57,7 @@ const TicketValidateSchema = z.object({
 });
 
 module.exports = {
-  TicketCreateSchema,
-  TicketUpdateSchema,
-  TicketValidateSchema
+  createTicketSchema,
+  updateTicketSchema,
+  validateTicketSchema
 };

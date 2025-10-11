@@ -8,7 +8,6 @@ const {
   prisma
 } = require('../../utils');
 const { createTicketService } = require('../../services/ticket/createTicket.service');
-const { TicketCreateSchema } = require('../../schemas/ticket.schema'); // 🔹 import du schéma
 
 async function createTicketController(req, res) {
   logger.info('[CTRL][CREATE] Entrée', { user: req.user, body: req.body });
@@ -18,24 +17,8 @@ async function createTicketController(req, res) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
-  // ✅ Validation Zod
-  let parsed;
-  try {
-    parsed = TicketCreateSchema.parse(req.body);
-    logger.debug('[CTRL][CREATE] Validation réussie', parsed);
-  } catch (err) {
-    logger.warn('[CTRL][CREATE] Validation échouée', {
-      issues: err.issues?.map(i => ({
-        path: i.path,
-        message: i.message
-      }))
-    });
-    return sendBusinessError(
-      res,
-      'INVALID_TICKET_DATA',
-      err.issues?.map(i => i.message)
-    );
-  }
+  // Ici, req.body est déjà validé par validateRequest(createTicketSchema)
+  const parsed = req.body;
 
   // Vérif capacité event
   logger.debug('[CTRL][CREATE] Vérif event capacity', { eventId: parsed.eventId });
@@ -71,7 +54,6 @@ async function createTicketController(req, res) {
 
     const { secretKey, ...safeTicket } = ticket;
 
-    logger.debug('[CTRL][CREATE] Envoi réponse au client', { safeTicket });
     sendBusinessSuccess(res, 'CREATE_TICKET', safeTicket, {
       message: 'Ticket created successfully'
     });

@@ -5,7 +5,6 @@ const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 const prisma = require('../../utils/prismaClient');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
-const { TicketValidateSchema } = require('../../schemas/ticket.schema');
 
 async function validateTicketController(req, res) {
   logger.info('[VALIDATE CTRL] Incoming request', {
@@ -19,34 +18,19 @@ async function validateTicketController(req, res) {
     return sendBusinessError(res, 'FORBIDDEN');
   }
 
-  // ✅ Validation Zod
-  let parsed;
-  try {
-    parsed = TicketValidateSchema.parse(req.body);
-    logger.debug('[VALIDATE CTRL] Validation réussie', parsed);
-  } catch (err) {
-    logger.warn('[VALIDATE CTRL] Validation échouée', {
-      issues: err.issues?.map(i => ({ path: i.path, message: i.message }))
-    });
-    return sendBusinessError(
-      res,
-      'INVALID_TICKET_DATA',
-      err.issues?.map(i => i.message)
-    );
-  }
-
-  const ticketIdNum = parsed.ticketId;
+  // Ici, req.body est déjà validé par validateRequest(validateTicketSchema)
+  const { ticketId } = req.body;
 
   try {
     // 1️⃣ Validation locale (signature, etc.)
-    const validated = await validateTicketService(ticketIdNum, req.user);
+    const validated = await validateTicketService(ticketId, req.user);
     if (!validated) {
       return sendBusinessError(res, 'TICKET_NOT_FOUND');
     }
 
     // 2️⃣ Passage en VALID
     const updated = await prisma.ticket.update({
-      where: { id: ticketIdNum },
+      where: { id: ticketId },
       data: { status: 'VALID' }
     });
     logger.info('[VALIDATE CTRL] Ticket passé en VALID', { ticketId: updated.id });
@@ -55,11 +39,11 @@ async function validateTicketController(req, res) {
     if ((process.env.USE_EXTERNAL_PAYMENT || '').toLowerCase() === 'true') {
       const adapters = createAdapters();
       try {
-        await adapters.payment.notifyPaymentConfirmed(ticketIdNum, req.user);
-        logger.info('[VALIDATE CTRL] Notification envoyée à Payment', { ticketId: ticketIdNum });
+        await adapters.payment.notifyPaymentConfirmed(ticketId, req.user);
+        logger.info('[VALIDATE CTRL] Notification envoyée à Payment', { ticketId });
       } catch (err) {
         logger.warn('[VALIDATE CTRL] Échec notification Payment', {
-          ticketId: ticketIdNum,
+          ticketId,
           error: err.message
         });
       }

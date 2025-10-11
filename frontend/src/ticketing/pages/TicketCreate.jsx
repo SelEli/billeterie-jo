@@ -6,6 +6,9 @@ import { listEvents } from '../api/event';
 import { listOffers } from '../api/offer';
 import { useAuth } from '../../common/context/AuthContext';
 
+// Zones mockées (Event n’a pas de zones en base)
+const mockZones = ['A', 'B', 'C'];
+
 export default function TicketCreate() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -14,14 +17,15 @@ export default function TicketCreate() {
   const [offers, setOffers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedOffer, setSelectedOffer] = useState(null);
+  const [selectedZone, setSelectedZone] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Charger events et offers depuis l’API
+  // Charger les events et offers réels au montage
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const evts = await listEvents();
-        setEvents(evts?.data ?? evts ?? []);
+        const evs = await listEvents();
+        setEvents(evs?.data ?? evs ?? []);
         const ofs = await listOffers();
         setOffers(ofs?.data ?? ofs ?? []);
       } catch (err) {
@@ -31,23 +35,35 @@ export default function TicketCreate() {
     fetchData();
   }, []);
 
-  // Création du ticket quand event + offer choisis
+  // Création du ticket quand tout est choisi
   useEffect(() => {
     const create = async () => {
-      if (selectedEvent && selectedOffer) {
+      if (selectedEvent && selectedZone) {
         setLoading(true);
         try {
-          // ✅ Prix de base codé en dur (ex: 100€)
+          // Prix de base codé en dur (Event n’a pas basePrice)
           const basePrice = 100;
-          const price = basePrice * (1 - selectedOffer.discount);
+          let price = basePrice;
 
-          const newTicket = await createTicket({
+          // appliquer réduction si une offre est choisie
+          if (selectedOffer) {
+            price = price * (1 - selectedOffer.discount);
+          }
+
+          // Payload conforme à Prisma : zone et price sont dans Ticket
+          const payload = {
             userId: user.id,
             eventId: selectedEvent.id,
-            offerId: selectedOffer.id,
             status: 'RESERVED',
-            price
-          });
+            zone: selectedZone,   // ✅ zone envoyée dans Ticket
+            price                 // ✅ price envoyé dans Ticket
+          };
+
+          if (selectedOffer?.id) {
+            payload.offerId = selectedOffer.id;
+          }
+
+          const newTicket = await createTicket(payload);
 
           const ticketId = newTicket?.data?.id ?? newTicket?.id;
           if (!ticketId) return;
@@ -64,7 +80,7 @@ export default function TicketCreate() {
       }
     };
     create();
-  }, [selectedEvent, selectedOffer, navigate, user]);
+  }, [selectedEvent, selectedOffer, selectedZone, navigate, user]);
 
   return (
     <PageLayout title="Créer un ticket">
@@ -74,7 +90,7 @@ export default function TicketCreate() {
         <>
           <h3>Choisissez un événement</h3>
           <ul>
-            {Array.isArray(events) && events.map(ev => (
+            {events.map(ev => (
               <li key={ev.id}>
                 <button
                   onClick={() => setSelectedEvent(ev)}
@@ -91,13 +107,31 @@ export default function TicketCreate() {
         <>
           <h3>Choisissez une offre pour {selectedEvent.label}</h3>
           <ul>
-            {Array.isArray(offers) && offers.map(of => (
-              <li key={of.id}>
+            {offers
+              .filter(of => of.eventId === selectedEvent.id)
+              .map(of => (
+                <li key={of.id}>
+                  <button
+                    onClick={() => setSelectedOffer(of)}
+                    className="btn btn--secondary"
+                  >
+                    {of.label} ({of.discount * 100}%)
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </>
+      ) : !selectedZone ? (
+        <>
+          <h3>Choisissez une zone pour {selectedEvent.label}</h3>
+          <ul>
+            {(selectedEvent.zones ?? mockZones).map(z => (
+              <li key={z}>
                 <button
-                  onClick={() => setSelectedOffer(of)}
+                  onClick={() => setSelectedZone(z)}
                   className="btn btn--secondary"
                 >
-                  {of.label} ({of.discount * 100}%)
+                  Zone {z}
                 </button>
               </li>
             ))}

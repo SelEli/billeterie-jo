@@ -5,7 +5,6 @@ const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
-const { TicketUpdateSchema } = require('../../schemas/ticket.schema'); // ✅ import rétabli
 
 async function updateTicketController(req, res) {
   const id = Number(req.params.id);
@@ -20,26 +19,8 @@ async function updateTicketController(req, res) {
     return sendBusinessError(res, 'INVALID_TICKET_ID');
   }
 
-  // ✅ Validation Zod
-  let parsed;
-  try {
-    parsed = TicketUpdateSchema.parse({ ...req.body, id });
-    logger.debug('[TICKET][UPDATE] Validation réussie', parsed);
-  } catch (err) {
-    logger.error('[TICKET][UPDATE] Validation échouée', {
-      rawError: err,
-      issues: err.issues?.map(i => ({
-        path: i.path,
-        message: i.message
-      })),
-      stack: err.stack
-    });
-    return sendBusinessError(
-      res,
-      'INVALID_TICKET_DATA',
-      err.issues?.map(i => i.message)
-    );
-  }
+  // Ici, req.body est déjà validé par validateRequest(updateTicketSchema)
+  const parsed = { ...req.body, id };
 
   // Interdiction métier : ne pas forcer un ticket en VALID
   if (parsed.status && parsed.status === 'VALID') {
@@ -47,13 +28,11 @@ async function updateTicketController(req, res) {
     return sendBusinessError(res, 'INVALID_TICKET_STATUS');
   }
 
-  // ⚠️ On ignore l'id de parsed pour éviter la redéclaration
   const { id: parsedId, ...safePayload } = parsed;
   logger.info('[TICKET][UPDATE] Payload envoyé au service', safePayload);
 
   const timer = monitor.timer('ticket_update').start();
   try {
-    logger.debug('[TICKET][UPDATE] Appel updateTicketService', { id, safePayload });
     const ticket = await updateTicketService(id, safePayload);
     timer.stop();
 
@@ -64,8 +43,7 @@ async function updateTicketController(req, res) {
 
     logger.info('[TICKET][UPDATE] Ticket mis à jour en base', {
       id: ticket.id,
-      status: ticket.status,
-      returned: ticket
+      status: ticket.status
     });
 
     try {
@@ -79,12 +57,8 @@ async function updateTicketController(req, res) {
         zone: ticket.zone,
         status: ticket.status
       });
-      logger.debug('[TICKET][UPDATE] Kafka event publié', { ticketId: ticket.id });
     } catch (err) {
-      logger.error('[TICKET][UPDATE] Kafka publish failed', {
-        error: err.message,
-        stack: err.stack
-      });
+      logger.error('[TICKET][UPDATE] Kafka publish failed', { error: err.message });
     }
 
     const { secretKey, ...safeTicket } = ticket;
@@ -93,11 +67,7 @@ async function updateTicketController(req, res) {
     });
   } catch (error) {
     timer.stop();
-    logger.error('[TICKET][UPDATE] Erreur update ticket', {
-      error: error.message,
-      stack: error.stack,
-      safePayload
-    });
+    logger.error('[TICKET][UPDATE] Erreur update ticket', { error: error.message });
     const code =
       error.message && error.message in ERROR_STATUS
         ? error.message
