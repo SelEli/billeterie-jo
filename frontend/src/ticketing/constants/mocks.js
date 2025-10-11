@@ -1,4 +1,4 @@
-// src/ticketing/constants/mocks.js
+// frontend/src/ticketing/constants/mocks.js
 
 export const mockEvents = [
   {

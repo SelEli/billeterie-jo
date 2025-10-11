@@ -2,30 +2,50 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import { createTicket, getTicket } from '../api/ticket';
+import { listEvents } from '../api/event';
+import { listOffers } from '../api/offer';
 import { useAuth } from '../../common/context/AuthContext';
-import { mockEvents, mockOffers } from '../constants/mocks';
 
 export default function TicketCreate() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [events, setEvents] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedOffer, setSelectedOffer] = useState(null);
-  const [selectedZone, setSelectedZone] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Charger events et offers depuis l’API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const evts = await listEvents();
+        setEvents(evts?.data ?? evts ?? []);
+        const ofs = await listOffers();
+        setOffers(ofs?.data ?? ofs ?? []);
+      } catch (err) {
+        console.error('Erreur chargement events/offers', err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Création du ticket quand event + offer choisis
   useEffect(() => {
     const create = async () => {
-      if (selectedEvent && selectedOffer && selectedZone) {
+      if (selectedEvent && selectedOffer) {
         setLoading(true);
         try {
-          const price = selectedEvent.basePrice * (1 - selectedOffer.discount); // discount fraction
+          // ✅ Prix de base codé en dur (ex: 100€)
+          const basePrice = 100;
+          const price = basePrice * (1 - selectedOffer.discount);
 
           const newTicket = await createTicket({
             userId: user.id,
             eventId: selectedEvent.id,
             offerId: selectedOffer.id,
             status: 'RESERVED',
-            zone: selectedZone,
             price
           });
 
@@ -44,7 +64,7 @@ export default function TicketCreate() {
       }
     };
     create();
-  }, [selectedEvent, selectedOffer, selectedZone, navigate, user]);
+  }, [selectedEvent, selectedOffer, navigate, user]);
 
   return (
     <PageLayout title="Créer un ticket">
@@ -54,7 +74,7 @@ export default function TicketCreate() {
         <>
           <h3>Choisissez un événement</h3>
           <ul>
-            {mockEvents.map(ev => (
+            {Array.isArray(events) && events.map(ev => (
               <li key={ev.id}>
                 <button
                   onClick={() => setSelectedEvent(ev)}
@@ -71,29 +91,13 @@ export default function TicketCreate() {
         <>
           <h3>Choisissez une offre pour {selectedEvent.label}</h3>
           <ul>
-            {mockOffers.map(of => (
+            {Array.isArray(offers) && offers.map(of => (
               <li key={of.id}>
                 <button
                   onClick={() => setSelectedOffer(of)}
                   className="btn btn--secondary"
                 >
                   {of.label} ({of.discount * 100}%)
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : !selectedZone ? (
-        <>
-          <h3>Choisissez une zone pour {selectedEvent.label}</h3>
-          <ul>
-            {selectedEvent.zones.map(z => (
-              <li key={z}>
-                <button
-                  onClick={() => setSelectedZone(z)}
-                  className="btn btn--secondary"
-                >
-                  Zone {z}
                 </button>
               </li>
             ))}

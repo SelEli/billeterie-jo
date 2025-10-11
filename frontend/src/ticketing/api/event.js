@@ -1,4 +1,4 @@
-// src/ticketing/api/event.js
+// frontend/src/ticketing/api/event.js
 import { apiFetch } from '../../common/utils/fetcher';
 
 export const listEvents = (params) =>
