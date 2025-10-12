@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
-const { error } = require('../utils/response');
-const logger = require('../utils/logger');
+const { logger, sendBusinessError } = require('../utils');
 
 const authenticate = (req, res, next) => {
   const secret = process.env.JWT_SECRET;
+
   if (req.method === 'OPTIONS') return next();
 
   const token =
@@ -12,21 +12,22 @@ const authenticate = (req, res, next) => {
       ? req.headers.authorization.split(' ')[1]
       : null);
 
-  logger.info('[AUTH] Vérification des infos reçues', {
-    rawCookieHeader: req.headers.cookie || null,
-    parsedCookies: req.cookies || null,
-    authorizationHeader: req.headers.authorization || null,
-    extractedToken: token ? token.substring(0, 20) + '...' : null
+  logger.debug('[AUTH] Vérification du token reçu', {
+    method: req.method,
+    url: req.originalUrl,
+    hasCookie: !!req.cookies?.access_token,
+    hasAuthHeader: !!req.headers.authorization,
+    tokenSnippet: token ? token.substring(0, 20) + '...' : null
   });
 
   if (!token) {
-    logger.warn('[AUTH] Aucun token trouvé');
-    return res.status(401).json(error(['TOKEN_MISSING_OR_MALFORMED'], 401));
+    logger.warn('[AUTH] Aucun token trouvé dans la requête');
+    return sendBusinessError(res, 'TOKEN_MISSING_OR_MALFORMED');
   }
 
   if (!secret) {
-    logger.error('[AUTH] JWT_SECRET manquant');
-    return res.status(500).json(error(['JWT_SECRET_NOT_DEFINED'], 500));
+    logger.error('[AUTH] JWT_SECRET non défini dans les variables d’environnement');
+    return sendBusinessError(res, 'JWT_SECRET_NOT_DEFINED');
   }
 
   try {
@@ -34,8 +35,8 @@ const authenticate = (req, res, next) => {
     const userIdNum = Number(decoded.userId);
 
     if (!Number.isInteger(userIdNum) || userIdNum <= 0) {
-      logger.warn('[AUTH] userId invalide dans le token', decoded);
-      return res.status(401).json(error(['USER_ID_INVALID'], 401));
+      logger.warn('[AUTH] userId invalide dans le token', { decoded });
+      return sendBusinessError(res, 'USER_ID_INVALID');
     }
 
     req.user = {
@@ -45,7 +46,7 @@ const authenticate = (req, res, next) => {
       cookie: req.headers.cookie || null
     };
 
-    logger.info('[AUTH] req.user enrichi', {
+    logger.info('[AUTH] Authentification réussie', {
       userId: req.user.userId,
       role: req.user.role,
       tokenSnippet: req.user.token.substring(0, 20) + '...',
@@ -56,8 +57,16 @@ const authenticate = (req, res, next) => {
 
     next();
   } catch (err) {
-    logger.error('[AUTH] Erreur vérification JWT', { error: err.message });
-    return res.status(401).json(error(['TOKEN_INVALID'], 401));
+    logger.error('[AUTH] Erreur lors de la vérification JWT', {
+      error: err.message,
+      stack: err.stack?.split('\n')[0]
+    });
+
+    if (err.name === 'TokenExpiredError') {
+      return sendBusinessError(res, 'TOKEN_EXPIRED');
+    }
+
+    return sendBusinessError(res, 'TOKEN_INVALID');
   }
 };
 
