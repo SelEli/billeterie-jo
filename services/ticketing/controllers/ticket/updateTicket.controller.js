@@ -8,28 +8,24 @@ const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function updateTicketController(req, res) {
   const id = Number(req.params.id);
-  logger.info('[TICKET][UPDATE] Incoming request', {
-    id,
-    body: req.body,
-    user: req.user
-  });
+  logger.info('[CTRL][UPDATE] Entrée', { id, body: req.body, user: req.user });
 
   if (!Number.isInteger(id) || id <= 0) {
-    logger.error('[TICKET][UPDATE] INVALID_TICKET_ID', { id });
-    return sendBusinessError(res, 'INVALID_TICKET_ID');
+    logger.warn('[CTRL][UPDATE] INVALID_TICKET_ID', { id });
+    return sendBusinessError(res, 'INVALID_TICKET_ID', 400);
   }
 
-  // Ici, req.body est déjà validé par validateRequest(updateTicketSchema)
+  // req.body déjà validé par validateRequest(updateTicketSchema)
   const parsed = { ...req.body, id };
 
   // Interdiction métier : ne pas forcer un ticket en VALID
   if (parsed.status && parsed.status === 'VALID') {
-    logger.warn('[TICKET][UPDATE] Tentative de forcer un ticket en VALID', { parsed });
-    return sendBusinessError(res, 'INVALID_TICKET_STATUS');
+    logger.warn('[CTRL][UPDATE] Tentative de forcer VALID', { parsed });
+    return sendBusinessError(res, 'INVALID_TICKET_STATUS', 400);
   }
 
   const { id: parsedId, ...safePayload } = parsed;
-  logger.info('[TICKET][UPDATE] Payload envoyé au service', safePayload);
+  logger.debug('[CTRL][UPDATE] Payload service', safePayload);
 
   const timer = monitor.timer('ticket_update').start();
   try {
@@ -37,14 +33,11 @@ async function updateTicketController(req, res) {
     timer.stop();
 
     if (!ticket) {
-      logger.error('[TICKET][UPDATE] Ticket introuvable après update', { id });
-      return sendBusinessError(res, 'TICKET_NOT_FOUND');
+      logger.warn('[CTRL][UPDATE] TICKET_NOT_FOUND', { id });
+      return sendBusinessError(res, 'TICKET_NOT_FOUND', 404);
     }
 
-    logger.info('[TICKET][UPDATE] Ticket mis à jour en base', {
-      id: ticket.id,
-      status: ticket.status
-    });
+    logger.info('[CTRL][UPDATE] Ticket mis à jour', { id: ticket.id, status: ticket.status });
 
     try {
       await publishKafkaEvent('ticketing', {
@@ -58,21 +51,19 @@ async function updateTicketController(req, res) {
         status: ticket.status
       });
     } catch (err) {
-      logger.error('[TICKET][UPDATE] Kafka publish failed', { error: err.message });
+      logger.error('[CTRL][UPDATE] Kafka publish failed', { error: err.message });
     }
 
     const { secretKey, ...safeTicket } = ticket;
     return sendBusinessSuccess(res, 'UPDATE_TICKET', safeTicket, {
       message: 'Ticket updated successfully'
-    });
+    }, 200);
+
   } catch (error) {
     timer.stop();
-    logger.error('[TICKET][UPDATE] Erreur update ticket', { error: error.message });
-    const code =
-      error.message && error.message in ERROR_STATUS
-        ? error.message
-        : 'INTERNAL_SERVER_ERROR';
-    return sendBusinessError(res, code);
+    logger.error('[CTRL][UPDATE] Erreur update ticket', { error: error.message });
+    const code = error.message && error.message in ERROR_STATUS ? error.message : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code, 500);
   }
 }
 

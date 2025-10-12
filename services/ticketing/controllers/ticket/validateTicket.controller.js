@@ -5,9 +5,11 @@ const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 const logger = require('../../utils/logger');
 const prisma = require('../../utils/prismaClient');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const monitor = require('../../monitor/monitor');
 
 async function validateTicketController(req, res) {
-  logger.info('[VALIDATE CTRL] Incoming request', {
+  logger.info('[CTRL][VALIDATE] Entrée', {
     method: req.method,
     url: req.originalUrl,
     body: req.body,
@@ -15,17 +17,21 @@ async function validateTicketController(req, res) {
   });
 
   if (!req.user) {
-    return sendBusinessError(res, 'FORBIDDEN');
+    logger.warn('[CTRL][VALIDATE] FORBIDDEN - user absent');
+    return sendBusinessError(res, 'FORBIDDEN', 403);
   }
 
-  // Ici, req.body est déjà validé par validateRequest(validateTicketSchema)
+  // req.body déjà validé par validateRequest(validateTicketSchema)
   const { ticketId } = req.body;
 
+  const timer = monitor.timer('ticket_validate').start();
   try {
     // 1️⃣ Validation locale (signature, etc.)
     const validated = await validateTicketService(ticketId, req.user);
     if (!validated) {
-      return sendBusinessError(res, 'TICKET_NOT_FOUND');
+      timer.stop();
+      logger.warn('[CTRL][VALIDATE] TICKET_NOT_FOUND', { ticketId });
+      return sendBusinessError(res, 'TICKET_NOT_FOUND', 404);
     }
 
     // 2️⃣ Passage en VALID
@@ -33,19 +39,16 @@ async function validateTicketController(req, res) {
       where: { id: ticketId },
       data: { status: 'VALID' }
     });
-    logger.info('[VALIDATE CTRL] Ticket passé en VALID', { ticketId: updated.id });
+    logger.info('[CTRL][VALIDATE] Ticket passé en VALID', { ticketId: updated.id });
 
     // 3️⃣ Notifier Payment si activé
     if ((process.env.USE_EXTERNAL_PAYMENT || '').toLowerCase() === 'true') {
       const adapters = createAdapters();
       try {
         await adapters.payment.notifyPaymentConfirmed(ticketId, req.user);
-        logger.info('[VALIDATE CTRL] Notification envoyée à Payment', { ticketId });
+        logger.info('[CTRL][VALIDATE] Notification envoyée à Payment', { ticketId });
       } catch (err) {
-        logger.warn('[VALIDATE CTRL] Échec notification Payment', {
-          ticketId,
-          error: err.message
-        });
+        logger.warn('[CTRL][VALIDATE] Échec notification Payment', { ticketId, error: err.message });
       }
     }
 
@@ -62,19 +65,22 @@ async function validateTicketController(req, res) {
         status: updated.status
       });
     } catch (err) {
-      logger.warn(`[VALIDATE CTRL] Kafka publish skipped: ${err.message}`);
+      logger.warn('[CTRL][VALIDATE] Kafka publish failed', { error: err.message });
     }
+
+    timer.stop();
 
     // 5️⃣ Réponse
     const { secretKey, ...safeTicket } = updated;
     return sendBusinessSuccess(res, 'VALIDATE_TICKET', safeTicket, {
       message: 'Ticket validated successfully'
-    });
+    }, 200);
 
-  } catch (err) {
-    logger.error('[VALIDATE CTRL] Error', { message: err.message });
-    const code = err && err.message ? err.message : 'INTERNAL_SERVER_ERROR';
-    return sendBusinessError(res, code);
+  } catch (error) {
+    timer.stop();
+    logger.error('[CTRL][VALIDATE] Erreur validation ticket', { error: error.message });
+    const code = error.message && error.message in ERROR_STATUS ? error.message : 'INTERNAL_SERVER_ERROR';
+    return sendBusinessError(res, code, 500);
   }
 }
 
