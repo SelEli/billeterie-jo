@@ -1,3 +1,4 @@
+//  frontend/src/ticketing/pages/EventUpdate.jsx
 import { useParams, useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import EventForm from '../components/EventForm';

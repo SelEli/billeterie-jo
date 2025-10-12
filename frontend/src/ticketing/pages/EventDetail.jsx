@@ -1,4 +1,3 @@
-// src/ticketing/pages/EventDetail.jsx
 import { useParams, useNavigate } from 'react-router-dom';
 import Detail from '../../common/components/Detail';
 import { getEvent, deleteEvent } from '../api/event';
@@ -14,6 +13,18 @@ export default function EventDetail() {
     await deleteEvent(id);
     navigate('/event');
   };
+
+  // 🔴 Définition des champs à afficher
+  const eventFields = [
+    { key: 'category', label: 'Catégorie' },
+    { key: 'date', label: 'Date', format: (val) => new Date(val).toLocaleDateString() },
+    { key: 'date', label: 'Heure', format: (val) => new Date(val).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+    { key: 'location', label: 'Lieu' },
+    { key: 'capacity', label: 'Capacité' },
+    { key: 'status', label: 'Statut' },
+    { key: 'basePrice', label: 'Prix de base', format: (val) => `${val} €` },
+    { key: 'zones', label: 'Zones', format: (val) => val?.join(', ') }
+  ];
 
   return (
     <Detail
@@ -58,18 +69,16 @@ export default function EventDetail() {
             <div className="ticket-banner">📅 Événement Officiel – Paris 2025</div>
 
             <div className="ticket-content">
-              <h2 className="ticket-title">
-                {event.label}
-              </h2>
+              <h2 className="ticket-title">{event.label}</h2>
 
               {/* Infos officielles */}
               <div className="ticket-info-grid">
-                <p><strong>Catégorie :</strong> {event.category}</p>
-                <p><strong>Date :</strong> {new Date(event.date).toLocaleDateString()}</p>
-                <p><strong>Heure :</strong> {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                <p><strong>Lieu :</strong> {event.location}</p>
-                <p><strong>Capacité :</strong> {event.capacity}</p>
-                <p><strong>Statut :</strong> {event.status}</p>
+                {eventFields.map(({ key, label, format }) => (
+                  <p key={label}>
+                    <strong>{label} :</strong>{' '}
+                    {format ? format(event[key]) : event[key]}
+                  </p>
+                ))}
               </div>
 
               {event.description && (

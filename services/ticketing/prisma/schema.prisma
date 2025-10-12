@@ -35,57 +35,63 @@ enum EventStatus {
 // ----------------------
 
 model Event {
-  id         Int       @id @default(autoincrement())
-  label      String
-  date       DateTime
-  location   String
-  category   String?               // Optionnel : "ceremony", "match", etc.
-  capacity   Int?                  // Nombre total de places (optionnel, pour limiter tickets)
-  status     EventStatus?          // DRAFT / PUBLISHED / SOLD_OUT / CANCELLED
-  description String?              // Présentation détaillée
-  imageUrl   String?               // URL pour illustration
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?              // Soft delete
+  id          Int       @id @default(autoincrement())
+  label       String
+  date        DateTime
+  location    String
+  category    String?               
+  capacity    Int?                  
+  basePrice   Float     @default(0)   // 🔴 ajouté
+  status      EventStatus?          
+  description String?              
+  imageUrl    String?              
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?             
+
+  zones       String[]               // 🟠 ajouté
 
   // Relations
-  tickets    Ticket[]               // Tickets liés à cet événement
-  offers     Offer[]                // Offres associées à cet événement
+  tickets     Ticket[]               
+  offers      Offer[]                // 1‑N actuelle
+  sharedOffers Offer[] @relation("EventsOnOffers") // 🟠 future N‑N
 }
 
 model Offer {
-  id         Int       @id @default(autoincrement())
-  label      String
-  discount   Float
-  active     Boolean   @default(true)
-  validFrom  DateTime?               // Début de validité
-  validTo    DateTime?               // Fin de validité
-  quota      Int?                    // Nombre max de tickets
+  id        Int       @id @default(autoincrement())
+  label     String
+  discount  Float
+  active    Boolean   @default(true)
+  validFrom DateTime?               
+  validTo   DateTime?               
+  quota     Int?                    
 
-  // Relation vers Event
-  eventId    Int?
-  event      Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Relation vers Event (1‑N actuelle)
+  eventId   Int?
+  event     Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Relation many-to-many (future)
+  events    Event[]   @relation("EventsOnOffers")
 
   // Relation inverse vers Ticket
-  tickets    Ticket[]
+  tickets   Ticket[]
 }
 
 model Ticket {
   id        Int          @id @default(autoincrement())
   price     Float
-  zone      String?
+  zone      String?                          // 🟠 gardé pour transition
   status    TicketStatus @default(RESERVED)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   secretKey String       @unique
   signature String?      @unique
 
-  // Référence utilisateur (pas de relation Prisma vers User)
   userId    Int
 
   // Relations vers Event et Offer
-  eventId   Int?
+  eventId   Int                               // 🔴 rendu obligatoire
   offerId   Int?
-  event     Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  offer     Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  offer     Offer?       @relation(fields: [offerId], references: [id], onDelete: SetNull)
 }

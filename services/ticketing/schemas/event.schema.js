@@ -1,5 +1,6 @@
 const { z } = require('zod');
 
+// --- Schéma de base ---
 const eventBaseSchema = z.object({
   label: z.string()
     .min(3, { message: 'Le titre doit contenir au moins 3 caractères' })
@@ -27,7 +28,16 @@ const eventBaseSchema = z.object({
   imageUrl: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
     z.string().url().optional()
-  )
+  ),
+
+  // --- Nouveaux champs ---
+  basePrice: z.coerce.number()
+    .nonnegative({ message: 'Le prix de base doit être positif ou nul' })
+    .default(0),
+
+  zones: z.array(z.string().min(1))
+    .nonempty({ message: 'Il doit y avoir au moins une zone' })
+    .default(['A', 'B', 'C', 'D'])
 });
 
 // --- Création ---

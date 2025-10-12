@@ -1,3 +1,4 @@
+// frontend/src/ticketing/pages/TicketCreate.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
@@ -5,9 +6,6 @@ import { createTicket, getTicket } from '../api/ticket';
 import { listEvents } from '../api/event';
 import { listOffers } from '../api/offer';
 import { useAuth } from '../../common/context/AuthContext';
-
-// Zones mockées (Event n’a pas de zones en base)
-const mockZones = ['A', 'B', 'C'];
 
 export default function TicketCreate() {
   const { user } = useAuth();
@@ -41,22 +39,21 @@ export default function TicketCreate() {
       if (selectedEvent && selectedZone) {
         setLoading(true);
         try {
-          // Prix de base codé en dur (Event n’a pas basePrice)
-          const basePrice = 100;
-          let price = basePrice;
+          // ✅ Utiliser le vrai prix de base de l'event
+          let price = selectedEvent.basePrice ?? 0;
 
-          // appliquer réduction si une offre est choisie
-          if (selectedOffer) {
+          // ✅ appliquer réduction si une offre est choisie
+          if (selectedOffer?.discount) {
             price = price * (1 - selectedOffer.discount);
           }
 
-          // Payload conforme à Prisma : zone et price sont dans Ticket
+          // ✅ Payload conforme à Prisma
           const payload = {
             userId: user.id,
             eventId: selectedEvent.id,
             status: 'RESERVED',
-            zone: selectedZone,   // ✅ zone envoyée dans Ticket
-            price                 // ✅ price envoyé dans Ticket
+            zone: selectedZone,
+            price
           };
 
           if (selectedOffer?.id) {
@@ -108,6 +105,7 @@ export default function TicketCreate() {
           <h3>Choisissez une offre pour {selectedEvent.label}</h3>
           <ul>
             {offers
+              // ⚠️ si tu passes au N-N, adapte ce filtre
               .filter(of => of.eventId === selectedEvent.id)
               .map(of => (
                 <li key={of.id}>
@@ -125,7 +123,7 @@ export default function TicketCreate() {
         <>
           <h3>Choisissez une zone pour {selectedEvent.label}</h3>
           <ul>
-            {(selectedEvent.zones ?? mockZones).map(z => (
+            {(selectedEvent.zones ?? []).map(z => (
               <li key={z}>
                 <button
                   onClick={() => setSelectedZone(z)}

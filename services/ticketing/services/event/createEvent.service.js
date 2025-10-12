@@ -9,20 +9,8 @@ async function createEventService(data) {
   const t = timer('createEventService').start();
 
   try {
-    // Whitelist des champs attendus par Prisma
-    const safeData = {
-      label: data.label,
-      date: new Date(data.date),
-      location: data.location,
-      category: data.category ?? null,
-      capacity: data.capacity ?? null,
-      status: data.status ?? 'DRAFT',
-      description: data.description ?? null,
-      imageUrl: data.imageUrl ?? null
-    };
-
     const event = await prisma.event.create({
-      data: safeData,
+      data, // 👈 données déjà validées par Zod
       include: { offers: true, tickets: true }
     });
 
@@ -32,7 +20,9 @@ async function createEventService(data) {
         label: event.label,
         date: event.date,
         location: event.location,
-        category: event.category || null
+        category: event.category || null,
+        basePrice: event.basePrice,
+        zones: event.zones
       });
     } catch (emitErr) {
       logger.warn(`[EVENT] emitEventCreated failed: ${emitErr.message}`);

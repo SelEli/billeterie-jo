@@ -59,10 +59,19 @@ export default function GenericForm({
     e.preventDefault();
     if (readOnly) return;
 
-    // 🔹 Convertit number / datetime-local / checkbox pour backend
     const cleanedValues = {};
     fields.forEach((field) => {
+      // 🚫 ignorer les champs internes / readOnly
+      if (field.readOnly || field.internal) return;
+
       let val = values[field.name];
+
+      // 🔹 appliquer transform si défini dans la config
+      if (typeof field.transform === 'function') {
+        cleanedValues[field.name] = field.transform(val);
+        return;
+      }
+
       switch (field.type) {
         case 'number':
           cleanedValues[field.name] = val === '' ? null : Number(val);
