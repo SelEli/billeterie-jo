@@ -19,8 +19,8 @@ async function updateEventService(id, data) {
   try {
     updated = await prisma.event.update({
       where: { id: eventId },
-      data, // 👈 on passe directement les données validées par Zod
-      include: { offers: true, tickets: true }
+      data, // 👈 données validées par Zod
+      include: { tickets: true } // ✅ plus de offers
     });
   } catch {
     const err = new Error('EVENT_NOT_FOUND');

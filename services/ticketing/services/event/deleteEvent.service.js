@@ -20,7 +20,7 @@ async function deleteEventService(id) {
     });
 
     if (!existing) {
-      const err = new Error('Event not found'); // 🛠 harmonisé
+      const err = new Error('Event not found');
       err.statusCode = 404;
       throw err;
     }
@@ -33,7 +33,7 @@ async function deleteEventService(id) {
     const deleted = await prisma.event.update({
       where: { id: eventId },
       data: { deletedAt: new Date() },
-      include: { offers: true, tickets: true }
+      include: { tickets: true } // ✅ plus de offers
     });
 
     try {

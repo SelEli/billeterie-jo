@@ -37,24 +37,19 @@ async function createTicketService(data, user) {
   }
 
   // 🔹 Vérifier que la zone existe si fournie
-  if (zone && !event.zones.includes(zone)) {
+  if (zone && (!event.zones || !event.zones.includes(zone))) {
     const err = new Error('INVALID_ZONE');
     err.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
     throw err;
   }
 
-  // 🔹 Charger l’offre si fournie
+  // 🔹 Charger l’offre si fournie (⚠️ plus de lien avec event)
   let offer = null;
   if (offerId) {
     offer = await prisma.offer.findUnique({ where: { id: offerId } });
     if (!offer) {
       const err = new Error('OFFER_NOT_FOUND');
       err.statusCode = ERROR_STATUS.OFFER_NOT_FOUND;
-      throw err;
-    }
-    if (offer.eventId !== event.id) {
-      const err = new Error('OFFER_NOT_LINKED_TO_EVENT');
-      err.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
       throw err;
     }
   }

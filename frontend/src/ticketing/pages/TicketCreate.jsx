@@ -1,3 +1,4 @@
+// frontend/src/ticketing/pages/TicketCreate.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
@@ -104,19 +105,16 @@ export default function TicketCreate() {
         <>
           <h3>Choisissez une offre pour {selectedEvent.label}</h3>
           <ul>
-            {offers
-              // ⚠️ si tu passes au N-N, adapte ce filtre
-              .filter(of => of.eventId === selectedEvent.id)
-              .map(of => (
-                <li key={of.id}>
-                  <button
-                    onClick={() => setSelectedOffer(of)}
-                    className="btn btn--secondary"
-                  >
-                    {of.label} ({of.discount * 100}%)
-                  </button>
-                </li>
-              ))}
+            {offers.map(of => (
+              <li key={of.id}>
+                <button
+                  onClick={() => setSelectedOffer(of)}
+                  className="btn btn--secondary"
+                >
+                  {of.label} ({of.discount * 100}%)
+                </button>
+              </li>
+            ))}
           </ul>
         </>
       ) : !selectedZone ? (

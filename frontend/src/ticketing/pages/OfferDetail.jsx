@@ -1,4 +1,3 @@
-// src/ticketing/pages/OfferDetail.jsx
 import { useParams, useNavigate } from 'react-router-dom';
 import Detail from '../../common/components/Detail';
 import { getOffer, deleteOffer } from '../api/offer';
@@ -63,8 +62,16 @@ export default function OfferDetail() {
               <div className="ticket-info-grid">
                 <p><strong>ID :</strong> {offer.id}</p>
                 <p><strong>Réduction :</strong> {Math.round(offer.discount * 100)}%</p>
-                <p><strong>Événement lié :</strong> {offer.eventId}</p>
                 <p><strong>Active :</strong> {offer.active ? 'Oui' : 'Non'}</p>
+                {offer.validFrom && (
+                  <p><strong>Valide à partir de :</strong> {new Date(offer.validFrom).toLocaleString()}</p>
+                )}
+                {offer.validTo && (
+                  <p><strong>Valide jusqu’à :</strong> {new Date(offer.validTo).toLocaleString()}</p>
+                )}
+                {offer.quota && (
+                  <p><strong>Quota :</strong> {offer.quota}</p>
+                )}
               </div>
             </div>
           </div>

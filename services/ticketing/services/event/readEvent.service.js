@@ -20,7 +20,7 @@ async function readEventService(id) {
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
-      include: { offers: true, tickets: true }
+      include: { tickets: true } // ✅ plus de offers
     });
 
     if (!event || event.deletedAt) {
@@ -32,7 +32,6 @@ async function readEventService(id) {
     try {
       await cacheEvent(event);
     } catch (cacheErr) {
-      // On loggue mais on ne bloque pas
       console.warn(`[EVENT] cacheEvent failed: ${cacheErr.message}`);
     }
 

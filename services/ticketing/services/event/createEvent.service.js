@@ -11,7 +11,7 @@ async function createEventService(data) {
   try {
     const event = await prisma.event.create({
       data, // 👈 données déjà validées par Zod
-      include: { offers: true, tickets: true }
+      include: { tickets: true } // ✅ plus de offers
     });
 
     try {

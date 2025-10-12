@@ -19,14 +19,17 @@ export default function OfferCreate() {
 
   const handleSubmit = async (values) => {
     const newOffer = await createOffer(values);
-    // ⚠️ le back renvoie { data: { offerId: ... } }
     const id = newOffer?.data?.offerId ?? newOffer?.id;
     if (id) navigate(`/offer/${id}`);
   };
 
   return (
     <PageLayout title="Créer une offre">
-      <OfferForm initialValues={{}} onSubmit={handleSubmit} isEdit />
+      <OfferForm
+        initialValues={{}}
+        onSubmit={handleSubmit}
+        isEdit
+      />
     </PageLayout>
   );
 }

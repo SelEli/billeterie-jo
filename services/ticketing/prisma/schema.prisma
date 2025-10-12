@@ -39,22 +39,20 @@ model Event {
   label       String
   date        DateTime
   location    String
-  category    String?               
-  capacity    Int?                  
-  basePrice   Float     @default(0)   // 🔴 ajouté
-  status      EventStatus?          
-  description String?              
-  imageUrl    String?              
+  category    String?
+  capacity    Int?
+  basePrice   Float     @default(0)
+  status      EventStatus?
+  description String?
+  imageUrl    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?             
+  deletedAt   DateTime?
 
-  zones       String[]               // 🟠 ajouté
+  zones       String[]
 
   // Relations
-  tickets     Ticket[]               
-  offers      Offer[]                // 1‑N actuelle
-  sharedOffers Offer[] @relation("EventsOnOffers") // 🟠 future N‑N
+  tickets     Ticket[]
 }
 
 model Offer {
@@ -62,16 +60,9 @@ model Offer {
   label     String
   discount  Float
   active    Boolean   @default(true)
-  validFrom DateTime?               
-  validTo   DateTime?               
-  quota     Int?                    
-
-  // Relation vers Event (1‑N actuelle)
-  eventId   Int?
-  event     Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  // Relation many-to-many (future)
-  events    Event[]   @relation("EventsOnOffers")
+  validFrom DateTime?
+  validTo   DateTime?
+  quota     Int?
 
   // Relation inverse vers Ticket
   tickets   Ticket[]
@@ -80,7 +71,7 @@ model Offer {
 model Ticket {
   id        Int          @id @default(autoincrement())
   price     Float
-  zone      String?                          // 🟠 gardé pour transition
+  zone      String?
   status    TicketStatus @default(RESERVED)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
@@ -90,7 +81,7 @@ model Ticket {
   userId    Int
 
   // Relations vers Event et Offer
-  eventId   Int                               // 🔴 rendu obligatoire
+  eventId   Int
   offerId   Int?
   event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   offer     Offer?       @relation(fields: [offerId], references: [id], onDelete: SetNull)

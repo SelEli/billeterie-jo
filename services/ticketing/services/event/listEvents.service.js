@@ -11,7 +11,7 @@ async function listEventsService(filter = {}) {
 
     const events = await prisma.event.findMany({
       where,
-      include: { offers: true, tickets: true }
+      include: { tickets: true } // ✅ plus de offers
       // ⚠️ Pas d'orderBy pour matcher les tests, à remettre si besoin métier
     });
 

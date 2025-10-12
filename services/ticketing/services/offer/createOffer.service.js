@@ -4,23 +4,28 @@ const logger = require('../../utils/logger');
 const { timer } = require('../../monitor/monitor');
 const { cacheOffer } = require('../../cache/offer.cache');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { createOfferSchema } = require('../../schemas/offer.schema');
 
 async function createOfferService(data) {
   const t = timer('createOfferService').start();
 
   try {
-    // On laisse Zod transformer les dates, pas de new Date ici
-    const safeData = {
-      label: data.label ?? null,
-      discount: data.discount ?? null,
-      active: data.active ?? true,
-      validFrom: data.validFrom ?? null,
-      validTo: data.validTo ?? null,
-      quota: data.quota ?? null,
-      eventId: data.eventId ?? null
+    // ✅ Validation et transformation par Zod
+    const parsed = createOfferSchema.parse(data);
+
+    // ✅ Mapping Prisma
+    const prismaData = {
+      label: parsed.label,
+      discount: parsed.discount,
+      active: parsed.active,
+      validFrom: parsed.validFrom ?? null,
+      validTo: parsed.validTo ?? null,
+      quota: parsed.quota ?? null
     };
 
-    const offer = await prisma.offer.create({ data: safeData });
+    const offer = await prisma.offer.create({
+      data: prismaData
+    });
 
     try {
       await emitOfferCreated({ id: offer.id, label: offer.label });
