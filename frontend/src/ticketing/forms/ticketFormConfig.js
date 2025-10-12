@@ -1,7 +1,5 @@
-//frontend/src/ticketing/forms/ticketFormConfig.js
+// frontend/src/ticketing/forms/ticketFormConfig.js
 export const ticketFields = [
-  { name: 'price', label: 'Prix (€)', type: 'number' },
-
   // Zone devient un select si l'event fournit des zones
   { name: 'zone', label: 'Zone', type: 'select', options: [], placeholder: 'Choisir une zone' },
 

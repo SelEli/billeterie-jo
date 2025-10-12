@@ -3,89 +3,81 @@ const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 const { invalidateCachedTicket } = require('../../cache/ticket.cache');
+const { createTicketSchema } = require('../../schemas/ticket.schema');
 
-async function createTicketService(
-  { price, zone, eventId, status, userId, role, offerId = null },
-  user
-) {
-  logger.debug('[SERVICE][CREATE] Entrée', { price, zone, userId, role, eventId, status, offerId });
-  logger.debug('[SERVICE][CREATE] user reçu', user);
+async function createTicketService(data, user) {
+  logger.debug('[SERVICE][CREATE] Entrée', data);
 
-  const toNumOrNull = (v) =>
-    v === null || v === undefined ? null : (typeof v === 'string' ? Number(v) : v);
-
-  const eventIdNum = toNumOrNull(eventId);
-  const offerIdNum = toNumOrNull(offerId);
-
-  if (
-    typeof price !== 'number' ||
-    typeof zone !== 'string' ||
-    typeof userId !== 'number' ||
-    typeof status !== 'string'
-  ) {
-    logger.warn('[SERVICE][CREATE] Données invalides');
-    const err = new Error('INVALID_TICKET_DATA');
-    err.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
-    throw err;
+  // 🔹 Validation Zod
+  let parsed;
+  try {
+    parsed = createTicketSchema.parse(data);
+  } catch (err) {
+    logger.warn('[SERVICE][CREATE] Données invalides', err.errors);
+    const e = new Error('INVALID_TICKET_DATA');
+    e.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
+    throw e;
   }
 
-  if (eventIdNum !== null && Number.isNaN(eventIdNum)) {
-    const err = new Error('INVALID_TICKET_ID');
-    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
-    throw err;
-  }
+  const { eventId, userId, status, zone, offerId } = parsed;
 
-  if (offerIdNum !== null && Number.isNaN(offerIdNum)) {
-    const err = new Error('INVALID_TICKET_ID');
-    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
-    throw err;
-  }
-
+  // 🔹 Vérification user cohérent
   if (!user || !user.userId || user.userId !== userId) {
-    logger.error('[SERVICE][CREATE] USER_NOT_FOUND ou incohérence', { user, userId });
     const e = new Error('USER_NOT_FOUND');
     e.statusCode = ERROR_STATUS.USER_NOT_FOUND;
     throw e;
   }
 
-  logger.debug('[SERVICE][CREATE] Prisma findUnique event', { eventId: eventIdNum });
-  const event = await prisma.event.findUnique({ where: { id: eventIdNum } });
+  // 🔹 Charger l’event
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) {
     const err = new Error('EVENT_NOT_FOUND');
     err.statusCode = ERROR_STATUS.EVENT_NOT_FOUND;
     throw err;
   }
 
-  if (offerIdNum !== null) {
-    logger.debug('[SERVICE][CREATE] Prisma findUnique offer', { offerId: offerIdNum });
-    const offer = await prisma.offer.findUnique({ where: { id: offerIdNum } });
+  // 🔹 Vérifier que la zone existe si fournie
+  if (zone && !event.zones.includes(zone)) {
+    const err = new Error('INVALID_ZONE');
+    err.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
+    throw err;
+  }
+
+  // 🔹 Charger l’offre si fournie
+  let offer = null;
+  if (offerId) {
+    offer = await prisma.offer.findUnique({ where: { id: offerId } });
     if (!offer) {
       const err = new Error('OFFER_NOT_FOUND');
       err.statusCode = ERROR_STATUS.OFFER_NOT_FOUND;
       throw err;
     }
+    if (offer.eventId !== event.id) {
+      const err = new Error('OFFER_NOT_LINKED_TO_EVENT');
+      err.statusCode = ERROR_STATUS.INVALID_TICKET_DATA;
+      throw err;
+    }
   }
 
+  // 🔹 Calcul du prix
+  let price = event.basePrice;
+  if (offer) {
+    price = price * (1 - offer.discount);
+  }
+
+  // 🔹 Génération secretKey
   const secretKey = crypto.randomBytes(32).toString('hex');
 
-  logger.debug('[SERVICE][CREATE] Prisma ticket.create', {
-    price,
-    zone,
-    userId,
-    status,
-    eventId: eventIdNum,
-    offerId: offerIdNum
-  });
-
+  // 🔹 Création du ticket
   const ticket = await prisma.ticket.create({
     data: {
       price,
       zone,
       userId,
-      status,
+      status: status || 'RESERVED',
       secretKey,
-      event: { connect: { id: eventIdNum } },
-      ...(offerIdNum !== null && { offer: { connect: { id: offerIdNum } } })
+      event: { connect: { id: event.id } },
+      ...(offer ? { offer: { connect: { id: offer.id } } } : {})
     }
   });
 
@@ -97,11 +89,8 @@ async function createTicketService(
 
   logger.info('[SERVICE][CREATE] Ticket inséré', { ticketId: ticket.id });
 
-  // Invalidation cache
-  logger.debug('[SERVICE][CREATE] Invalidation cache', { ticketId: ticket.id });
   await invalidateCachedTicket(ticket.id);
 
-  logger.info('[SERVICE][CREATE] Succès complet', { ticketId: ticket.id });
   return ticket;
 }
 

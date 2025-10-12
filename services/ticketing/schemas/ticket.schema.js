@@ -5,32 +5,30 @@ const ticketStatuses = ['RESERVED', 'VALID', 'USED', 'CANCELLED', 'EXPIRED'];
 
 // Schéma de base
 const ticketBaseSchema = z.object({
-  price: z.coerce.number()
-    .positive({ message: 'Le prix doit être un nombre positif' }),
+  // ⚠️ price n’est plus exigé du client, mais on le garde pour compatibilité
+  price: z.coerce.number().positive({ message: 'Le prix doit être un nombre positif' }).optional(),
 
-  // Zone rendue optionnelle
+  // Zone optionnelle
   zone: z.string().max(100).optional(),
 
-  // Status : optionnel, forcé côté back à RESERVED
+  // Status optionnel, forcé côté back à RESERVED si absent
   status: z.enum(ticketStatuses).optional(),
 
-  // UserId : obligatoire, mais sera écrasé par req.user côté back
-  userId: z.coerce.number()
-    .int()
-    .positive({ message: 'userId doit être un entier positif' }),
+  // UserId obligatoire
+  userId: z.coerce.number().int().positive({ message: 'userId doit être un entier positif' }),
 
-  // EventId : obligatoire via superRefine
+  // EventId obligatoire via superRefine
   eventId: z.coerce.number().int().positive().optional(),
 
-  // OfferId : optionnel
+  // OfferId optionnel
   offerId: z.coerce.number().int().positive().optional(),
 
-  // secretKey et signature sont générés côté service → pas dans le create
+  // role optionnel
+  role: z.string().optional()
 });
 
 // Création
 const createTicketSchema = ticketBaseSchema.superRefine((data, ctx) => {
-  // Règle métier : un ticket doit être lié à un event
   if (!data.eventId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -40,7 +38,7 @@ const createTicketSchema = ticketBaseSchema.superRefine((data, ctx) => {
   }
 });
 
-// Mise à jour (tous champs optionnels + id obligatoire dans body)
+// Mise à jour (tous champs optionnels + id obligatoire)
 const updateTicketSchema = ticketBaseSchema.partial().extend({
   id: z.preprocess(
     (val) => Number(val),
@@ -56,8 +54,4 @@ const validateTicketSchema = z.object({
   )
 });
 
-module.exports = {
-  createTicketSchema,
-  updateTicketSchema,
-  validateTicketSchema
-};
+module.exports = { createTicketSchema, updateTicketSchema, validateTicketSchema };

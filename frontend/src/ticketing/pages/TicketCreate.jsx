@@ -1,5 +1,4 @@
-// frontend/src/ticketing/pages/TicketCreate.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import { createTicket, getTicket } from '../api/ticket';
@@ -33,27 +32,28 @@ export default function TicketCreate() {
     fetchData();
   }, []);
 
+  // Prix estimé (affichage uniquement)
+  const estimatedPrice = useMemo(() => {
+    if (!selectedEvent) return null;
+    let price = selectedEvent.basePrice ?? 0;
+    if (selectedOffer?.discount) {
+      price = price * (1 - selectedOffer.discount);
+    }
+    return price.toFixed(2);
+  }, [selectedEvent, selectedOffer]);
+
   // Création du ticket quand tout est choisi
   useEffect(() => {
     const create = async () => {
       if (selectedEvent && selectedZone) {
         setLoading(true);
         try {
-          // ✅ Utiliser le vrai prix de base de l'event
-          let price = selectedEvent.basePrice ?? 0;
-
-          // ✅ appliquer réduction si une offre est choisie
-          if (selectedOffer?.discount) {
-            price = price * (1 - selectedOffer.discount);
-          }
-
-          // ✅ Payload conforme à Prisma
+          // ✅ Payload minimal, le back calcule le prix
           const payload = {
             userId: user.id,
             eventId: selectedEvent.id,
             status: 'RESERVED',
-            zone: selectedZone,
-            price
+            zone: selectedZone
           };
 
           if (selectedOffer?.id) {
@@ -134,9 +134,21 @@ export default function TicketCreate() {
               </li>
             ))}
           </ul>
+          {estimatedPrice && (
+            <p className="mt-2">
+              💶 Prix estimé : <strong>{estimatedPrice} €</strong>
+            </p>
+          )}
         </>
       ) : (
-        <p>Préparation de la création…</p>
+        <>
+          <p>Préparation de la création…</p>
+          {estimatedPrice && (
+            <p>
+              💶 Prix estimé : <strong>{estimatedPrice} €</strong>
+            </p>
+          )}
+        </>
       )}
     </PageLayout>
   );
