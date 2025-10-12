@@ -7,11 +7,11 @@ const { invalidateCachedTicket } = require('../../cache/ticket.cache');
 async function updateTicketService(id, data) {
   const numericId = typeof id === 'string' ? Number(id) : id;
 
-  logger.debug('[TICKET][UPDATE] Service appelé', { id, numericId, data });
+  logger.debug('[SERVICE][UPDATE] Entrée', { id, numericId, data });
 
   let ticket;
   try {
-    logger.debug('[TICKET][UPDATE] Appel Prisma.update', {
+    logger.debug('[SERVICE][UPDATE] Appel Prisma.update', {
       where: { id: numericId },
       data
     });
@@ -21,9 +21,9 @@ async function updateTicketService(id, data) {
       data
     });
 
-    logger.debug('[TICKET][UPDATE] Prisma a retourné', ticket);
+    logger.debug('[SERVICE][UPDATE] Prisma a retourné', ticket);
   } catch (err) {
-    logger.error('[TICKET][UPDATE] Prisma.update a levé une erreur', {
+    logger.error('[SERVICE][UPDATE] Prisma.update a levé une erreur', {
       id: numericId,
       data,
       error: err.message,
@@ -35,7 +35,7 @@ async function updateTicketService(id, data) {
   }
 
   if (!ticket) {
-    logger.error('[TICKET][UPDATE] Aucun ticket retourné par Prisma', {
+    logger.error('[SERVICE][UPDATE] Aucun ticket retourné par Prisma', {
       id: numericId,
       data
     });
@@ -44,7 +44,7 @@ async function updateTicketService(id, data) {
     throw e;
   }
 
-  logger.info('[TICKET][UPDATE] Ticket mis à jour', {
+  logger.info('[SERVICE][UPDATE] Ticket mis à jour', {
     id: ticket.id,
     status: ticket.status
   });
@@ -52,9 +52,9 @@ async function updateTicketService(id, data) {
   // Invalidation cache
   try {
     await invalidateCachedTicket(numericId);
-    logger.debug('[TICKET][UPDATE] Cache invalidé', { id: numericId });
+    logger.debug('[SERVICE][UPDATE] Cache invalidé', { id: numericId });
   } catch (err) {
-    logger.warn('[TICKET][UPDATE] Erreur lors de l’invalidation du cache', {
+    logger.warn('[SERVICE][UPDATE] Erreur lors de l’invalidation du cache', {
       id: numericId,
       error: err.message
     });
@@ -72,9 +72,9 @@ async function updateTicketService(id, data) {
       zone: ticket.zone,
       status: ticket.status
     });
-    logger.debug('[TICKET][UPDATE] Kafka event publié', { ticketId: ticket.id });
+    logger.debug('[SERVICE][UPDATE] Kafka event publié', { ticketId: ticket.id });
   } catch (err) {
-    logger.warn('[TICKET][UPDATE] Kafka publish skipped', {
+    logger.warn('[SERVICE][UPDATE] Kafka publish échoué', {
       id: numericId,
       error: err.message
     });

@@ -4,22 +4,29 @@ const logger = require('../../utils/logger');
 const axios = require('axios');
 const { publishKafkaEvent } = require('../../utils/kafkaClient');
 const { invalidateCachedTicket } = require('../../cache/ticket.cache');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function validateTicketService(ticketId, user) {
-  logger.info('[TICKET SERVICE] Ticket validation called', { ticketId });
+  logger.info('[SERVICE][VALIDATE] Entrée', { ticketId });
 
   const numericId = Number(ticketId);
   if (!numericId) {
-    throw new Error('INVALID_TICKET_ID');
+    const err = new Error('INVALID_TICKET_ID');
+    err.statusCode = ERROR_STATUS.INVALID_TICKET_ID;
+    throw err;
   }
 
   const ticket = await prisma.ticket.findUnique({ where: { id: numericId } });
   if (!ticket) {
-    throw new Error('TICKET_NOT_FOUND');
+    const err = new Error('TICKET_NOT_FOUND');
+    err.statusCode = ERROR_STATUS.TICKET_NOT_FOUND;
+    throw err;
   }
 
   if (ticket.status !== 'RESERVED') {
-    throw new Error('INVALID_TICKET_STATUS');
+    const err = new Error('INVALID_TICKET_STATUS');
+    err.statusCode = ERROR_STATUS.INVALID_TICKET_STATUS;
+    throw err;
   }
 
   // 🔹 Récupération de la clé utilisateur via User Service
@@ -33,13 +40,18 @@ async function validateTicketService(ticketId, user) {
       withCredentials: true
     });
     invisibleKey = res.data?.data?.invisibleKey;
-    logger.info('[TICKET SERVICE] Réponse User Service', res.data);
+    logger.info('[SERVICE][VALIDATE] Réponse User Service', res.data);
   } catch (err) {
-    logger.warn(`[TICKET SERVICE] Impossible de récupérer invisibleKey: ${err.message}`, { ticketId });
+    logger.warn('[SERVICE][VALIDATE] Impossible de récupérer invisibleKey', {
+      ticketId: numericId,
+      error: err.message
+    });
   }
 
   if (!invisibleKey) {
-    throw new Error('USER_KEY_NOT_FOUND');
+    const err = new Error('USER_KEY_NOT_FOUND');
+    err.statusCode = ERROR_STATUS.USER_KEY_NOT_FOUND || ERROR_STATUS.INTERNAL_SERVER_ERROR;
+    throw err;
   }
 
   // 🔹 Signature calculée uniquement avec les deux clés
@@ -52,7 +64,15 @@ async function validateTicketService(ticketId, user) {
     data: { status: 'VALID', signature }
   });
 
-  await invalidateCachedTicket(numericId);
+  try {
+    await invalidateCachedTicket(numericId);
+    logger.debug('[SERVICE][VALIDATE] Cache invalidé', { id: numericId });
+  } catch (err) {
+    logger.warn('[SERVICE][VALIDATE] Erreur invalidation cache', {
+      id: numericId,
+      error: err.message
+    });
+  }
 
   // 🔹 Publication Kafka
   try {
@@ -64,8 +84,12 @@ async function validateTicketService(ticketId, user) {
       offerId: updated.offerId,
       status: updated.status
     });
+    logger.debug('[SERVICE][VALIDATE] Kafka event publié', { ticketId: updated.id });
   } catch (err) {
-    logger.warn(`[TICKET SERVICE] Kafka publish failed: ${err.message}`, { ticketId: numericId });
+    logger.warn('[SERVICE][VALIDATE] Kafka publish échoué', {
+      ticketId: numericId,
+      error: err.message
+    });
   }
 
   return updated;
