@@ -1,4 +1,4 @@
-const { verifyTicketService } = require('../../services/ticket/verifyTicket.service');
+const { verifyTicketService } = require('../../services/ticket');
 const { sendBusinessError } = require('../../utils/sendError');
 const { sendBusinessSuccess } = require('../../utils/sendSuccess');
 

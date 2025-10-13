@@ -1,12 +1,17 @@
 const { createAdapters } = require('../../adapters');
-const { validateTicketService } = require('../../services/ticket/validateTicket.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const logger = require('../../utils/logger');
-const prisma = require('../../utils/prismaClient');
-const { publishKafkaEvent } = require('../../utils/kafkaClient');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { validateTicketService } = require('../../services/ticket');
 const monitor = require('../../monitor/monitor');
+
+// Import centralisé depuis utils/index.js
+const {
+  logger,
+  prisma,
+  publishKafkaEvent,
+  sendBusinessError,
+  sendBusinessSuccess,
+  ERROR_STATUS,
+} = require('../../utils');
+
 
 async function validateTicketController(req, res) {
   logger.info('[CTRL][VALIDATE] Entrée', {

@@ -25,17 +25,20 @@ const ERROR_STATUS = {
   TICKET_ALREADY_USED:         400, // contrôle d’accès
   TICKET_NOT_VALID:            400, // pas encore VALID
   INVALID_SIGNATURE:           400, // signature QR invalide
+  INVALID_ZONE:                400, // zone inexistante
+  EVENT_FULL:                  400, // capacité atteinte
+  OFFER_INACTIVE:              400, // offre désactivée
 
   // --- Vérification ---
-  START_VERIFICATION_FAILED:   400, // échec démarrage vérification
-  CONFIRM_VERIFICATION_FAILED: 400, // échec confirmation vérification
+  START_VERIFICATION_FAILED:   400,
+  CONFIRM_VERIFICATION_FAILED: 400,
 
   // --- Authentification / autorisation ---
   INVALID_PASSWORD:            401,
   UNAUTHORIZED:                401,
   TOKEN_MISSING_OR_MALFORMED:  401,
   FORBIDDEN:                   403,
-  USER_KEY_NOT_FOUND:          403, // 👈 déplacé ici, plus logique
+  USER_KEY_NOT_FOUND:          403,
 
   // --- Ressources non trouvées ---
   USER_NOT_FOUND:              404,

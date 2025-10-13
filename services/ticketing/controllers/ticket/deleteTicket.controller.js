@@ -1,10 +1,15 @@
 // controllers/ticket/deleteTicket.controller.js
-const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { deleteTicketService } = require('../../services/ticket/deleteTicket.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { deleteTicketService } = require('../../services/ticket');
+
+// Import centralisé depuis utils/index.js
+const {
+  logger,
+  sendBusinessError,
+  sendBusinessSuccess,
+  ERROR_STATUS,
+} = require('../../utils');
+
 
 async function deleteTicketController(req, res) {
   logger.info('[CTRL][DELETE] Entrée', { user: req.user, params: req.params });

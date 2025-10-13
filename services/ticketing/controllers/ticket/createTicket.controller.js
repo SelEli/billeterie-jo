@@ -7,7 +7,7 @@ const {
   ERROR_STATUS,
   prisma
 } = require('../../utils');
-const { createTicketService } = require('../../services/ticket/createTicket.service');
+const { createTicketService } = require('../../services/ticket');
 
 async function createTicketController(req, res) {
   logger.info('[CTRL][CREATE] Entrée', { user: req.user, body: req.body });

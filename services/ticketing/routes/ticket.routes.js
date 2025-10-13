@@ -129,14 +129,5 @@ router.post(
 );
 
 // VERIFY (contrôle sur site)
-/*router.post(
-  '/verify',
-  authenticate,
-  (req, res, next) => {
-    logger.info('[TICKET ROUTES][POST /verify] → verifyTicketController (contrôle sur site)');
-    next();
-  },
-  verifyTicketController
-);*/
 
 module.exports = router;

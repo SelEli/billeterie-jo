@@ -1,9 +1,14 @@
-const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { readTicketService } = require('../../services/ticket/readTicket.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { readTicketService } = require('../../services/ticket');
+
+// Import centralisé depuis utils/index.js
+const {
+  logger,
+  sendBusinessError,
+  sendBusinessSuccess,
+  ERROR_STATUS,
+} = require('../../utils');
+
 
 async function readTicketController(req, res) {
   const { id } = req.params;

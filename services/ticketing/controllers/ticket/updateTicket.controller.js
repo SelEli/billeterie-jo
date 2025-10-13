@@ -1,10 +1,15 @@
-const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { updateTicketService } = require('../../services/ticket/updateTicket.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { publishKafkaEvent } = require('../../utils/kafkaClient');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { updateTicketService } = require('../../services/ticket');
+
+// Import centralisé depuis utils/index.js
+const {
+  logger,
+  sendBusinessError,
+  sendBusinessSuccess,
+  publishKafkaEvent,
+  ERROR_STATUS,
+} = require('../../utils');
+
 
 async function updateTicketController(req, res) {
   const id = Number(req.params.id);

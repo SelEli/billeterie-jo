@@ -1,10 +1,15 @@
 // controllers/ticket/listTickets.controller.js
-const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { listTicketsService } = require('../../services/ticket/listTickets.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { listTicketsService } = require('../../services/ticket');
+
+// Import centralisé depuis utils/index.js
+const {
+  logger,
+  sendBusinessError,
+  sendBusinessSuccess,
+  ERROR_STATUS,
+} = require('../../utils');
+
 
 async function listTicketsController(req, res) {
   logger.info('[CTRL][LIST] Entrée', { query: req.query });
