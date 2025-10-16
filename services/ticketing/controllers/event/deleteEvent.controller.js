@@ -1,5 +1,5 @@
 // controllers/event/deleteEvent.controller.js
-const { deleteEventService } = require('../../services/event/deleteEvent.service');
+const { deleteEventService } = require('../../services/event');
 const logger = require('../../utils/logger');
 
 async function deleteEventController(req, res) {

@@ -1,9 +1,12 @@
-const logger  = require('../../utils/logger');
 const monitor = require('../../monitor/monitor');
-const { updateOfferService } = require('../../services/offer/updateOffer.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+const { 
+  logger, 
+  sendBusinessError, 
+  sendBusinessSuccess, 
+  ERROR_STATUS 
+} = require('../../utils');
+const { updateOfferService } = require('../../services/offer');
+
 
 async function updateOfferController(req, res) {
   const id = Number(req.params.id);

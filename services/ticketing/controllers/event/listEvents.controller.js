@@ -1,5 +1,5 @@
 // controllers/event/listEvents.controller.js
-const { listEventsService } = require('../../services/event/listEvents.service');
+const { listEventsService } = require('../../services/event');
 const logger = require('../../utils/logger');
 
 async function listEventsController(req, res) {

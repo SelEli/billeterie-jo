@@ -1,6 +1,6 @@
 const { logger, sendBusinessError, sendBusinessSuccess, ERROR_STATUS } = require('../../utils');
 const monitor = require('../../monitor/monitor');
-const { createEventService } = require('../../services/event/createEvent.service');
+const { createEventService } = require('../../services/event');
 
 
 async function createEventController(req, res) {

@@ -1,9 +1,6 @@
-const logger = require('../../utils/logger');
+const { logger, sendBusinessError, sendBusinessSuccess, ERROR_STATUS } = require('../../utils');
+const { createOfferService } = require('../../services/offer');
 const monitor = require('../../monitor/monitor');
-const { createOfferService } = require('../../services/offer/createOffer.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function createOfferController(req, res) {
   logger.debug('[OFFER CONTROLLER] Requête création offer reçue', {
