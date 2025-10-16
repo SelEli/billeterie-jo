@@ -1,9 +1,7 @@
-const logger  = require('../../utils/logger');
+const { logger, sendBusinessError, sendBusinessSuccess, ERROR_STATUS } = require('../../utils');
 const monitor = require('../../monitor/monitor');
 const { updateEventService } = require('../../services/event/updateEvent.service');
-const { sendBusinessError } = require('../../utils/sendError');
-const { sendBusinessSuccess } = require('../../utils/sendSuccess');
-const { ERROR_STATUS } = require('../../utils/httpErrorMap');
+
 
 async function updateEventController(req, res) {
   const id = Number(req.params.id);
