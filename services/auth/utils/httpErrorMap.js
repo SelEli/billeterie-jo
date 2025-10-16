@@ -39,6 +39,8 @@ const ERROR_STATUS = {
   NO_ROLES_FOUND:           404,
   NO_EVENTS_FOUND:          404,
   NO_OFFERS_FOUND:          404,
+  NOT_FOUND:                404,
+
 
   // --- Conflits / doublons ---
   EMAIL_ALREADY_USED:       409,

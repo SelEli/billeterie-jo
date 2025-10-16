@@ -1,87 +1,168 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const {
   prisma, logger, generateInvisibleKey,
   USER_SELECT, normalizeEmail, toDateSafe,
-  validateId, safePublish, makeDelete, makeRead, makeList,
+  validateId, safePublish, makeDelete, makeRead,
   encryptInvisibleKey
 } = require('./core.service');
+const { redis } = require('../utils');
 
-// CREATE
-async function createUserService(data) {
-  if (!data?.email) return { error: 'EMAIL_REQUIRED' };
-  if (!data?.password) return { error: 'PASSWORD_REQUIRED' };
+const TOKEN_EXPIRATION = '1h';
+const REVOKED_SET = 'revoked_tokens';
 
-  const email = normalizeEmail(data.email);
-  const existing = await prisma.user.findUnique({ where: { email } });
+async function revokeToken(token, expSeconds) {
+  try {
+    if (!token) return;
+    await redis.setex(`${REVOKED_SET}:${token}`, expSeconds, '1');
+    logger.info('[SECURITY][JWT] Token révoqué');
+  } catch (err) {
+    logger.error('[SECURITY][JWT] Erreur révocation', { error: err.message });
+  }
+}
+
+// REGISTER
+async function registerUserService({ firstName, lastName, email, password, birthDate }) {
+  if (!email || !password || !firstName || !lastName || !birthDate) {
+    return { error: 'MISSING_REQUIRED_FIELDS' };
+  }
+
+  const emailClean = normalizeEmail(email);
+  const existing = await prisma.user.findUnique({ where: { email: emailClean } });
   if (existing) return { error: 'EMAIL_ALREADY_USED' };
 
-  const hash = await bcrypt.hash(data.password, 10);
+  const hash = await bcrypt.hash(password, 10);
   let user;
   try {
     user = await prisma.user.create({
       data: {
-        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: emailClean,
         hash,
-        firstName: data.firstName?.trim() || null,
-        lastName: data.lastName?.trim() || null,
-        birthDate: toDateSafe(data.birthDate),
+        birthDate: toDateSafe(birthDate),
+        invisibleKey: encryptInvisibleKey(generateInvisibleKey()), // 🔒
         role: 'VISITOR',
-        invisibleKey: encryptInvisibleKey(generateInvisibleKey()) // 🔒 chiffrée
+        lastLogin: null,
+        isBlacklisted: false,
+        blacklistReason: null
       },
       select: USER_SELECT
     });
   } catch (err) {
     if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
-    logger.error('[SECURITY][USER][CREATE] Prisma error', { error: err.message });
+    logger.error('[SECURITY][REGISTER] Prisma error', { error: err.message });
     return { error: 'INTERNAL_SERVER_ERROR' };
   }
 
-  logger.info(`[SECURITY][USER][CREATE] User created [id=${user.id}]`);
-  await safePublish('user', { type: 'UserCreated', userId: user.id, email: user.email }, 'USER.CREATE');
-  return user;
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) return { error: 'SERVER_MISCONFIGURATION' };
+
+  let token;
+  try {
+    token = jwt.sign(
+      { userId: user.id, firstName: user.firstName, lastName: user.lastName, role: user.role },
+      secret,
+      { expiresIn: TOKEN_EXPIRATION }
+    );
+  } catch {
+    return { error: 'TOKEN_GENERATION_FAILED' };
+  }
+
+  logger.info(`[SECURITY][REGISTER] Nouvel utilisateur id=${user.id}`);
+  await safePublish('user', {
+    type: 'UserCreated',
+    userId: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role
+  }, 'AUTH.REGISTER');
+
+  return { ...user, token };
 }
 
-// READ
-const readUserService = makeRead('USER.READ');
+// LOGIN
+async function loginService({ email, password }) {
+  if (!email || !password) return { error: 'MISSING_CREDENTIALS' };
 
-// UPDATE
-async function updateUserService(id, data) {
-  const userId = validateId(id, 'USER.UPDATE');
-  if (!userId) return { error: 'INVALID_USER_ID' };
-  if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
-    return { error: 'MISSING_REQUIRED_FIELDS' };
-  }
+  const emailClean = normalizeEmail(email);
+  const user = await prisma.user.findUnique({ where: { email: emailClean } });
+  if (!user) return { error: 'USER_NOT_FOUND' };
 
-  const safeData = {};
-  if (data.email) safeData.email = normalizeEmail(data.email);
-  if (data.firstName) safeData.firstName = data.firstName.trim();
-  if (data.lastName) safeData.lastName = data.lastName.trim();
-  if (data.birthDate) safeData.birthDate = toDateSafe(data.birthDate);
+  const isValid = await bcrypt.compare(password, user.hash);
+  if (!isValid) return { error: 'INVALID_PASSWORD' };
 
-  let updated;
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) return { error: 'SERVER_MISCONFIGURATION' };
+
+  let token;
   try {
-    updated = await prisma.user.update({ where: { id: userId }, data: safeData, select: USER_SELECT });
-  } catch (err) {
-    if (err.code === 'P2002') return { error: 'EMAIL_ALREADY_USED' };
-    logger.error('[SECURITY][USER][UPDATE] Prisma error', { error: err.message });
-    return { error: 'INTERNAL_SERVER_ERROR' };
+    token = jwt.sign(
+      { userId: user.id, firstName: user.firstName, lastName: user.lastName, role: user.role },
+      secret,
+      { expiresIn: TOKEN_EXPIRATION }
+    );
+  } catch {
+    return { error: 'TOKEN_GENERATION_FAILED' };
   }
 
-  logger.info(`[SECURITY][USER][UPDATE] User updated [id=${updated.id}]`);
-  await safePublish('user', { type: 'UserUpdated', userId: updated.id }, 'USER.UPDATE');
+  logger.info(`[SECURITY][LOGIN] Connexion réussie id=${user.id}`);
+  return { ...user, token };
+}
+
+// GET PROFILE / DELETE PROFILE
+const getProfileService = makeRead('AUTH.GET_PROFILE');
+const deleteProfileService = makeDelete('AUTH.DELETE_PROFILE', 'UserDeleted');
+
+// UPDATE PROFILE
+async function updateProfileService(userId, payload) {
+  const parsed = validateId(userId, 'AUTH.UPDATE_PROFILE');
+  if (!parsed) return { error: 'INVALID_USER_ID' };
+
+  if (payload.birthDate) payload.birthDate = toDateSafe(payload.birthDate);
+
+  const updated = await prisma.user.update({ where: { id: parsed }, data: payload, select: USER_SELECT });
+  logger.info(`[SECURITY][UPDATE_PROFILE] Profil mis à jour id=${parsed}`);
+
+  await safePublish('user', {
+    type: 'UserUpdated',
+    userId: updated.id,
+    email: updated.email,
+    firstName: updated.firstName,
+    lastName: updated.lastName,
+    role: updated.role
+  }, 'AUTH.UPDATE_PROFILE');
+
   return updated;
 }
 
-// DELETE
-const deleteUserService = makeDelete('USER.DELETE', 'UserDeleted');
+// LOGOUT
+async function logoutService(user, token) {
+  // ✅ Correction : on lit user.userId
+  const userId = validateId(user?.userId, 'AUTH.LOGOUT');
+  if (!userId) return { error: 'INVALID_USER_ID' };
 
-// LIST
-const listUsersService = makeList('USER.LIST', USER_SELECT);
+  try {
+    const decoded = jwt.decode(token);
+    if (decoded?.exp) {
+      const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+      if (ttl > 0) await revokeToken(token, ttl);
+    }
+  } catch (err) {
+    logger.error('[SECURITY][LOGOUT] Erreur révocation', { error: err.message });
+  }
+
+  logger.info(`[SECURITY][LOGOUT] Déconnexion utilisateur id=${userId}`);
+  await safePublish('user.logged_out', { userId }, 'AUTH.LOGOUT');
+  return true;
+}
 
 module.exports = {
-  createUserService,
-  readUserService,
-  updateUserService,
-  deleteUserService,
-  listUsersService
+  registerUserService,
+  loginService,
+  getProfileService,
+  updateProfileService,
+  deleteProfileService,
+  logoutService
 };
