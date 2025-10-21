@@ -1,0 +1,63 @@
+# ───────────────────────────────
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ───────────────────────────────
+# Node
+node_modules
+**/node_modules
+
+# ───────────────────────────────
+# Builds / sorties compilées
+dist
+dist-ssr
+build
+.cache
+.tmp
+out
+coverage
+
+# ───────────────────────────────
+# Env (ne jamais envoyer les secrets dans le repo)
+.env
+.env.*
+*/.env
+*/.env.*
+
+# ───────────────────────────────
+# Docker
+docker-compose*.yml
+Dockerfile.*
+.dockerignore
+
+# ───────────────────────────────
+# Config serveurs / déploiement
+*.conf
+roots.sst
+fly.toml
+test-db.js
+
+# ───────────────────────────────
+# Éditeur / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ───────────────────────────────
+# Divers
+*.local
+
+vite.config.js

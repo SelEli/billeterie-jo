@@ -1,0 +1,32 @@
+# Dépendances
+node_modules
+
+# Variables d'environnement (tous env)
+.env
+.env.*
+*/.env
+*/.env.*
+
+# Fichiers générés Prisma (si le service en utilise)
+src/generated/prisma
+
+# Builds / sorties compilées
+dist
+coverage
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Fichiers d'éditeur/OS
+.vscode
+.idea
+.DS_Store
+
+# Données de seed
+**/seed/
+**/fixtures/
+**/mocks/
+**/tests/

@@ -1,0 +1,88 @@
+// ----------------------
+// Prisma configuration
+// ----------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------
+// Énumérations
+// ----------------------
+
+enum TicketStatus {
+  RESERVED
+  VALID
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  SOLD_OUT
+  CANCELLED
+}
+
+// ----------------------
+// Modèles
+// ----------------------
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  label       String
+  date        DateTime
+  location    String
+  category    String?
+  capacity    Int?
+  basePrice   Float     @default(0)
+  status      EventStatus?
+  description String?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  zones       String[]
+
+  // Relations
+  tickets     Ticket[]
+}
+
+model Offer {
+  id        Int       @id @default(autoincrement())
+  label     String
+  discount  Float
+  active    Boolean   @default(true)
+  validFrom DateTime?
+  validTo   DateTime?
+  quota     Int?
+
+  // Relation inverse vers Ticket
+  tickets   Ticket[]
+}
+
+model Ticket {
+  id        Int          @id @default(autoincrement())
+  price     Float
+  zone      String?
+  status    TicketStatus @default(RESERVED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  secretKey String       @unique
+  signature String?      @unique
+
+  userId    Int
+
+  // Relations vers Event et Offer
+  eventId   Int
+  offerId   Int?
+  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  offer     Offer?       @relation(fields: [offerId], references: [id], onDelete: SetNull)
+}

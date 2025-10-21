@@ -1,0 +1,290 @@
+/* =========================
+   GLOBAL
+   ========================= */
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: url('/images/paris2024-bg.jpg') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Inter', sans-serif;
+  color: var(--texte-fonce);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
+}
+
+/* Effet verre */
+.glass {
+  background: rgba(255, 255, 255, 0.88); /* plus opaque pour lisibilité */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border-radius: 0.75rem;
+  color: var(--texte-fonce);
+}
+
+/* =========================
+   LAYOUT UTILITIES
+   ========================= */
+.container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+}
+
+.col {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  flex: 1 0 0%;
+}
+
+@media (min-width: 640px) {
+  .col-sm-6 { flex: 0 0 50%; max-width: 50%; }
+}
+
+@media (min-width: 1024px) {
+  .col-lg-4 { flex: 0 0 33.3333%; max-width: 33.3333%; }
+}
+
+/* =========================
+   HEADER
+   ========================= */
+.header-jo {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+  background: rgba(0, 38, 84, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: var(--texte-clair);
+
+  &__inner {
+    @extend .container;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: bold;
+    font-size: 1.125rem;
+    text-decoration: none;
+    color: inherit;
+    white-space: nowrap;
+  }
+
+  &__nav {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.95rem;
+    flex-wrap: wrap;
+
+    @media (max-width: 767px) {
+      flex-direction: column;
+      position: absolute;
+      top: 4rem;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 38, 84, 0.95);
+      padding: 1rem;
+      display: none;
+
+      &.is-open {
+        display: flex;
+      }
+    }
+  }
+
+  &__link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.25s ease;
+
+    &:hover {
+      color: var(--or-secondaire);
+    }
+  }
+}
+
+/* =========================
+   FOOTER
+   ========================= */
+.footer-jo {
+  background-color: var(--bleu-primaire);
+  color: var(--texte-clair);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2.5rem 1rem;
+
+  &__inner {
+    @extend .container;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  h3, h4 {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  &__links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  &__link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.25s ease;
+
+    &:hover {
+      color: var(--or-secondaire);
+    }
+  }
+}
+
+/* =========================
+   HERO
+   ========================= */
+.hero-section {
+  position: relative;
+  min-height: 55vh;
+  background: url('/images/hero-bg.jpg') center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    min-height: 50vh;
+    padding: 4rem 2rem;
+  }
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  color: var(--texte-clair);
+
+  h1 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  p {
+    font-size: 1.125rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn {
+    font-size: 1rem;
+    padding: 0.65rem 1.5rem;
+  }
+}
+
+/* =========================
+   SECTION ÉPREUVES
+   ========================= */
+.section-events {
+  position: relative;
+  z-index: 2;
+  background-color: #f3f4f6;
+  padding: 3rem 1rem;
+  margin-top: -2rem;
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+
+  h2 {
+    text-align: center;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin-bottom: 2.5rem;
+  }
+
+  .event-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: var(--ombre-douce);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      transform: translateY(-3px);
+    }
+
+    img {
+      width: 100%;
+      height: 12rem;
+      object-fit: cover;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      h5 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      p {
+        color: #6b7280;
+        margin-bottom: 1rem;
+      }
+    }
+  }
+}
+
+/* =========================
+   TITRES PAGE LAYOUT
+   ========================= */
+.page-title {
+  font-weight: 700;
+  margin-bottom: 1rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.2;
+
+  &.is-centered {
+    text-align: center;
+  }
+}
