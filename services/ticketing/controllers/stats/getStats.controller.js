@@ -15,6 +15,8 @@
 const prisma = require('../../utils/prismaClient');
 const logger = require('../../utils/logger');
 const { sendBusinessError, sendBusinessSuccess } = require('../../utils');
+const { SUCCESS_STATUS } = require('../../utils/httpSuccessMap');
+const { ERROR_STATUS } = require('../../utils/httpErrorMap');
 
 async function getStatsController(req, res) {
   logger.info('[CTRL][STATS] Entrée', { user: req.user });
@@ -55,12 +57,17 @@ async function getStatsController(req, res) {
       totalTickets
     };
 
+    if (!eventStats.length && !offerStats.length) {
+      logger.warn('[CTRL][STATS] Aucune statistique trouvée');
+      return sendBusinessError(res, 'NO_STATS_FOUND'); // défini dans httpErrorMap.js
+    }
+
     logger.info('[CTRL][STATS] Stats générées', result);
-    return sendBusinessSuccess(res, 'GET_STATS', result);
+    return sendBusinessSuccess(res, 'GET_STATS', result); // défini dans httpSuccessMap.js
 
   } catch (err) {
     logger.error('[CTRL][STATS] Erreur récupération stats', { error: err.message });
-    return sendBusinessError(res, 'INTERNAL_SERVER_ERROR');
+    return sendBusinessError(res, 'STATS_GENERATION_FAILED'); // défini dans httpErrorMap.js
   }
 }
 

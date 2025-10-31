@@ -22,6 +22,7 @@ const SUCCESS_STATUS = {
   READ_EVENT_LIST: { status: 200, wrap: (payload) => payload },
   READ_OFFER:      { status: 200, wrap: (payload) => payload },
   READ_OFFER_LIST: { status: 200, wrap: (payload) => payload },
+  GET_STATS:       { status: 200, wrap: (payload) => payload },
 
   // --- UPDATE ---
   UPDATE_USER:     { status: 200, wrap: (payload) => payload },
