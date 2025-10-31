@@ -8,13 +8,15 @@ const ticketRoutes = require('./ticket.routes');
 const eventRoutes  = require('./event.routes');
 const offerRoutes  = require('./offer.routes');
 const healthRoutes = require('./health');
+const statsRoutes  = require('./stats.routes'); // ✅ ajout
 
 // Vérification stricte des routeurs au chargement
 [
   ['ticketRoutes', ticketRoutes],
   ['eventRoutes', eventRoutes],
   ['offerRoutes', offerRoutes],
-  ['healthRoutes', healthRoutes]
+  ['healthRoutes', healthRoutes],
+  ['statsRoutes', statsRoutes] // ✅ ajout
 ].forEach(([name, r]) => {
   if (typeof r !== 'function' && typeof r.use !== 'function') {
     logger.error(`❌ Routeur ${name} est undefined ou mal exporté`);
@@ -34,5 +36,6 @@ router.use('/ticket', ticketRoutes);
 router.use('/event',  eventRoutes);
 router.use('/offer',  offerRoutes);
 router.use('/health', healthRoutes);
+router.use('/stats',  statsRoutes); // ✅ ajout
 
 module.exports = router;
