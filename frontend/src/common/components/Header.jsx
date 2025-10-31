@@ -36,7 +36,8 @@ export default function Header() {
   const adminLinks = isAdmin
     ? [
         { to: '/user', label: 'Utilisateurs' },
-        { to: '/role', label: 'Rôles' }
+        { to: '/role', label: 'Rôles' },
+        { to: '/stats', label: 'Statistiques' }
       ]
     : [];
 

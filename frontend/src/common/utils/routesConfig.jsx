@@ -36,6 +36,9 @@ import TicketDetail from '../../ticketing/pages/TicketDetail';
 import TicketCreate from '../../ticketing/pages/TicketCreate';
 import TicketForceValidate from '../../ticketing/pages/TicketForceValidate';
 
+// Stats
+import StatsPage from '../../ticketing/pages/StatsPage';
+
 // Payment
 import PaymentStart from '../../payment/pages/PaymentStart';
 import PaymentConfirm from '../../payment/pages/PaymentConfirm';
@@ -82,6 +85,9 @@ export const routesConfig = [
   { path: '/ticket/create', element: <TicketCreate />, private: true },
   { path: '/ticket/:id', element: <TicketDetail />, private: true },
   { path: '/ticket/force-validate', element: <TicketForceValidate />, private: true, roles: ['ADMIN'] },
+
+  // Stats (ADMIN only)
+  { path: '/stats', element: <StatsPage />, private: true, roles: ['ADMIN'] },
 
   // Payment
   { path: '/pay/start', element: <PaymentStart />, private: true },
