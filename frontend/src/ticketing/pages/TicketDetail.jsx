@@ -1,15 +1,17 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import Detail from '../../common/components/Detail';
 import { getTicket, deleteTicket } from '../api/ticket';
+import { getUser } from '../../auth/api/user';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
-import { useAuth } from '../../common/context/AuthContext'; // 🔹 pour récupérer le rôle
+import { useAuth } from '../../common/context/AuthContext';
 
 export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+
   const [showMore, setShowMore] = useState(false);
-  const { hasRole } = useAuth(); // 🔹 hook auth
 
   const handleDelete = async () => {
     if (!window.confirm('Confirmer la suppression ?')) return;
@@ -21,9 +23,22 @@ export default function TicketDetail() {
     <Detail
       id={id}
       title={`Ticket #${id}`}
-      fetchFn={(ticketId) =>
-        getTicket(ticketId, { noCache: true }).then(res => res.data || res)
-      }
+      fetchFn={async (ticketId) => {
+        const res = await getTicket(ticketId, { noCache: true });
+        const ticket = res.data || res;
+
+        // 🔹 enrichir avec user
+        if (ticket.userId) {
+          try {
+            const u = await getUser(ticket.userId);
+            ticket.user = u.data || u;
+          } catch (err) {
+            console.error('Erreur récupération user:', err);
+          }
+        }
+        return ticket;
+      }}
+      onDelete={handleDelete}
     >
       {(ticket) => {
         const status = (ticket?.status || '').toUpperCase();
@@ -72,6 +87,7 @@ export default function TicketDetail() {
                   <p><strong>Nom :</strong> {user.lastName || '—'}</p>
                   <p><strong>Prénom :</strong> {user.firstName || '—'}</p>
                   <p><strong>Date de naissance :</strong> {user.birthDate ? new Date(user.birthDate).toLocaleDateString() : '—'}</p>
+
                   <p><strong>Statut :</strong> {ticket.statusLabel || ticket.status}</p>
                   <p><strong>Zone :</strong> {ticket.zone}</p>
                   <p><strong>Prix :</strong> {Number(ticket.price).toFixed(2)} €</p>
@@ -90,7 +106,6 @@ export default function TicketDetail() {
                         💳 Procéder au paiement
                       </button>
 
-                      {/* Bouton Vérification réservé aux rôles habilités */}
                       {hasRole(['ADMIN', 'EMPLOYEE', 'AGENT']) && (
                         <button
                           className="btn btn--verification"
@@ -114,7 +129,7 @@ export default function TicketDetail() {
                         zone: ticket.zone,
                         price: ticket.price,
                         issuedAt: ticket.updatedAt,
-                        signature: ticket.signature // 🔹 ajouté
+                        signature: ticket.signature
                       })}
                       size={160}
                     />
