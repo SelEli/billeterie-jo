@@ -15,7 +15,14 @@ export default function AuthProfile() {
 
   useEffect(() => {
     getProfile()
-      .then(res => setProfile(res?.data || res))
+      .then(res => {
+        const data = res?.data || res;
+        // ✅ Formatage de la date pour l’input type="date"
+        if (data.birthDate) {
+          data.birthDate = new Date(data.birthDate).toISOString().split('T')[0];
+        }
+        setProfile(data);
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -13,7 +13,16 @@ export default function UserDetail() {
   const { user, logout, hasRole } = useAuth();
 
   const isProfile = !id || Number(id) === Number(user?.id);
-  const fetchFn = isProfile ? getProfile : getUser;
+  const fetchFn = async (paramId) => {
+    const res = await (isProfile ? getProfile() : getUser(paramId));
+    const data = res?.data || res;
+    // ✅ Formatage de la date pour l’input type="date"
+    if (data.birthDate) {
+      data.birthDate = new Date(data.birthDate).toISOString().split('T')[0];
+    }
+    return data;
+  };
+
   const FormComponent = isProfile ? ProfileForm : UserForm;
 
   const handleUpdate = async (values) => {
@@ -55,7 +64,7 @@ export default function UserDetail() {
     <Detail
       id={isProfile ? user.id : id}
       title={isProfile ? 'Mon profil' : `Utilisateur #${id}`}
-      fetchFn={fetchFn}
+      fetchFn={() => fetchFn(id)}
       FormComponent={FormComponent}
       onSubmit={handleUpdate}
       onDelete={handleDelete}
