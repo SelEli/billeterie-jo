@@ -2,17 +2,10 @@
 
 ## Aperçu visuel
 
-- Vue d’accueil du site de billetterie JO 2024, avec navigation, CTA, et affichage des épreuves à venir.
-
-- Vue administrateur des billets :
--- Suivi des statuts : en attente, validé, utilisé
--- Actions disponibles : paiement, vérification
--- Table dynamique connectée aux microservices backend
--- Affichage des événements, prix, QR codes et sessions Stripe
-
-- Vue d'un ticket valide avec QR code sécurisé par double clé
-
-- Vue d'ensemble de l'architecture du projet
+- Vue d’accueil : navigation, CTA, épreuves à venir
+- Vue administrateur : statuts des billets, actions (paiement, vérification), table dynamique connectée aux microservices
+- Vue ticket valide : QR code sécurisé par double clé
+- Vue architecture : schéma global du projet
 
 ## Ce que j’ai appris
 
