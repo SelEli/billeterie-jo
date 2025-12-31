@@ -2,21 +2,25 @@
 
 ## Aperçu visuel
 
-Vue d’accueil du site de billetterie JO 2024, avec navigation, CTA, et affichage des épreuves à venir.
+- Vue d’accueil du site de billetterie JO 2024, avec navigation, CTA, et affichage des épreuves à venir.
 
-Vue administrateur des billets :
-- Suivi des statuts : en attente, validé, utilisé
-- Actions disponibles : paiement, vérification
-- Table dynamique connectée aux microservices backend
-- Affichage des événements, prix, QR codes et sessions Stripe
+- Vue administrateur des billets :
+-- Suivi des statuts : en attente, validé, utilisé
+-- Actions disponibles : paiement, vérification
+-- Table dynamique connectée aux microservices backend
+-- Affichage des événements, prix, QR codes et sessions Stripe
+
+- Vue d'un ticket valide avec QR code sécurisé par double clé
+
+- Vue d'ensemble de l'architecture du projet
 
 ## Ce que j’ai appris
 
-- Architecture microservices avec Kafka, Redis, Stripe
+- Architecture microservices avec Kafka, Redis, mock de paiement
 - Authentification sécurisée avec JWT et QR codé signé
-- Dockerisation complète de la stack
+- Dockerisation complète de la stack, hébergée sur Railway
 - Validation stricte des données avec Zod
-- Monitoring distribué (Winston, Swagger, Prometheus)
+- Monitoring distribué (Winston, Swagger)
 - Mise en ligne d’un front React connecté aux services backend
 - Interface admin avec logique métier complète
 
