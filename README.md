@@ -2,7 +2,7 @@
 
 ## Description du projet
 
-Projet académique de niveau Bac +3, réalisé dans le cadre de la validation du diplôme. Il s’agit d’une plateforme de billetterie fictive pour les JO 2024, développée en architecture microservices (auth, paiement, ticketing, vérification) et déployée sur un site réel. Le système gère l’authentification, l’achat, la génération et la validation de billets sécurisés (JWT, HMAC, QR code signé), avec une communication distribuée via Kafka et Redis. Le front React et l’interface admin permettent de suivre les statuts en temps réel et d’interagir avec l’ensemble des services.
+*Projet académique de niveau Bac +3*, réalisé dans le cadre de la validation du diplôme. Il s’agit d’une *plateforme de billetterie fictive pour les JO 2024*, développée en architecture microservices (auth, paiement, ticketing, vérification) et déployée sur un site réel. Le système gère l’authentification, l’achat, la génération et la validation de billets sécurisés (JWT, HMAC, QR code signé), avec une communication distribuée via Kafka et Redis. Le front React et l’interface admin permettent de suivre les statuts en temps réel et d’interagir avec l’ensemble des services.
 
 ## Aperçu visuel
 
