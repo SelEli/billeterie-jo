@@ -1,4 +1,24 @@
-# Billetterie JO 2024 — README technique
+# Billetterie JO 2024 — README 
+
+## Aperçu visuel
+
+Vue d’accueil du site de billetterie JO 2024, avec navigation, CTA, et affichage des épreuves à venir.
+
+Vue administrateur des billets :
+- Suivi des statuts : en attente, validé, utilisé
+- Actions disponibles : paiement, vérification
+- Table dynamique connectée aux microservices backend
+- Affichage des événements, prix, QR codes et sessions Stripe
+
+## Ce que j’ai appris
+
+- Architecture microservices avec Kafka, Redis, Stripe
+- Authentification sécurisée avec JWT et QR codé signé
+- Dockerisation complète de la stack
+- Validation stricte des données avec Zod
+- Monitoring distribué (Winston, Swagger, Prometheus)
+- Mise en ligne d’un front React connecté aux services backend
+- Interface admin avec logique métier complète
 
 ## 🛠 Commandes Docker à connaître (mode pro)
 
