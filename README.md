@@ -1,134 +1,155 @@
-# Billetterie JO 2024 — README 
+# Billetterie JO 2024 — Plateforme Microservices (Bac+3)
 
-## Description du projet
+Projet réalisé en autonomie complète dans le cadre d’un Bac+3.  
+Objectif : concevoir une plateforme de billetterie sécurisée pour les JO 2024, basée sur une architecture microservices (auth, paiement mock, ticketing, vérification) avec communication distribuée via Kafka et Redis, et un front React déployé sur Railway.
 
-**Projet académique de niveau Bac +3**, réalisé dans le cadre de la validation du diplôme. Il s’agit d’une **plateforme de billetterie fictive pour les JO 2024**, développée en architecture microservices (auth, paiement, ticketing, vérification) et déployée sur un site réel. Le système gère l’authentification, l’achat, la génération et la validation de billets sécurisés (JWT, HMAC, QR code signé), avec une communication distribuée via Kafka et Redis. Le front React et l’interface admin permettent de suivre les statuts en temps réel et d’interagir avec l’ensemble des services.
+---
 
-## Liens importants
+## 📚 Table des matières
+- [Objectifs du projet](#-objectifs-du-projet)
+- [Aperçu visuel](#-aperçu-visuel)
+- [Ce que j’ai appris](#-ce-que-jai-appris)
+- [Architecture technique](#-architecture-technique)
+- [Stack technique](#-stack-technique)
+- [Commandes Docker](#-commandes-docker)
+- [Sécurité](#-sécurité)
+- [Monitoring & Railway](#-monitoring--railway)
+- [Structure du projet](#-structure-du-projet)
+- [Liens importants](#-liens-importants)
 
-- **[Kanban du projet](https://tinyurl.com/sellier-kanban-jo)**
-- **[Démo en ligne](https://frontend-production-a1c6.up.railway.app/app/)**
+---
 
-## Aperçu visuel
+## 🎯 Objectifs du projet
+- Concevoir une architecture **microservices** modulaire et scalable.  
+- Implémenter un système de **billets sécurisés** (JWT + double clé unique + QR signé).  
+- Simuler un **paiement sécurisé** via un service mock.  
+- Gérer la communication distribuée via **Kafka** et **Redis**.  
+- Déployer l’ensemble sur **Railway** (services isolés).  
+- Réaliser le projet seul, à distance, avec documentation complète.
 
-- Vue d’accueil : navigation, CTA, épreuves à venir
-- Vue administrateur : statuts des billets, actions (paiement, vérification), table dynamique connectée aux microservices
-- Vue ticket valide : QR code sécurisé par double clé
-- Vue architecture : schéma global du projet
+---
 
-## Ce que j’ai appris
+## 🖼 Aperçu visuel
+- Accueil : navigation + épreuves  
+- Admin : statuts des billets, actions, table dynamique  
+- Ticket valide : QR code signé  
+- Architecture : schéma global du projet (`Architecture logicielle Site billeterie JO.drawio.png`)
 
-- Architecture microservices avec Kafka, Redis, mock de paiement
-- Authentification sécurisée avec JWT et QR codé signé
-- Dockerisation complète de la stack, hébergée sur Railway
-- Validation stricte des données avec Zod
-- Monitoring distribué (Winston, Swagger)
-- Mise en ligne d’un front React connecté aux services backend
-- Interface admin avec logique métier complète
+---
 
-## 🛠 Commandes Docker à connaître (mode pro)
+## 🎓 Ce que j’ai appris
+- Architecture microservices (Kafka, Redis, services isolés)  
+- Authentification sécurisée (JWT + HMAC + double clé unique)  
+- Paiement mock avec génération de clé d’achat  
+- Validation stricte des données avec Zod  
+- Monitoring distribué (Winston, Swagger)  
+- Déploiement Railway (services indépendants)  
+- Front React connecté aux services backend  
 
-### Lancer l’infrastructure de base (Kafka, Redis, Postgres, etc.)
-```bash
-docker compose -f docker-compose.infra.yml up -d
-```
-
-### Lancer un service en développement (avec hot reload)
-```bash
-docker compose -f docker-compose.<service>.yml -f docker-compose.<service>.override.yml up --build
-```
-Remplacer `<service>` par auth, ticketing, payment ou verification.
-
-### Lancer un service en production (image figée, sans volume)
-```bash
-docker compose -f docker-compose.<service>.yml up -d --build
-```
-
-### Arrêter un service
-```bash
-docker compose -f docker-compose.<service>.yml down
-```
-
-## 📜 Description du projet
-Architecture modulaire orientée microservices pour gérer l’authentification, la réservation, le paiement sécurisé, la traçabilité, la génération et la vérification des billets électroniques des Jeux Olympiques 2024.
-
-## 🎯 Objectif du projet
-Concevoir une plateforme billetterie :
-
-- Scalable et modulaire
-- Sécurisée avec JWT + Stripe
-- Traçable avec Kafka, Redis, Winston
-- Testable et observable en temps réel
+---
 
 ## 🏗 Architecture technique
 
 | Service      | Rôle métier                                     |
 |--------------|-------------------------------------------------|
-| auth/        | Inscription, connexion, clefs invisibles        |
-| paiement/    | Session Stripe, clef achat, Kafka billet-achat  |
-| ticketing/   | Création des billets, QR code, statuts          |
-| verification/| Scan, validation de billet, contrôles événement |
-| frontend/    | Front-end & Reverse proxy centralisé            |
+| auth/        | Inscription, connexion, double clé invisible     |
+| paiement/    | Mock paiement, clé d’achat unique, Kafka events |
+| ticketing/   | Création billets, QR code signé, statuts        |
+| verification/| Scan, validation, contrôles événement           |
+| frontend/    | Front-end & reverse proxy                       |
 
-Chaque microservice est isolé, Dockerisé, et contient :
+Chaque service contient :
+- controllers/  
+- routes/  
+- schemas/ (Zod)  
+- utils/ (redis, kafka, logger…)  
+- middlewares/  
+- src/index.js  
 
-- **controllers/** : logique métier par action
-- **routes/** : endpoints REST modulaires
-- **schemas/** : validation Zod par use case
-- **utils/** : modules internes (logger, redis, kafka…)
-- **middlewares/** : auth, validation, etc.
-- **src/index.js** : démarrage Express
+---
 
 ## 🧰 Stack technique
 
-| Module        | Usage commun                                    |
+| Module        | Usage                                           |
 |---------------|-------------------------------------------------|
 | express       | Serveur HTTP REST                               |
-| dotenv        | Variables d’environnement                       |
-| winston       | Logging par service avec SERVICE_NAME           |
-| redis         | Session, cache, Pub/Sub                         |
-| jsonwebtoken  | Authentification JWT                            |
-| crypto        | HMAC, clefs invisibles                          |
-| zod           | Validation stricte des entrées                  |
-| kafkajs       | Messaging distribué — billet-achat, etc.        |
-| stripe        | Paiement sécurisé                               |
-| prisma        | ORM SQL généré                                  |
-| uuid          | Identifiants et tracking                        |
+| redis         | Cache, session, Pub/Sub                         |
+| kafkajs       | Messaging distribué                             |
+| jsonwebtoken  | Auth JWT                                        |
+| crypto        | HMAC, signatures                                |
+| zod           | Validation stricte                              |
+| prisma        | ORM SQL                                         |
+| winston       | Logging structuré                               |
+| uuid          | Identifiants uniques                            |
 
-## 🚀 Installation rapide
-```bash
-npm install
+---
+
+## 🛠 Commandes Docker
+
+### Lancer l’infra (Kafka, Redis, Postgres)
+```
+docker compose -f docker-compose.infra.yml up -d
 ```
 
-### Démarrer toute la stack (prod)
-```bash
-docker compose up --build
+### Lancer un service en dev
 ```
+docker compose -f docker-compose.<service>.yml -f docker-compose.<service>.override.yml up --build
+```
+
+### Lancer un service en prod
+```
+docker compose -f docker-compose.<service>.yml up -d --build
+```
+
+### Arrêter un service
+```
+docker compose -f docker-compose.<service>.yml down
+```
+
+---
 
 ## 🔐 Sécurité
+- JWT sécurisé  
+- Double clé invisible par utilisateur  
+- Clé d’achat unique générée par le service paiement  
+- QR code signé (HMAC)  
+- Validation Zod par payload  
+- bcrypt pour les mots de passe  
 
-- JWT sécurisé
-- Clé invisible par utilisateur
-- Clé d’achat unique + session Stripe
-- QR codé signé (HMAC)
-- Middleware Auth.js par route
-- Validation Zod par payload
-- bcrypt pour les mots de passe
+---
 
-## 📊 Monitoring & observabilité
+## 📊 Monitoring & Railway
 
-- Winston + SERVICE_NAME
-- Kafka (pub/consume)
-- Redis (cache + session)
-- Swagger UI par service (/api/docs)
-- Prometheus pour métriques
-- Grafana Loki ou ELK pour logs
-- Jaeger (optionnel) pour traçage distribué
+### Logging
+- Winston + SERVICE_NAME  
+- Logs par microservice  
+- Traçabilité des événements Kafka  
+
+### Documentation API (Swagger)
+Exemple d’endpoint (service ticketing) :
+```
+GET /api/tickets/:id
+- Récupère un billet
+- Vérifie la signature HMAC
+- Retourne le QR code signé
+```
+
+Swagger disponible sur chaque service :
+```
+/api/docs
+```
+
+### Railway — Tableau de contrôle
+- Déploiement séparé par service  
+- Logs en temps réel  
+- Variables d’environnement par microservice  
+- Redémarrage automatique en cas d’erreur  
+- Monitoring CPU / RAM intégré  
+
+---
 
 ## 📁 Structure du projet
-
-### Code
-```plaintext
+```
 services/
 ├── auth/
 │   ├── controllers/
@@ -139,11 +160,14 @@ services/
 │   ├── src/index.js
 │   └── .env.example
 ├── paiement/
-│   └── ...
 ├── ticketing/
-│   └── ...
 ├── verification/
-│   └── ...
 frontend/
 └── ...
 ```
+
+---
+
+## 🔗 Liens importants
+- Kanban : https://tinyurl.com/sellier-kanban-jo  
+- Démo : https://frontend-production-a1c6.up.railway.app/app/
