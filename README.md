@@ -1,7 +1,7 @@
 # Billetterie JO 2024 — Plateforme Microservices (Bac+3)
 
 Projet réalisé en autonomie complète dans le cadre d’un Bac+3.  
-Objectif : concevoir une plateforme de billetterie sécurisée pour les JO 2024, basée sur une architecture microservices (auth, paiement mock, ticketing, vérification) avec communication distribuée via Kafka et Redis, et un front React déployé sur Railway.
+Objectif : concevoir une plateforme de billetterie sécurisée type-JO 2024, basée sur une architecture microservices (auth, paiement mock, ticketing, vérification) avec communication distribuée via Kafka et Redis, et un front React déployé sur Railway.
 
 ---
 
