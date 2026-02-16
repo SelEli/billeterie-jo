@@ -15,6 +15,7 @@ Objectif : concevoir une plateforme de billetterie sécurisée pour les JO 2024,
 - [Sécurité](#-sécurité)
 - [Monitoring & Railway](#-monitoring--railway)
 - [Structure du projet](#-structure-du-projet)
+- [Rapport de tests & couverture](#-rapport-de-tests--couverture)
 - [Liens importants](#-liens-importants)
 
 ---
@@ -165,6 +166,20 @@ services/
 frontend/
 └── ...
 ```
+
+---
+
+## 📊 Rapport de tests & couverture
+
+Le rapport complet des tests (unitaires, intégration, E2E) est disponible ici :  
+➡️ [Voir le rapport complet](./rapport-tests.md)
+
+Résumé :
+- Couverture globale : ~70% statements • ~55% branches • ~70% fonctions • ~68% lignes  
+- Modules forts : Event (>85% services), Offer (>90% services)  
+- Cas critiques testés : authentification, rôles, paiement (start/confirm), billets  
+- Règles métier validées : anti‑fraude, quotas, contrôle de validité, gestion des doublons, annulation sécurisée  
+
 
 ---
 
